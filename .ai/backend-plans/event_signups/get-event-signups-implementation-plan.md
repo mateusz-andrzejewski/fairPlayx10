@@ -69,4 +69,3 @@ Zwraca paginowaną listę zapisów na konkretne wydarzenie z możliwością filt
 4. Dodać testy jednostkowe serwisu (mock Supabase) oraz testy kontraktowe API (np. Vitest) sprawdzające paginację i filtrację.
 5. Upewnić się, że logowanie błędów delegowane jest do centralnego loggera (np. `logger.error`).
 6. Zaktualizować dokumentację OpenAPI / README jeśli istnieje.
-

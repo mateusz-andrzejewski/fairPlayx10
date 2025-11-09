@@ -1,11 +1,13 @@
 # API Endpoint Implementation Plan: GET /api/users
 
 ## 1. Przegląd punktu końcowego
+
 - Cel: udostępnić administratorom paginowaną listę użytkowników wraz z filtrami po statusie, roli i wyszukiwaniu tekstowym.
 - Warstwa HTTP: `src/pages/api/users/index.ts` w modelu Astro serverless z `export const prerender = false`.
 - Wykorzystywane typy: `ListUsersQueryParams`, `UserDTO`, `UsersListResponseDTO`, `PaginationMetaDTO` z `src/types.ts`.
 
 ## 2. Szczegóły żądania
+
 - Metoda HTTP: GET.
 - Struktura URL: `/api/users` (bez segmentów dynamicznych).
 - Autoryzacja: nagłówek `Authorization: Bearer <JWT>` wymagany; tylko użytkownicy z rolą `admin` otrzymują dane.
@@ -17,6 +19,7 @@
 - Request body: brak.
 
 ## 3. Szczegóły odpowiedzi
+
 - Sukces 200: zwraca `UsersListResponseDTO` zawierające `data: UserDTO[]` oraz `pagination` (page, limit, total, total_pages); rekordy sortowane malejąco po `created_at` dla deterministycznej paginacji.
 - Walidacja 400: JSON `{ error: "validation_error", message, details }` z listą naruszeń schematu Zod.
 - Brak autoryzacji 401: `{ error: "unauthorized", message }` gdy brak tokena lub nie można ustalić użytkownika.
@@ -24,6 +27,7 @@
 - Błąd serwera 500: `{ error: "internal_error", message }` przy problemach Supabase lub nieoczekiwanych wyjątkach, z logowaniem po stronie serwera.
 
 ## 4. Przepływ danych
+
 - Odczytaj `Authorization` z żądania, wyciągnij token Bearer, wywołaj `locals.supabase.auth.getUser(token)` aby pobrać profil i role z JWT.
 - Zastosuj straż: brak użytkownika lub status `pending` → natychmiastowe 401/403 zgodnie z regułą endpointu admin-only.
 - Wczytaj `context.url.searchParams`, przemapuj do plain object i zweryfikuj poprzez schemat Zod (`listUsersQuerySchema`) zapewniający domyślne wartości, typy i limity.
@@ -33,6 +37,7 @@
 - Handler serializuje DTO do JSON z `return new Response(JSON.stringify(...), { status: 200, headers: { "content-type": "application/json" } })` oraz nagłówkiem `cache-control: no-store`.
 
 ## 5. Względy bezpieczeństwa
+
 - Wymuszaj autoryzację Bearer i weryfikację roli admin, odrzucając inne role zgodnie z regułami RLS.
 - Odcinaj dostęp przy statusie użytkownika `pending`, aby zawieszone konta nie mogły listować danych.
 - Sanitizuj `search` przez zamianę `%` i `_` na escaped wzorce, minimalizując ryzyko pattern injection.
@@ -41,6 +46,7 @@
 - Dodaj nagłówek `cache-control: private, no-store` aby dane nie trafiły do cache współdzielonych.
 
 ## 6. Obsługa błędów
+
 - Brak tokena lub token nieprawidłowy → status 401, komunikat o konieczności logowania.
 - Użytkownik bez roli admin → status 403 z komunikatem o braku uprawnień.
 - Parametry poza zakresem (np. `limit > 100`, `page < 1`, `status` spoza enum) → status 400 z listą naruszeń ze schematu Zod.
@@ -49,12 +55,14 @@
 - Nietypowe wyjątki → status 500, logowanie i neutralny komunikat bez ujawniania szczegółów.
 
 ## 7. Wydajność
+
 - Wykorzystanie indeksów (`users.role`, `users.status`, `users.email`) zapewnia wydajne filtrowanie; przy potrzebie rozbudowy warto dodać indeks kompozytowy na `status, role`.
 - Limit 100 zapobiega dużym zakresom `range` i redukuje transfer JSON.
 - Przeniesienie logiki do serwisu umożliwia ewentualne memoizacje / reuse w przyszłych endpointach (np. panelu admina).
 - W razie potrzeby dodać nagłówek `Prefer: count=exact` tylko dla pierwszej strony lub sprofilować zapytanie przy dużych wolumenach.
 
 ## 8. Kroki implementacji
+
 1. Uzupełnij `src/db/supabase.client.ts` o eksport typu `SupabaseClient` (alias dla zwróconego klienta), aby zapewnić spójne typowanie usług.
 2. Utwórz schemat Zod `listUsersQuerySchema` w nowym module `src/lib/validation/users.ts`, definiując domyślne wartości, zakresy liczby oraz sanitizację `search`.
 3. Dodaj plik `src/lib/services/users.service.ts` z funkcją `listUsers(client, params)` implementującą filtrację, wyszukiwanie, paginację i mapowanie do `UsersListResponseDTO`.
@@ -62,4 +70,3 @@
 5. Dodaj helper do escapowania wzorca wyszukiwania (np. funkcja `escapeIlikePattern`) w module walidacji lub serwisie, z testem jednostkowym.
 6. Przygotuj testy jednostkowe/integracyjne (Vitest lub inny runner) dla schematu walidacji i serwisu z wykorzystaniem stubów Supabase lub kontraktów API.
 7. Zaktualizuj dokumentację `.ai/api-plan.md`, jeśli wystąpią różnice implementacyjne (np. dodatkowe ograniczenia limitu), oraz upewnij się, że linter/formatter przechodzą pomyślnie.
-

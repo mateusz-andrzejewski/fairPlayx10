@@ -1,11 +1,13 @@
 # API Endpoint Implementation Plan: PATCH /api/events/{id}
 
 ## 1. Przegląd punktu końcowego
+
 - Cel: zaktualizować szczegóły istniejącego wydarzenia (np. dane logistyczne, status) przez uprawnionego organizatora lub administratora.
 - Warstwa HTTP: `src/pages/api/events/[id].ts` (Astro endpoint; handler PATCH współdzielony z GET/DELETE).
 - Logika biznesowa: funkcja `updateEvent` w `src/lib/services/events.service.ts`.
 
 ## 2. Szczegóły żądania
+
 - Metoda HTTP: PATCH
 - Struktura URL: `/api/events/{id}`
 - Parametry:
@@ -15,10 +17,12 @@
 - Nagłówki: `Authorization: Bearer <JWT>`, `Content-Type: application/json`
 
 ## 3. Wykorzystywane typy
+
 - `UpdateEventCommand`, `EventDTO` z `src/types.ts`
 - Walidatory `eventIdParamSchema`, `updateEventBodySchema` w `src/lib/validation/events.ts`
 
 ## 3. Szczegóły odpowiedzi
+
 - 200: JSON `EventDTO`
 - 400: `{ error: "validation_error", message, details }`
 - 401: `{ error: "unauthorized", message }`
@@ -27,6 +31,7 @@
 - 500: `{ error: "internal_error", message }`
 
 ## 4. Przepływ danych
+
 1. Handler waliduje `params.id` (`eventIdParamSchema`).
 2. Odczytuje body (`await request.json()`) i waliduje `updateEventBodySchema` (trim, min 1 pole, walidacja wartości).
 3. Weryfikuje rolę użytkownika (`organizer` może edytować własne wydarzenie, `admin` dowolne).
@@ -40,6 +45,7 @@
 7. Handler odsyła `Response.json(dto, { status: 200 })`.
 
 ## 5. Względy bezpieczeństwa
+
 - Tylko właściciel (organizer) lub admin może aktualizować.
 - Pole `organizer_id` nie jest dostępne do zmiany.
 - Walidacja statusów – np. tylko admin może ustawić `cancelled`, `completed` nie wraca do `draft`.
@@ -47,6 +53,7 @@
 - Obsługa soft-delete: edycja niedozwolona dla `deleted_at` ≠ null.
 
 ## 6. Obsługa błędów
+
 - Błędne parametry/body → 400 z opisem.
 - Brak tokenu → 401.
 - Niewystarczające uprawnienia → 403.
@@ -54,14 +61,15 @@
 - Błąd Supabase → log + 500.
 
 ## 7. Rozważania dotyczące wydajności
+
 - Pojedynczy update – niskie obciążenie.
 - Indeksy na `organizer_id`, `deleted_at` ułatwiają weryfikację własności.
 - Minimalny patch (tylko zmienione pola) obniża ryzyko nadpisania danych.
 
 ## 8. Etapy wdrożenia
+
 1. Zdefiniować `updateEventBodySchema` w `src/lib/validation/events.ts` (wraz z regułą „co najmniej jedno pole”).
 2. Zaimplementować `updateEvent` w `src/lib/services/events.service.ts` (pobranie, autoryzacja, walidacja domenowa, update).
 3. Dodać obsługę PATCH w `src/pages/api/events/[id].ts`.
 4. Przygotować testy jednostkowe dla walidatora i serwisu (różne role, błędne statusy, daty w przeszłości).
 5. Uruchomić linter/testy oraz zaktualizować dokumentację API.
-

@@ -112,4 +112,3 @@ export interface TeamDrawResultDTO {
 5. Dodać testy: jednostkowe dla algorytmu (różne rozkłady skill rate), integracyjne dla serwisu (mock Supabase), kontraktowe dla API.
 6. Ustawić logowanie błędów i metryk (np. `logger.info` z czasem wykonania), dodać wpisy do `audit_logs`.
 7. Zaktualizować dokumentację (OpenAPI/README) i podkreślić limity parametrów.
-

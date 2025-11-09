@@ -1,11 +1,13 @@
 # API Endpoint Implementation Plan: User Management Endpoints
 
 ## 1. Przegląd punktu końcowego
+
 Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów użytkowników w systemie FairPlay. Implementacja obsługuje listowanie użytkowników z zaawansowanymi filtrami, pobieranie szczegółów, zatwierdzanie kont oraz soft delete. Wszystkie operacje są chronione kontrolą dostępu opartą na rolach, z priorytetem bezpieczeństwa i integralności danych.
 
 ## 2. Szczegóły żądania
 
 ### GET /api/users
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/users`
 - **Parametry**:
@@ -19,6 +21,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ### GET /api/users/{id}
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/users/{id}`
 - **Parametry**:
@@ -27,12 +30,14 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ### PATCH /api/users/{id}/approve
+
 - **Metoda HTTP**: PATCH
 - **Struktura URL**: `/api/users/{id}/approve`
 - **Parametry**:
   - **Wymagane**: `id` (integer) - ID użytkownika
   - **Opcjonalne**: brak
 - **Request Body**:
+
 ```json
 {
   "role": "player",
@@ -41,6 +46,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ```
 
 ### DELETE /api/users/{id}
+
 - **Metoda HTTP**: DELETE
 - **Struktura URL**: `/api/users/{id}`
 - **Parametry**:
@@ -49,6 +55,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ## 3. Wykorzystywane typy
+
 - **DTOs**: `UserDTO`, `UsersListResponseDTO`
 - **Query Parameters**: `ListUsersQueryParams`
 - **Command Models**: `ApproveUserCommand`
@@ -58,8 +65,10 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ## 4. Szczegóły odpowiedzi
 
 ### GET /api/users
+
 - **Success Codes**: 200 OK
 - **Response Body**:
+
 ```json
 {
   "data": [
@@ -85,18 +94,22 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ```
 
 ### GET /api/users/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Pojedynczy obiekt `UserDTO` (taka sama struktura jak powyżej)
 
 ### PATCH /api/users/{id}/approve
+
 - **Success Codes**: 200 OK
 - **Response Body**: Zaktualizowany obiekt `UserDTO`
 
 ### DELETE /api/users/{id}
+
 - **Success Codes**: 204 No Content
 - **Response Body**: pusty
 
 ## 5. Przepływ danych
+
 1. **Uwierzytelnienie**: JWT token weryfikowany przez Astro middleware
 2. **Autoryzacja**: Sprawdzenie roli użytkownika w context.locals
 3. **Walidacja**: Zod schemas dla parametrów query i request body
@@ -106,6 +119,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 7. **Response**: Strukturalizowana odpowiedź z odpowiednim statusem
 
 ## 6. Względy bezpieczeństwa
+
 - **Autoryzacja**: JWT-based authentication z kontrolą ról (admin/organizer/player)
 - **RLS Policies**: Row Level Security na poziomie bazy danych
 - **Input Validation**: Kompleksowa walidacja Zod dla wszystkich wejść
@@ -119,27 +133,33 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ### Scenariusze błędów i odpowiedzi:
 
 **400 Bad Request**:
+
 - Nieprawidłowa wartość roli w approve (nie z enum)
 - Nieprawidłowy format player_id
 - Nieistniejący player_id w bazie danych
 - Nieprawidłowe parametry paginacji (ujemne wartości)
 
 **401 Unauthorized**:
+
 - Brak JWT token
 - Nieprawidłowy/expired JWT token
 
 **403 Forbidden**:
+
 - Użytkownik bez roli admin próbuje dostępu
 - Próba dostępu do cudzego profilu (bez uprawnień admin)
 
 **404 Not Found**:
+
 - Użytkownik o podanym ID nie istnieje
 - Użytkownik został soft-deleted
 
 **409 Conflict**:
+
 - Próba zatwierdzenia już zatwierdzonego użytkownika
 
 **500 Internal Server Error**:
+
 - Błędy połączenia z bazą danych
 - Nieoczekiwane błędy podczas operacji na danych
 - Błędy audit logging
@@ -147,6 +167,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opisem.
 
 ## 8. Rozważania dotyczące wydajności
+
 - **Indeksy**: Wykorzystanie indeksów na email, status, role dla szybkich filtrów
 - **Paginacja**: Cursor-based pagination dla dużych zbiorów danych
 - **Caching**: Cache dla często używanych danych użytkowników
@@ -157,11 +178,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 ## 9. Etapy wdrożenia
 
 ### Faza 1: Przygotowanie infrastruktury
+
 1. Utworzenie `src/lib/services/userService.ts` z podstawowymi metodami
 2. Implementacja Zod schemas w `src/lib/validation/userSchemas.ts`
 3. Dodanie typów audit logging do `src/types.ts`
 
 ### Faza 2: Implementacja GET /api/users
+
 4. Utworzenie `src/pages/api/users/index.ts`
 5. Implementacja middleware autoryzacji dla roli admin
 6. Dodanie walidacji parametrów query
@@ -169,12 +192,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 8. Testowanie z różnymi parametrami filtrów
 
 ### Faza 3: Implementacja GET /api/users/{id}
+
 9. Utworzenie `src/pages/api/users/[id].ts`
 10. Implementacja logiki sprawdzania dostępu (admin lub własny profil)
 11. Dodanie walidacji ID użytkownika
 12. Implementacja obsługi błędów 404
 
 ### Faza 4: Implementacja PATCH /api/users/{id}/approve
+
 13. Rozszerzenie `src/pages/api/users/[id]/approve.ts`
 14. Implementacja walidacji request body
 15. Dodanie logiki biznesowej sprawdzenia statusu użytkownika
@@ -182,12 +207,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 17. Obsługa konfliktów (już zatwierdzony użytkownik)
 
 ### Faza 5: Implementacja DELETE /api/users/{id}
+
 18. Dodanie obsługi DELETE w `src/pages/api/users/[id].ts`
 19. Implementacja soft delete logiki
 20. Dodanie audit logging dla operacji delete
 21. Zapewnienie bezpieczeństwa (tylko admin)
 
 ### Faza 6: Testowanie i optymalizacja
+
 22. Unit testy dla UserService
 23. Integration testy dla wszystkich endpointów
 24. Testy bezpieczeństwa (autoryzacja, RLS)
@@ -196,6 +223,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 27. Dokumentacja API
 
 ### Faza 7: Deployment i monitoring
+
 28. Deployment na środowisko testowe
 29. Monitoring błędów i wydajności
 30. A/B testing jeśli potrzebne
@@ -206,11 +234,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 # API Endpoint Implementation Plan: Events Management Endpoints
 
 ## 1. Przegląd punktu końcowego
+
 Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarzeń w systemie FairPlay. Implementacja obsługuje listowanie wydarzeń z zaawansowanymi filtrami (status, lokalizacja, zakres dat, organizator), pobieranie szczegółów wydarzeń z zapisami, tworzenie nowych wydarzeń, aktualizację istniejących oraz soft delete. Wszystkie operacje są chronione kontrolą dostępu opartą na rolach, gdzie tworzenie i aktualizacja wydarzeń wymaga uprawnień organizatora lub administratora, a usuwanie tylko administratora.
 
 ## 2. Szczegóły żądania
 
 ### GET /api/events (Lista wydarzeń z filtrami)
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/events`
 - **Parametry**:
@@ -226,6 +256,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 - **Request Body**: brak
 
 ### GET /api/events/{id} (Szczegóły wydarzenia z zapisami)
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/events/{id}`
 - **Parametry**:
@@ -234,21 +265,24 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 - **Request Body**: brak
 
 ### POST /api/events (Tworzenie nowego wydarzenia)
+
 - **Metoda HTTP**: POST
 - **Struktura URL**: `/api/events`
 - **Parametry**: brak
 - **Request Body**:
+
 ```json
 {
   "name": "Weekend Match",
   "location": "Central Park",
   "event_datetime": "2024-01-15T14:00:00Z",
   "max_places": 22,
-  "optional_fee": 10.00
+  "optional_fee": 10.0
 }
 ```
 
 ### PATCH /api/events/{id} (Aktualizacja wydarzenia)
+
 - **Metoda HTTP**: PATCH
 - **Struktura URL**: `/api/events/{id}`
 - **Parametry**:
@@ -257,6 +291,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 - **Request Body**: Częściowy obiekt wydarzenia (wszystkie pola opcjonalne)
 
 ### DELETE /api/events/{id} (Soft delete wydarzenia)
+
 - **Metoda HTTP**: DELETE
 - **Struktura URL**: `/api/events/{id}`
 - **Parametry**:
@@ -265,6 +300,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 - **Request Body**: brak
 
 ## 3. Wykorzystywane typy
+
 - **DTOs**: `EventDTO`, `EventDetailDTO`, `EventsListResponseDTO`
 - **Query Parameters**: `ListEventsQueryParams`
 - **Command Models**: `CreateEventCommand`, `UpdateEventCommand`
@@ -275,8 +311,10 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 ## 4. Szczegóły odpowiedzi
 
 ### GET /api/events
+
 - **Success Codes**: 200 OK
 - **Response Body**:
+
 ```json
 {
   "data": [
@@ -286,7 +324,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
       "location": "Central Park",
       "event_datetime": "2024-01-15T14:00:00Z",
       "max_places": 22,
-      "optional_fee": 10.00,
+      "optional_fee": 10.0,
       "status": "active",
       "current_signups_count": 18,
       "organizer_id": 5,
@@ -305,8 +343,10 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 ```
 
 ### GET /api/events/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Obiekt `EventDetailDTO` z zagnieżdżonymi zapisami
+
 ```json
 {
   "id": 1,
@@ -314,7 +354,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
   "location": "Central Park",
   "event_datetime": "2024-01-15T14:00:00Z",
   "max_places": 22,
-  "optional_fee": 10.00,
+  "optional_fee": 10.0,
   "status": "active",
   "current_signups_count": 18,
   "organizer_id": 5,
@@ -335,18 +375,22 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 ```
 
 ### POST /api/events
+
 - **Success Codes**: 201 Created
 - **Response Body**: Utworzony obiekt `EventDTO`
 
 ### PATCH /api/events/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Zaktualizowany obiekt `EventDTO`
 
 ### DELETE /api/events/{id}
+
 - **Success Codes**: 204 No Content
 - **Response Body**: pusty
 
 ## 5. Przepływ danych
+
 1. **Uwierzytelnienie**: JWT token weryfikowany przez Astro middleware z Supabase Auth
 2. **Autoryzacja**: Sprawdzenie roli użytkownika w context.locals (admin/organizer/player)
 3. **Walidacja**: Zod schemas dla parametrów query, URL i request body
@@ -356,8 +400,9 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 7. **Response**: Strukturalizowana odpowiedź z odpowiednim statusem HTTP
 
 ## 6. Względy bezpieczeństwa
+
 - **Autoryzacja**: JWT-based authentication z kontrolą ról (admin/organizer/player)
-- **Role-Based Access**: 
+- **Role-Based Access**:
   - GET endpoints: wszyscy uwierzytelnieni użytkownicy
   - POST: tylko organizer/admin
   - PATCH: tylko event organizer lub admin
@@ -374,6 +419,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 ### Scenariusze błędów i odpowiedzi:
 
 **400 Bad Request**:
+
 - Nieprawidłowy format daty (event_datetime)
 - event_datetime w przeszłości
 - max_places <= 0
@@ -382,30 +428,36 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 - Nieprawidłowy format ID wydarzenia
 
 **401 Unauthorized**:
+
 - Brak JWT token w nagłówku Authorization
 - Nieprawidłowy/expired JWT token
 - Brak sesji użytkownika
 
 **403 Forbidden**:
+
 - Użytkownik bez roli organizer/admin próbuje utworzyć wydarzenie
 - Użytkownik bez roli admin/organizer próbuje aktualizować cudze wydarzenie
 - Użytkownik bez roli admin próbuje usunąć wydarzenie
 - Próba dostępu do soft-deleted wydarzenia
 
 **404 Not Found**:
+
 - Wydarzenie o podanym ID nie istnieje
 - Wydarzenie zostało soft-deleted
 - Organizator o podanym ID nie istnieje (przy tworzeniu)
 
 **409 Conflict**:
+
 - Próba aktualizacji wydarzenia z event_datetime w przeszłości
 - Próba zmiany statusu na niedozwolony (np. completed -> active)
 
 **422 Unprocessable Entity**:
+
 - Nieprawidłowe dane wejściowe nie przechodzącą walidacji Zod
 - Naruszenie constraintów bazy danych
 
 **500 Internal Server Error**:
+
 - Błędy połączenia z bazą danych Supabase
 - Nieoczekiwane błędy podczas operacji na danych
 - Błędy audit logging (choć nie powinny blokować operacji głównej)
@@ -413,6 +465,7 @@ Endpointy zarządzania wydarzeniami obejmują kompletny CRUD dla zasobów wydarz
 Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error`, `message`, `code` oraz opcjonalnie `details` dla błędów walidacji.
 
 ## 8. Rozważania dotyczące wydajności
+
 - **Indeksy**: Wykorzystanie indeksów na event_datetime, status, organizer_id, location dla szybkich filtrów
 - **Paginacja**: Offset-based pagination z optymalizacją dla dużych zbiorów
 - **Query Optimization**: Select tylko potrzebnych pól, JOIN tylko gdy wymagane
@@ -424,12 +477,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 ## 9. Etapy wdrożenia
 
 ### Faza 1: Przygotowanie infrastruktury
+
 1. Utworzenie `src/lib/services/eventService.ts` z podstawowymi metodami CRUD
 2. Implementacja Zod schemas w `src/lib/validation/eventSchemas.ts`
 3. Dodanie utility funkcji dla autoryzacji wydarzeń
 4. Aktualizacja `src/types.ts` o potrzebne typy (jeśli brakuje)
 
 ### Faza 2: Implementacja GET /api/events (lista z filtrami)
+
 5. Utworzenie `src/pages/api/events/index.ts`
 6. Implementacja middleware autoryzacji dla wszystkich uwierzytelnionych użytkowników
 7. Dodanie walidacji parametrów query (page, limit, status, location, date_from, date_to, organizer_id)
@@ -438,6 +493,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 10. Testowanie z różnymi kombinacjami filtrów
 
 ### Faza 3: Implementacja GET /api/events/{id} (szczegóły z zapisami)
+
 11. Utworzenie `src/pages/api/events/[id].ts`
 12. Implementacja walidacji ID wydarzenia
 13. Dodanie obsługi błędów 404 dla nieistniejących wydarzeń
@@ -445,6 +501,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 15. Dodanie sprawdzenia soft delete (deleted_at IS NULL)
 
 ### Faza 4: Implementacja POST /api/events (tworzenie)
+
 16. Dodanie obsługi POST w `src/pages/api/events/index.ts`
 17. Implementacja walidacji request body z wymaganymi polami
 18. Dodanie sprawdzenia roli użytkownika (organizer/admin)
@@ -453,6 +510,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 21. Ustawienie organizer_id na podstawie aktualnego użytkownika
 
 ### Faza 5: Implementacja PATCH /api/events/{id} (aktualizacja)
+
 22. Dodanie obsługi PATCH w `src/pages/api/events/[id].ts`
 23. Implementacja walidacji request body (częściowej)
 24. Dodanie sprawdzenia uprawnień (organizer wydarzenia lub admin)
@@ -461,6 +519,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 27. Implementacja audit logging dla operacji "event_updated"
 
 ### Faza 6: Implementacja DELETE /api/events/{id} (soft delete)
+
 28. Dodanie obsługi DELETE w `src/pages/api/events/[id].ts`
 29. Implementacja sprawdzenia roli admin
 30. Dodanie soft delete logiki (ustawienie deleted_at)
@@ -468,6 +527,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 32. Zapewnienie, że istniejące zapisy nie są naruszone
 
 ### Faza 7: Testowanie i optymalizacja
+
 33. Unit testy dla EventService
 34. Integration testy dla wszystkich endpointów
 35. Testy bezpieczeństwa (autoryzacja, RLS, role-based access)
@@ -477,6 +537,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 39. Dokumentacja API
 
 ### Faza 8: Deployment i monitoring
+
 40. Deployment na środowisko testowe
 41. Monitoring błędów i wydajności
 42. A/B testing jeśli potrzebne
@@ -487,11 +548,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź JSON z polami: `error
 # API Endpoint Implementation Plan: User Management Endpoints
 
 ## 1. Przegląd punktu końcowego
+
 Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów użytkowników w systemie FairPlay. Implementacja obsługuje listowanie użytkowników z zaawansowanymi filtrami, pobieranie szczegółów, zatwierdzanie kont oraz soft delete. Wszystkie operacje są chronione kontrolą dostępu opartą na rolach, z priorytetem bezpieczeństwa i integralności danych.
 
 ## 2. Szczegóły żądania
 
 ### GET /api/users
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/users`
 - **Parametry**:
@@ -505,6 +568,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ### GET /api/users/{id}
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/users/{id}`
 - **Parametry**:
@@ -513,12 +577,14 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ### PATCH /api/users/{id}/approve
+
 - **Metoda HTTP**: PATCH
 - **Struktura URL**: `/api/users/{id}/approve`
 - **Parametry**:
   - **Wymagane**: `id` (integer) - ID użytkownika
   - **Opcjonalne**: brak
 - **Request Body**:
+
 ```json
 {
   "role": "player",
@@ -527,6 +593,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ```
 
 ### DELETE /api/users/{id}
+
 - **Metoda HTTP**: DELETE
 - **Struktura URL**: `/api/users/{id}`
 - **Parametry**:
@@ -535,6 +602,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 - **Request Body**: brak
 
 ## 3. Wykorzystywane typy
+
 - **DTOs**: `UserDTO`, `UsersListResponseDTO`
 - **Query Parameters**: `ListUsersQueryParams`
 - **Command Models**: `ApproveUserCommand`
@@ -544,8 +612,10 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ## 4. Szczegóły odpowiedzi
 
 ### GET /api/users
+
 - **Success Codes**: 200 OK
 - **Response Body**:
+
 ```json
 {
   "data": [
@@ -571,18 +641,22 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ```
 
 ### GET /api/users/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Pojedynczy obiekt `UserDTO` (taka sama struktura jak powyżej)
 
 ### PATCH /api/users/{id}/approve
+
 - **Success Codes**: 200 OK
 - **Response Body**: Zaktualizowany obiekt `UserDTO`
 
 ### DELETE /api/users/{id}
+
 - **Success Codes**: 204 No Content
 - **Response Body**: pusty
 
 ## 5. Przepływ danych
+
 1. **Uwierzytelnienie**: JWT token weryfikowany przez Astro middleware
 2. **Autoryzacja**: Sprawdzenie roli użytkownika w context.locals
 3. **Walidacja**: Zod schemas dla parametrów query i request body
@@ -592,6 +666,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 7. **Response**: Strukturalizowana odpowiedź z odpowiednim statusem
 
 ## 6. Względy bezpieczeństwa
+
 - **Autoryzacja**: JWT-based authentication z kontrolą ról (admin/organizer/player)
 - **RLS Policies**: Row Level Security na poziomie bazy danych
 - **Input Validation**: Kompleksowa walidacja Zod dla wszystkich wejść
@@ -605,27 +680,33 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 ### Scenariusze błędów i odpowiedzi:
 
 **400 Bad Request**:
+
 - Nieprawidłowa wartość roli w approve (nie z enum)
 - Nieprawidłowy format player_id
 - Nieistniejący player_id w bazie danych
 - Nieprawidłowe parametry paginacji (ujemne wartości)
 
 **401 Unauthorized**:
+
 - Brak JWT token
 - Nieprawidłowy/expired JWT token
 
 **403 Forbidden**:
+
 - Użytkownik bez roli admin próbuje dostępu
 - Próba dostępu do cudzego profilu (bez uprawnień admin)
 
 **404 Not Found**:
+
 - Użytkownik o podanym ID nie istnieje
 - Użytkownik został soft-deleted
 
 **409 Conflict**:
+
 - Próba zatwierdzenia już zatwierdzonego użytkownika
 
 **500 Internal Server Error**:
+
 - Błędy połączenia z bazą danych
 - Nieoczekiwane błędy podczas operacji na danych
 - Błędy audit logging
@@ -633,6 +714,7 @@ Endpointy zarządzania użytkownikami obejmują kompletny CRUD dla zasobów uży
 Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opisem.
 
 ## 8. Rozważania dotyczące wydajności
+
 - **Indeksy**: Wykorzystanie indeksów na email, status, role dla szybkich filtrów
 - **Paginacja**: Cursor-based pagination dla dużych zbiorów danych
 - **Caching**: Cache dla często używanych danych użytkowników
@@ -643,11 +725,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 ## 9. Etapy wdrożenia
 
 ### Faza 1: Przygotowanie infrastruktury
+
 1. Utworzenie `src/lib/services/userService.ts` z podstawowymi metodami
 2. Implementacja Zod schemas w `src/lib/validation/userSchemas.ts`
 3. Dodanie typów audit logging do `src/types.ts`
 
 ### Faza 2: Implementacja GET /api/users
+
 4. Utworzenie `src/pages/api/users/index.ts`
 5. Implementacja middleware autoryzacji dla roli admin
 6. Dodanie walidacji parametrów query
@@ -655,12 +739,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 8. Testowanie z różnymi parametrami filtrów
 
 ### Faza 3: Implementacja GET /api/users/{id}
+
 9. Utworzenie `src/pages/api/users/[id].ts`
 10. Implementacja logiki sprawdzania dostępu (admin lub własny profil)
 11. Dodanie walidacji ID użytkownika
 12. Dodanie obsługi błędów 404
 
 ### Faza 4: Implementacja PATCH /api/users/{id}/approve
+
 13. Rozszerzenie `src/pages/api/users/[id]/approve.ts`
 14. Implementacja walidacji request body
 15. Dodanie logiki biznesowej sprawdzenia statusu użytkownika
@@ -668,12 +754,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 17. Obsługa konfliktów (już zatwierdzony użytkownik)
 
 ### Faza 5: Implementacja DELETE /api/users/{id}
+
 18. Dodanie obsługi DELETE w `src/pages/api/users/[id].ts`
 19. Implementacja soft delete logiki
 20. Dodanie audit logging dla operacji delete
 21. Zapewnienie bezpieczeństwa (tylko admin)
 
 ### Faza 6: Testowanie i optymalizacja
+
 22. Unit testy dla UserService
 23. Integration testy dla wszystkich endpointów
 24. Testy bezpieczeństwa (autoryzacja, RLS)
@@ -682,6 +770,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 27. Dokumentacja API
 
 ### Faza 7: Deployment i monitoring
+
 28. Deployment na środowisko testowe
 29. Monitoring błędów i wydajności
 30. A/B testing jeśli potrzebne
@@ -692,11 +781,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 # API Endpoint Implementation Plan: Player Management Endpoints
 
 ## 1. Przegląd punktu końcowego
+
 Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w systemie FairPlay. Implementacja obsługuje listowanie graczy z zaawansowanymi filtrami, pobieranie szczegółów, tworzenie nowych graczy, aktualizację danych oraz soft delete. Wszystkie operacje są chronione kontrolą dostępu opartą na rolach, z dodatkowymi restrykcjami dla wrażliwych pól jak skill_rate (tylko admin).
 
 ## 2. Szczegóły żądania
 
 ### GET /api/players
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/players`
 - **Parametry**:
@@ -710,6 +801,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 - **Request Body**: brak
 
 ### GET /api/players/{id}
+
 - **Metoda HTTP**: GET
 - **Struktura URL**: `/api/players/{id}`
 - **Parametry**:
@@ -718,10 +810,12 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 - **Request Body**: brak
 
 ### POST /api/players
+
 - **Metoda HTTP**: POST
 - **Struktura URL**: `/api/players`
 - **Parametry**: brak
 - **Request Body**:
+
 ```json
 {
   "first_name": "John",
@@ -733,6 +827,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 ```
 
 ### PATCH /api/players/{id}
+
 - **Metoda HTTP**: PATCH
 - **Struktura URL**: `/api/players/{id}`
 - **Parametry**:
@@ -741,6 +836,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 - **Request Body**: Częściowy obiekt gracza (wszystkie pola opcjonalne)
 
 ### DELETE /api/players/{id}
+
 - **Metoda HTTP**: DELETE
 - **Struktura URL**: `/api/players/{id}`
 - **Parametry**:
@@ -749,6 +845,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 - **Request Body**: brak
 
 ## 3. Wykorzystywane typy
+
 - **DTOs**: `PlayerDTO`, `PlayersListResponseDTO`
 - **Query Parameters**: `ListPlayersQueryParams`
 - **Command Models**: `CreatePlayerCommand`, `UpdatePlayerCommand`
@@ -758,8 +855,10 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 ## 4. Szczegóły odpowiedzi
 
 ### GET /api/players
+
 - **Success Codes**: 200 OK
 - **Response Body**:
+
 ```json
 {
   "data": [
@@ -784,22 +883,27 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 ```
 
 ### GET /api/players/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Pojedynczy obiekt `PlayerDTO`
 
 ### POST /api/players
+
 - **Success Codes**: 201 Created
 - **Response Body**: Utworzony obiekt `PlayerDTO`
 
 ### PATCH /api/players/{id}
+
 - **Success Codes**: 200 OK
 - **Response Body**: Zaktualizowany obiekt `PlayerDTO`
 
 ### DELETE /api/players/{id}
+
 - **Success Codes**: 204 No Content
 - **Response Body**: pusty
 
 ## 5. Przepływ danych
+
 1. **Uwierzytelnienie**: JWT token weryfikowany przez Astro middleware
 2. **Autoryzacja**: Sprawdzenie roli użytkownika w context.locals (admin/organizer/player)
 3. **Walidacja**: Zod schemas dla parametrów query i request body
@@ -809,6 +913,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 7. **Response**: Strukturalizowana odpowiedź z odpowiednim statusem
 
 ## 6. Względy bezpieczeństwa
+
 - **Autoryzacja**: JWT-based authentication z kontrolą ról (admin/organizer/player)
 - **RLS Policies**: Row Level Security na poziomie bazy danych
 - **Input Validation**: Kompleksowa walidacja Zod dla wszystkich wejść
@@ -822,6 +927,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 ### Scenariusze błędów i odpowiedzi:
 
 **400 Bad Request**:
+
 - Nieprawidłowa wartość pozycji (nie z enum)
 - Nieprawidłowy zakres skill_rate (poza 1-10)
 - Nieprawidłowy format date_of_birth
@@ -829,25 +935,31 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 - Nieprawidłowa długość pól tekstowych
 
 **401 Unauthorized**:
+
 - Brak JWT token
 - Nieprawidłowy/expired JWT token
 
 **403 Forbidden**:
+
 - Użytkownik bez wymaganych uprawnień próbuje dostępu
 - Próba dostępu do skill_rate bez roli admin
 - Próba aktualizacji skill_rate bez roli admin
 
 **404 Not Found**:
+
 - Gracz o podanym ID nie istnieje
 - Gracz został soft-deleted
 
 **409 Conflict**:
+
 - Próba utworzenia gracza z istniejącymi danymi (jeśli wymagane unikalne constraints)
 
 **422 Unprocessable Entity**:
+
 - Nieprawidłowe dane wejściowe nie przechodzącą walidacji Zod
 
 **500 Internal Server Error**:
+
 - Błędy połączenia z bazą danych
 - Nieoczekiwane błędy podczas operacji na danych
 - Błędy audit logging
@@ -855,6 +967,7 @@ Endpointy zarządzania graczami obejmują kompletny CRUD dla zasobów graczy w s
 Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opisem.
 
 ## 8. Rozważania dotyczące wydajności
+
 - **Indeksy**: Wykorzystanie indeksów na first_name, last_name, position dla szybkich filtrów
 - **Paginacja**: Cursor-based pagination dla dużych zbiorów danych
 - **Caching**: Cache dla często używanych danych graczy
@@ -865,11 +978,13 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 ## 9. Etapy wdrożenia
 
 ### Faza 1: Przygotowanie infrastruktury
+
 1. Utworzenie `src/lib/services/playerService.ts` z podstawowymi metodami
 2. Implementacja Zod schemas w `src/lib/validation/playerSchemas.ts`
 3. Dodanie typów audit logging do `src/types.ts` (jeśli potrzebne)
 
 ### Faza 2: Implementacja GET /api/players
+
 4. Utworzenie `src/pages/api/players/index.ts`
 5. Implementacja middleware autoryzacji
 6. Dodanie walidacji parametrów query
@@ -878,12 +993,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 9. Testowanie z różnymi parametrami filtrów
 
 ### Faza 3: Implementacja GET /api/players/{id}
+
 10. Utworzenie `src/pages/api/players/[id].ts`
 11. Implementacja walidacji ID gracza
 12. Dodanie obsługi błędów 404
 13. Implementacja field-level security dla skill_rate
 
 ### Faza 4: Implementacja POST /api/players
+
 14. Dodanie obsługi POST w `src/pages/api/players/index.ts`
 15. Implementacja walidacji request body
 16. Dodanie logiki biznesowej tworzenia gracza
@@ -891,6 +1008,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 18. Zapewnienie bezpieczeństwa (admin/organizer)
 
 ### Faza 5: Implementacja PATCH /api/players/{id}
+
 19. Dodanie obsługi PATCH w `src/pages/api/players/[id].ts`
 20. Implementacja walidacji request body
 21. Dodanie logiki biznesowej aktualizacji gracza
@@ -899,12 +1017,14 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 24. Obsługa konfliktów i błędów walidacji
 
 ### Faza 6: Implementacja DELETE /api/players/{id}
+
 25. Dodanie obsługi DELETE w `src/pages/api/players/[id].ts`
 26. Implementacja soft delete logiki
 27. Dodanie audit logging dla operacji delete
 28. Zapewnienie bezpieczeństwa (tylko admin)
 
 ### Faza 7: Testowanie i optymalizacja
+
 29. Unit testy dla PlayerService
 30. Integration testy dla wszystkich endpointów
 31. Testy bezpieczeństwa (autoryzacja, RLS, field-level security)
@@ -913,6 +1033,7 @@ Wszystkie błędy zawierają strukturalizowaną odpowiedź z kodem błędu i opi
 34. Dokumentacja API
 
 ### Faza 8: Deployment i monitoring
+
 35. Deployment na środowisko testowe
 36. Monitoring błędów i wydajności
 37. A/B testing jeśli potrzebne

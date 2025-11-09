@@ -67,4 +67,3 @@ Zwrotny endpoint pulpitu dostarcza agregację danych kontekstowych dla zalogowan
 5. Dodać obsługę błędów `401`, `404`, `500` z jednolitymi komunikatami JSON.
 6. Zintegrować logowanie błędów w handlerze/serwisie.
 7. Wykonać testy ręczne (np. curl/Postman) i zaktualizować dokumentację API.
-

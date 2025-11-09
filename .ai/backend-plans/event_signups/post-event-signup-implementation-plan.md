@@ -77,4 +77,3 @@ Pozwala graczowi zapisać się na wydarzenie lub organizatorowi dodać konkretne
 4. Dodać logowanie audytowe w serwisie (jeżeli polityka projektu tego wymaga) oraz error logging.
 5. Napisać testy: scenariusze happy path, pełny event, brak uprawnień, konflikt zapisu.
 6. Zaktualizować dokumentację API / kontrakty.
-

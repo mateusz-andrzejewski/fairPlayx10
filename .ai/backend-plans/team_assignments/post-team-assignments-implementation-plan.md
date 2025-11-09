@@ -84,4 +84,3 @@ export interface CreateTeamAssignmentsCommand {
 4. Przygotować testy jednostkowe serwisu (scenariusze: brak uprawnień, duplikaty, brakujący signup, sukces) oraz testy kontraktowe API.
 5. Zapewnić logowanie (info/error) i wpisy do `audit_logs`, uwzględniające listę zmienionych przypisań.
 6. Uaktualnić dokumentację API i komunikaty w UI dotyczące ograniczeń/formatu danych.
-

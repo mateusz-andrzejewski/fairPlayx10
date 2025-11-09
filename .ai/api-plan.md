@@ -12,6 +12,7 @@ Based on the database schema and PRD requirements, the main API resources are:
 - **Audit Logs** (`audit_logs` table) - Audit trail for critical changes
 
 Additional business logic resources:
+
 - **Authentication** - Supabase Auth integration
 - **Event Draw** - Team balancing algorithm
 - **Dashboard** - Dashboard data
@@ -21,14 +22,16 @@ Additional business logic resources:
 ### Users Resource
 
 **GET /api/users**
+
 - **Description**: List users (admin only)
-- **Query Parameters**: 
+- **Query Parameters**:
   - `page` (integer, default: 1) - Page number for pagination
   - `limit` (integer, default: 20) - Items per page
   - `status` (enum: pending, approved) - Filter by status
   - `role` (enum: admin, organizer, player) - Filter by role
   - `search` (string) - Search by first_name, last_name, or email
-- **Response**: 
+- **Response**:
+
 ```json
 {
   "data": [
@@ -52,29 +55,35 @@ Additional business logic resources:
   }
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 403 Forbidden
 
 **GET /api/users/{id}**
+
 - **Description**: Get user details (admin or own profile)
 - **Response**: User object (same structure as above)
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 **PATCH /api/users/{id}/approve**
+
 - **Description**: Approve pending user account and assign role (admin only)
 - **Request Body**:
+
 ```json
 {
   "role": "player",
   "player_id": 123
 }
 ```
+
 - **Response**: Updated user object
 - **Success Codes**: 200 OK
 - **Error Codes**: 400 Bad Request (invalid role), 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 **DELETE /api/users/{id}**
+
 - **Description**: Soft delete user (admin only)
 - **Response**: Empty body
 - **Success Codes**: 204 No Content
@@ -83,6 +92,7 @@ Additional business logic resources:
 ### Players Resource
 
 **GET /api/players**
+
 - **Description**: List players with filtering and search
 - **Query Parameters**:
   - `page`, `limit` - Pagination
@@ -90,6 +100,7 @@ Additional business logic resources:
   - `search` (string) - Search by name
   - `include_skill_rate` (boolean) - Include skill_rate in response (admin only)
 - **Response**:
+
 ```json
 {
   "data": [
@@ -107,18 +118,22 @@ Additional business logic resources:
   "pagination": { ... }
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized
 
 **GET /api/players/{id}**
+
 - **Description**: Get player details
 - **Response**: Player object
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 404 Not Found
 
 **POST /api/players**
+
 - **Description**: Create new player (admin/organizer)
 - **Request Body**:
+
 ```json
 {
   "first_name": "John",
@@ -128,11 +143,13 @@ Additional business logic resources:
   "date_of_birth": "1990-01-01"
 }
 ```
+
 - **Response**: Created player object
 - **Success Codes**: 201 Created
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
 
 **PATCH /api/players/{id}**
+
 - **Description**: Update player (admin only for skill_rate)
 - **Request Body**: Partial player object
 - **Response**: Updated player object
@@ -140,6 +157,7 @@ Additional business logic resources:
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 **DELETE /api/players/{id}**
+
 - **Description**: Soft delete player (admin only)
 - **Response**: Empty body
 - **Success Codes**: 204 No Content
@@ -148,6 +166,7 @@ Additional business logic resources:
 ### Events Resource
 
 **GET /api/events**
+
 - **Description**: List events with filtering
 - **Query Parameters**:
   - `page`, `limit` - Pagination
@@ -156,6 +175,7 @@ Additional business logic resources:
   - `date_from`, `date_to` - Date range filter
   - `organizer_id` (integer) - Filter by organizer
 - **Response**:
+
 ```json
 {
   "data": [
@@ -176,32 +196,38 @@ Additional business logic resources:
   "pagination": { ... }
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized
 
 **GET /api/events/{id}**
+
 - **Description**: Get event details with signups
 - **Response**: Event object with nested signups
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 404 Not Found
 
 **POST /api/events**
+
 - **Description**: Create new event (organizer/admin)
 - **Request Body**:
+
 ```json
 {
   "name": "Weekend Match",
   "location": "Central Park",
   "event_datetime": "2024-01-15T14:00:00Z",
   "max_places": 22,
-  "optional_fee": 10.00
+  "optional_fee": 10.0
 }
 ```
+
 - **Response**: Created event object
 - **Success Codes**: 201 Created
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
 
 **PATCH /api/events/{id}**
+
 - **Description**: Update event (organizer/admin)
 - **Request Body**: Partial event object
 - **Response**: Updated event object
@@ -209,6 +235,7 @@ Additional business logic resources:
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 **DELETE /api/events/{id}**
+
 - **Description**: Soft delete event (admin only)
 - **Response**: Empty body
 - **Success Codes**: 204 No Content
@@ -217,11 +244,13 @@ Additional business logic resources:
 ### Event Signups Resource
 
 **GET /api/events/{eventId}/signups**
+
 - **Description**: List signups for an event (organizer/admin)
 - **Query Parameters**:
   - `page`, `limit` - Pagination
   - `status` (enum: pending, confirmed, withdrawn) - Filter by status
 - **Response**:
+
 ```json
 {
   "data": [
@@ -237,34 +266,42 @@ Additional business logic resources:
   "pagination": { ... }
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 403 Forbidden
 
 **POST /api/events/{eventId}/signups**
+
 - **Description**: Sign up for event (player) or add player (organizer)
 - **Request Body** (for organizer adding players):
+
 ```json
 {
   "player_id": 123
 }
 ```
+
 - **Response**: Created signup object
 - **Success Codes**: 201 Created
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 409 Conflict (already signed up)
 
 **PATCH /api/events/{eventId}/signups/{signupId}**
+
 - **Description**: Update signup status (organizer/admin)
 - **Request Body**:
+
 ```json
 {
   "status": "confirmed"
 }
 ```
+
 - **Response**: Updated signup object
 - **Success Codes**: 200 OK
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 **DELETE /api/events/{eventId}/signups/{signupId}**
+
 - **Description**: Withdraw from event (player/organizer)
 - **Response**: Empty body
 - **Success Codes**: 204 No Content
@@ -273,8 +310,10 @@ Additional business logic resources:
 ### Team Assignments Resource
 
 **GET /api/events/{eventId}/teams**
+
 - **Description**: Get team assignments for event (organizer/admin)
 - **Response**:
+
 ```json
 {
   "data": [
@@ -287,19 +326,24 @@ Additional business logic resources:
   ]
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized, 403 Forbidden
 
 **POST /api/events/{eventId}/draw**
+
 - **Description**: Run team draw algorithm (organizer/admin)
 - **Request Body**:
+
 ```json
 {
   "iterations": 20,
   "balance_threshold": 0.07
 }
 ```
+
 - **Response**:
+
 ```json
 {
   "success": true,
@@ -316,19 +360,22 @@ Additional business logic resources:
       ],
       "stats": {
         "avg_skill_rate": 7.5,
-        "positions": {"forward": 5, "midfielder": 4, "defender": 3, "goalkeeper": 1}
+        "positions": { "forward": 5, "midfielder": 4, "defender": 3, "goalkeeper": 1 }
       }
     }
   ],
   "balance_achieved": true
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
 
 **POST /api/events/{eventId}/teams**
+
 - **Description**: Manually assign teams (organizer/admin)
 - **Request Body**:
+
 ```json
 {
   "assignments": [
@@ -339,6 +386,7 @@ Additional business logic resources:
   ]
 }
 ```
+
 - **Response**: Created assignments array
 - **Success Codes**: 201 Created
 - **Error Codes**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
@@ -346,26 +394,37 @@ Additional business logic resources:
 ### Dashboard Resource
 
 **GET /api/dashboard**
+
 - **Description**: Get personalized dashboard data
 - **Response** (varies by role):
+
 ```json
 {
-  "user": { /* current user data */ },
-  "upcoming_events": [ /* next 5 events */ ],
-  "my_signups": [ /* user's signups */ ],
-  "organized_events": [ /* for organizers */ ],
+  "user": {
+    /* current user data */
+  },
+  "upcoming_events": [
+    /* next 5 events */
+  ],
+  "my_signups": [
+    /* user's signups */
+  ],
+  "organized_events": [
+    /* for organizers */
+  ],
   "pending_users": 5 // for admin
 }
 ```
+
 - **Success Codes**: 200 OK
 - **Error Codes**: 401 Unauthorized
-
 
 ## 3. Authentication and Authorization
 
 The API uses Supabase Authentication with JWT tokens for session management. All requests require a valid JWT token in the Authorization header (`Bearer <token>`).
 
 Role-based access control is implemented using JWT claims:
+
 - **admin**: Full access to all resources
 - **organizer**: Can manage their own events and signups
 - **player**: Can view events, manage their own signups
@@ -377,6 +436,7 @@ Row Level Security (RLS) policies in PostgreSQL enforce data access restrictions
 ### Validation Rules
 
 **Users**:
+
 - Email format validation
 - Password strength requirements
 - Required: email, password, first_name, last_name, consent_date, consent_version
@@ -384,12 +444,14 @@ Row Level Security (RLS) policies in PostgreSQL enforce data access restrictions
 - Status must be one of: pending, approved
 
 **Players**:
+
 - first_name, last_name: required, max 100 chars
 - position: required enum value
 - skill_rate: 1-10 integer (admin only)
 - date_of_birth: optional valid date
 
 **Events**:
+
 - name, location: required, max 200 chars
 - event_datetime: required, must be future date
 - max_places: required, > 0
@@ -397,10 +459,12 @@ Row Level Security (RLS) policies in PostgreSQL enforce data access restrictions
 - status: draft, active, completed
 
 **Event Signups**:
+
 - Unique constraint: one signup per player per event
 - Status transitions: pending → confirmed/withdrawn
 
 **Team Assignments**:
+
 - team_number: > 0
 - Unique per signup
 

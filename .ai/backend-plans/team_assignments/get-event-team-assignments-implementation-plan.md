@@ -75,4 +75,3 @@ export interface TeamAssignmentsListResponseDTO {
 4. Pokryć logikę testami (mock Supabase) oraz dodać testy kontraktowe endpointu (Vitest + supertest/fetch).
 5. Zintegrować logowanie błędów przez centralny logger; upewnić się, że identyfikatory korelacji trafiają do odpowiedzi przy `500`.
 6. Zaktualizować dokumentację API (OpenAPI/README) dla nowego endpointu.
-

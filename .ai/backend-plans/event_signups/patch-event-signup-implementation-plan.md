@@ -70,4 +70,3 @@ Aktualizuje status istniejącego zapisu, np. zatwierdzenie lub oznaczenie jako w
 4. Dodać testy jednostkowe serwisu oraz testy API (zmiana statusu, brak uprawnień, błędny status).
 5. Zapewnić logowanie błędów oraz ewentualny wpis audytowy.
 6. Zaktualizować dokumentację API.
-

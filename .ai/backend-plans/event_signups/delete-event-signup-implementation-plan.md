@@ -66,4 +66,3 @@ Pozwala użytkownikowi wycofać zapis z wydarzenia. Gracz może wycofać własny
 4. Dodać testy (wycofanie własnego zapisu, brak uprawnień, brak rekordu).
 5. Zaimplementować logowanie błędów oraz (opcjonalnie) wpisy audytowe.
 6. Uaktualnić dokumentację.
-
