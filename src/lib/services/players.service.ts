@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
 import type { ListPlayersValidatedParams } from "../validation/players";
-import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO } from "../../types";
+import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO, CreatePlayerCommand } from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z graczami.
@@ -97,6 +97,50 @@ export class PlayersService {
       data: players,
       pagination,
     };
+  }
+
+  /**
+   * Tworzy nowego gracza w systemie.
+   *
+   * @param command - Zwalidowane dane nowego gracza
+   * @param isAdmin - Czy użytkownik ma rolę administratora (określa czy skill_rate może być ustawione)
+   * @returns Promise rozwiązujący się do utworzonego PlayerDTO
+   * @throws Error jeśli operacja insert nie powiedzie się
+   */
+  async createPlayer(command: CreatePlayerCommand, isAdmin: boolean): Promise<PlayerDTO> {
+    // Dla użytkowników niebędących adminami wymuś skill_rate = null
+    const playerData = {
+      ...command,
+      skill_rate: isAdmin ? command.skill_rate : null,
+      deleted_at: null, // Zawsze null dla nowych graczy
+    };
+
+    // Wykonaj insert z returning aby uzyskać pełny rekord
+    const { data: insertedPlayer, error } = await this.supabase
+      .from("players")
+      .insert(playerData)
+      .select("id, first_name, last_name, position, skill_rate, date_of_birth, created_at, updated_at")
+      .single();
+
+    if (error) {
+      // Sprawdź czy to błąd konfliktu (np. constraint na duplikat imienia+nazwiska)
+      if (error.code === "23505") {
+        throw new Error("Gracz z podanym imieniem i nazwiskiem już istnieje");
+      }
+      throw new Error(`Nie udało się utworzyć gracza: ${error.message}`);
+    }
+
+    if (!insertedPlayer) {
+      throw new Error("Nie udało się utworzyć gracza - brak danych zwrotnych");
+    }
+
+    // Maskuj skill_rate dla użytkowników niebędących adminami
+    const playerDTO: PlayerDTO = {
+      ...insertedPlayer,
+      skill_rate: isAdmin ? insertedPlayer.skill_rate : null,
+    };
+
+    return playerDTO;
   }
 }
 

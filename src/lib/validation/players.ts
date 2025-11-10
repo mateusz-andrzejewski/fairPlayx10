@@ -13,10 +13,57 @@ export const listPlayersQuerySchema = z.object({
 });
 
 /**
+ * Schemat Zod do walidacji danych wejściowych dla tworzenia nowego gracza.
+ * Waliduje pola first_name, last_name, position, skill_rate i opcjonalne date_of_birth.
+ * Używa stripUnknown aby odrzucić nieznane pola.
+ */
+export const createPlayerSchema = z.object({
+  first_name: z
+    .string()
+    .min(1, "Imię nie może być puste")
+    .max(100, "Imię nie może być dłuższe niż 100 znaków")
+    .trim()
+    .regex(/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-']+$/, "Imię może zawierać tylko litery, spacje, myślniki i apostrofy"),
+
+  last_name: z
+    .string()
+    .min(1, "Nazwisko nie może być puste")
+    .max(100, "Nazwisko nie może być dłuższe niż 100 znaków")
+    .trim()
+    .regex(/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-']+$/, "Nazwisko może zawierać tylko litery, spacje, myślniki i apostrofy"),
+
+  position: z.enum(["forward", "midfielder", "defender", "goalkeeper"], {
+    errorMap: () => ({ message: "Pozycja musi być jedną z: forward, midfielder, defender, goalkeeper" }),
+  }),
+
+  skill_rate: z
+    .number()
+    .int("Ocena umiejętności musi być liczbą całkowitą")
+    .min(1, "Ocena umiejętności musi być między 1 a 10")
+    .max(10, "Ocena umiejętności musi być między 1 a 10")
+    .optional(),
+
+  date_of_birth: z
+    .string()
+    .optional()
+    .refine((date) => {
+      if (!date) return true; // Opcjonalne pole
+      const parsedDate = new Date(date);
+      return !isNaN(parsedDate.getTime()) && parsedDate <= new Date();
+    }, "Data urodzenia musi być prawidłową datą ISO i nie może być w przyszłości"),
+});
+
+/**
  * Typ wywnioskowany z listPlayersQuerySchema.
  * Zapewnia bezpieczeństwo typów między walidacją a użyciem.
  */
 export type ListPlayersValidatedParams = z.infer<typeof listPlayersQuerySchema>;
+
+/**
+ * Typ wywnioskowany z createPlayerSchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a tworzeniem gracza.
+ */
+export type CreatePlayerValidatedParams = z.infer<typeof createPlayerSchema>;
 
 /**
  * Sanitizuje zapytanie wyszukiwania poprzez escape znaków specjalnych używanych w wzorcach SQL LIKE.

@@ -41,13 +41,9 @@ drop policy if exists team_assignments_delete_policy on team_assignments;
 drop policy if exists audit_logs_select_policy on audit_logs;
 drop policy if exists audit_logs_insert_policy on audit_logs;
 
--- =============================================
--- DISABLE ROW LEVEL SECURITY
--- =============================================
-
--- Disable RLS on all tables (keeping the policies removed)
--- Note: Tables remain with RLS enabled but without policies,
--- effectively allowing access based on database-level permissions only
-
--- RLS remains enabled on tables, but with no policies defined,
--- access will be controlled by database-level permissions
+alter table users disable row level security;
+alter table players disable row level security;
+alter table events disable row level security;
+alter table event_signups disable row level security;
+alter table team_assignments disable row level security;
+alter table audit_logs disable row level security;

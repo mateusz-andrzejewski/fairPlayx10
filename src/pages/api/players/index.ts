@@ -61,3 +61,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
 // Wyłącz prerendering dla endpointów API
 export const prerender = false;
+
