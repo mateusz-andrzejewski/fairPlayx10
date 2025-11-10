@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
-import type { CreateEventValidatedParams, UpdateEventValidatedParams } from "../validation/event";
-import type { EventDTO, EventDetailDTO, CreateEventCommand } from "../../types";
+import type {
+  CreateEventValidatedParams,
+  UpdateEventValidatedParams,
+  ListEventsValidatedParams,
+} from "../validation/event";
+import type {
+  EventDTO,
+  EventDetailDTO,
+  EventsListResponseDTO,
+  PaginationMetaDTO,
+  CreateEventCommand,
+} from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z wydarzeniami.
@@ -127,6 +137,107 @@ export class EventService {
     };
 
     return eventDetail;
+  }
+
+  /**
+   * Pobiera paginowaną listę aktywnych wydarzeń z opcjonalnym filtrowaniem.
+   *
+   * @param params - Zwalidowane parametry zapytania zawierające filtry i ustawienia paginacji
+   * @returns Promise rozwiązujący się do paginowanej listy wydarzeń
+   * @throws Error jeśli zapytanie do bazy danych nie powiedzie się
+   */
+  async listEvents(params: ListEventsValidatedParams): Promise<EventsListResponseDTO> {
+    // Oblicz offset dla paginacji
+    const from = (params.page - 1) * params.limit;
+    const to = from + params.limit - 1;
+
+    // Buduj bazowe zapytanie
+    let query = this.supabase
+      .from("events")
+      .select(
+        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at",
+        {
+          count: "exact",
+        }
+      )
+      .is("deleted_at", null) // Tylko aktywne wydarzenia
+      .order("event_datetime", { ascending: true })
+      .range(from, to);
+
+    // Zastosuj filtr statusu jeśli określony
+    if (params.status) {
+      query = query.eq("status", params.status);
+    }
+
+    // Zastosuj filtr lokalizacji jeśli określony
+    if (params.location && params.location.trim().length > 0) {
+      // Szukaj w location używając ILIKE dla dopasowania bez uwzględniania wielkości liter
+      query = query.ilike("location", `%${params.location}%`);
+    }
+
+    // Zastosuj filtr zakresu dat jeśli określony
+    if (params.date_from) {
+      query = query.gte("event_datetime", params.date_from);
+    }
+    if (params.date_to) {
+      query = query.lte("event_datetime", params.date_to);
+    }
+
+    // Zastosuj filtr organizatora jeśli określony
+    if (params.organizer_id) {
+      query = query.eq("organizer_id", params.organizer_id);
+    }
+
+    // Wykonaj zapytanie
+    const { data: rawEvents, error, count } = await query;
+
+    if (error) {
+      throw new Error(`Nie udało się pobrać wydarzeń: ${error.message}`);
+    }
+
+    if (!rawEvents || !count) {
+      // Zwróć pusty wynik gdy brak danych
+      return {
+        data: [],
+        pagination: {
+          page: params.page,
+          limit: params.limit,
+          total: 0,
+          total_pages: 0,
+        },
+      };
+    }
+
+    // Przekształć surowe dane na EventDTO
+    const events: EventDTO[] = rawEvents.map((event) => ({
+      id: event.id,
+      name: event.name,
+      location: event.location,
+      event_datetime: event.event_datetime,
+      max_places: event.max_places,
+      optional_fee: event.optional_fee,
+      status: event.status,
+      current_signups_count: event.current_signups_count,
+      organizer_id: event.organizer_id,
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+      deleted_at: event.deleted_at,
+    }));
+
+    // Oblicz metadane paginacji
+    const totalPages = Math.ceil(count / params.limit);
+
+    const pagination: PaginationMetaDTO = {
+      page: params.page,
+      limit: params.limit,
+      total: count,
+      total_pages: totalPages,
+    };
+
+    return {
+      data: events,
+      pagination,
+    };
   }
 
   /**

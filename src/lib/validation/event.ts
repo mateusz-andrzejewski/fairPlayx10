@@ -75,6 +75,88 @@ export const eventIdParamSchema = z.object({
 });
 
 /**
+ * Schemat Zod do walidacji parametrów zapytania dla endpointa listy wydarzeń.
+ * Waliduje parametry paginacji, filtrowania i sortowania.
+ */
+export const listEventsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    status: z.enum(["draft", "active", "completed"]).optional(),
+    location: z.string().max(200).trim().optional(),
+    date_from: z
+      .string()
+      .refine((date) => {
+        const parsedDate = new Date(date);
+        return !isNaN(parsedDate.getTime());
+      }, "Data od musi być prawidłową datą ISO")
+      .optional(),
+    date_to: z
+      .string()
+      .refine((date) => {
+        const parsedDate = new Date(date);
+        return !isNaN(parsedDate.getTime());
+      }, "Data do musi być prawidłową datą ISO")
+      .optional(),
+    organizer_id: z.coerce.number().int().min(1).optional(),
+  })
+  .refine(
+    (data) => {
+      // Jeśli obie daty są podane, sprawdź czy date_from <= date_to
+      if (data.date_from && data.date_to) {
+        return new Date(data.date_from) <= new Date(data.date_to);
+      }
+      return true;
+    },
+    {
+      message: "Data od nie może być późniejsza niż data do",
+      path: ["date_from"],
+    }
+  );
+
+/**
+ * Typ wywnioskowany z listEventsQuerySchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a użyciem.
+ */
+export type ListEventsValidatedParams = z.infer<typeof listEventsQuerySchema>;
+
+/**
+ * Sanitizuje zapytanie lokalizacji poprzez escape znaków specjalnych używanych w wzorcach SQL LIKE.
+ * Escapuje znaki % i _ aby zapobiec SQL injection i nieoczekiwanemu dopasowaniu wildcard.
+ *
+ * @param location - Surowe zapytanie lokalizacji
+ * @returns Zasanityzowane zapytanie bezpieczne do użycia w operacjach SQL LIKE/ILIKE
+ */
+export function sanitizeLocationQuery(location: string): string {
+  if (!location || typeof location !== "string") {
+    return "";
+  }
+
+  // Przytnij białe znaki i escapeuj specjalne znaki LIKE
+  return location.trim().replace(/[%_]/g, "\\$&");
+}
+
+/**
+ * Waliduje i sanitizuje parametry zapytania dla endpointa listy wydarzeń.
+ * Łączy walidację schematu z sanitizacją zapytania lokalizacji.
+ *
+ * @param params - Surowe parametry z żądania
+ * @returns Zwalidowane i zasanityzowane parametry
+ * @throws ZodError jeśli walidacja nie powiedzie się
+ */
+export function validateListEventsParams(params: Record<string, unknown>): ListEventsValidatedParams {
+  // Najpierw zwaliduj schematem Zod
+  const validated = listEventsQuerySchema.parse(params);
+
+  // Zasanityzuj zapytanie lokalizacji jeśli obecne
+  if (validated.location) {
+    validated.location = sanitizeLocationQuery(validated.location);
+  }
+
+  return validated;
+}
+
+/**
  * Waliduje parametr ścieżki id wydarzenia.
  *
  * @param params - Parametry ścieżki zawierające id
