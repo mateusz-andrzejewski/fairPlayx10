@@ -210,5 +210,72 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
   }
 };
 
+/**
+ * DELETE /api/event/{id}
+ *
+ * Przeprowadza soft delete wydarzenia (ustawia deleted_at).
+ * Dostępne wyłącznie dla administratorów. Zachowuje historię bez permanentnego usunięcia.
+ */
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  try {
+    // 1. Parsuj i zwaliduj parametr id z ścieżki
+    let validatedParams;
+    try {
+      validatedParams = validateEventIdParam(params);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format ID wydarzenia",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 2. Wywołaj logikę biznesową (pomiń autoryzację na razie)
+    const eventService = createEventService(locals.supabase);
+    const result = await eventService.softDeleteEvent(validatedParams.id);
+
+    // 3. Zwróć odpowiedź na podstawie wyniku operacji
+    if (result === "not_found") {
+      return new Response(
+        JSON.stringify({
+          error: "not_found",
+          message: "Wydarzenie o podanym ID nie zostało znalezione lub zostało już usunięte",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 4. Zwróć pomyślną odpowiedź bez treści dla soft delete
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Nieoczekiwany błąd w DELETE /api/event/[id]:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
 // Wyłącz prerendering dla endpointów API
 export const prerender = false;

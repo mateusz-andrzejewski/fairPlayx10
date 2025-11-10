@@ -233,6 +233,45 @@ export class EventService {
     // Zwróć zaktualizowane EventDTO
     return updatedEvent;
   }
+
+  /**
+   * Wykonuje soft delete wydarzenia poprzez ustawienie deleted_at.
+   * Dostępne wyłącznie dla administratorów. Zachowuje historię bez permanentnego usunięcia.
+   *
+   * @param id - ID wydarzenia do soft delete
+   * @returns Promise rozwiązujący się do rezultatu operacji
+   * @throws Error jeśli wystąpi błąd podczas zapytania do bazy danych
+   */
+  async softDeleteEvent(id: number): Promise<"success" | "not_found"> {
+    // Wykonaj soft delete - ustaw tylko deleted_at na aktualny czas
+    // Warunek deleted_at IS NULL zapewnia że tylko aktywne wydarzenia mogą być usunięte
+    const { data, error } = await this.supabase
+      .from("events")
+      .update({
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .is("deleted_at", null)
+      .select("id") // Wybierz tylko id aby sprawdzić czy wiersz został zaktualizowany
+      .single();
+
+    if (error) {
+      // Jeśli nie znaleziono rekordu do aktualizacji (PGRST116), zwróć not_found
+      if (error.code === "PGRST116") {
+        return "not_found";
+      }
+      throw new Error(`Błąd podczas usuwania wydarzenia: ${error.message}`);
+    }
+
+    // Jeśli data istnieje, oznacza to że aktualizacja się powiodła
+    if (data) {
+      return "success";
+    }
+
+    // Fallback - jeśli z jakiegoś powodu nie mamy błędu ale też nie mamy data
+    return "not_found";
+  }
 }
 
 /**
