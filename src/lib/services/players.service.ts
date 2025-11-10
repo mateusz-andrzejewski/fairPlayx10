@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
 import type { ListPlayersValidatedParams, UpdatePlayerValidatedParams } from "../validation/players";
-import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO, CreatePlayerCommand, UpdatePlayerCommand } from "../../types";
+import type {
+  PlayerDTO,
+  PlayersListResponseDTO,
+  PaginationMetaDTO,
+  CreatePlayerCommand,
+  UpdatePlayerCommand,
+} from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z graczami.
@@ -193,7 +199,7 @@ export class PlayersService {
   async updatePlayer(id: number, command: UpdatePlayerCommand, isAdmin: boolean): Promise<PlayerDTO | null> {
     // Dla użytkowników niebędących adminami usuń skill_rate z payloadu jeśli jest obecne
     const updateData = { ...command };
-    if (!isAdmin && 'skill_rate' in updateData) {
+    if (!isAdmin && "skill_rate" in updateData) {
       delete updateData.skill_rate;
     }
 

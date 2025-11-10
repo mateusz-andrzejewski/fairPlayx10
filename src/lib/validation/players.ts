@@ -80,10 +80,7 @@ export type CreatePlayerValidatedParams = z.infer<typeof createPlayerSchema>;
  */
 export const updatePlayerSchema = createPlayerSchema
   .partial()
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    "Przynajmniej jedno pole musi zostać podane do aktualizacji"
-  );
+  .refine((data) => Object.keys(data).length > 0, "Przynajmniej jedno pole musi zostać podane do aktualizacji");
 
 /**
  * Sanitizuje zapytanie wyszukiwania poprzez escape znaków specjalnych używanych w wzorcach SQL LIKE.
