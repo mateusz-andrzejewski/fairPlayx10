@@ -100,6 +100,44 @@ export class PlayersService {
   }
 
   /**
+   * Pobiera pojedynczego gracza po ID z uwzględnieniem ochrony skill_rate.
+   *
+   * @param id - ID gracza do pobrania
+   * @param isAdmin - Czy użytkownik ma rolę administratora (określa czy skill_rate może być zwrócone)
+   * @returns Promise rozwiązujący się do PlayerDTO lub null jeśli gracz nie istnieje lub jest soft-deleted
+   * @throws Error jeśli zapytanie do bazy danych nie powiedzie się
+   */
+  async getPlayerById(id: number, isAdmin: boolean): Promise<PlayerDTO | null> {
+    // Wykonaj zapytanie z filtrem soft-deleted i limitem 1 dla optymalizacji
+    const { data: player, error } = await this.supabase
+      .from("players")
+      .select("id, first_name, last_name, position, skill_rate, date_of_birth, created_at, updated_at")
+      .eq("id", id)
+      .is("deleted_at", null) // Tylko aktywni gracze
+      .single();
+
+    if (error) {
+      // Jeśli błąd to "PGRST116" oznacza że rekord nie istnieje
+      if (error.code === "PGRST116") {
+        return null;
+      }
+      throw new Error(`Nie udało się pobrać gracza: ${error.message}`);
+    }
+
+    if (!player) {
+      return null;
+    }
+
+    // Maskuj skill_rate dla użytkowników niebędących adminami
+    const playerDTO: PlayerDTO = {
+      ...player,
+      skill_rate: isAdmin ? player.skill_rate : null,
+    };
+
+    return playerDTO;
+  }
+
+  /**
    * Tworzy nowego gracza w systemie.
    *
    * @param command - Zwalidowane dane nowego gracza

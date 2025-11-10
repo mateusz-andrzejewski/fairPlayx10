@@ -1,27 +1,24 @@
 import type { APIRoute } from "astro";
 
 import { createPlayersService } from "../../../lib/services/players.service";
-import { validateListPlayersParams } from "../../../lib/validation/players";
+import { validatePlayerIdParam } from "../../../lib/validation/players";
 
 /**
- * GET /api/players
+ * GET /api/players/{id}
  *
- * Pobiera paginowaną listę aktywnych graczy z opcjonalnym filtrowaniem.
+ * Pobiera szczegółowe informacje o pojedynczym graczu.
  */
-export const GET: APIRoute = async ({ request, locals }) => {
+export const GET: APIRoute = async ({ params, locals }) => {
   try {
-    // Parsuj i zwaliduj parametry zapytania
-    const url = new URL(request.url);
-    const rawParams = Object.fromEntries(url.searchParams.entries());
-
+    // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
-      validatedParams = validateListPlayersParams(rawParams);
+      validatedParams = validatePlayerIdParam(params);
     } catch (validationError) {
       return new Response(
         JSON.stringify({
           error: "validation_error",
-          message: "Nieprawidłowe parametry zapytania",
+          message: "Nieprawidłowy format ID gracza",
           details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
         }),
         {
@@ -31,12 +28,26 @@ export const GET: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // Wykonaj logikę biznesową
+    // 2. Wywołaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const result = await playersService.listPlayers(validatedParams);
+    const player = await playersService.getPlayerById(validatedParams.id, true);
 
-    // Zwróć pomyślną odpowiedź
-    return new Response(JSON.stringify(result), {
+    // 3. Zwróć odpowiedź w zależności od wyniku
+    if (!player) {
+      return new Response(
+        JSON.stringify({
+          error: "not_found",
+          message: "Gracz o podanym ID nie został znaleziony lub jest niedostępny",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 4. Zwróć pomyślną odpowiedź
+    return new Response(JSON.stringify(player), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -44,7 +55,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       },
     });
   } catch (error) {
-    console.error("Nieoczekiwany błąd w GET /api/players:", error);
+    console.error("Nieoczekiwany błąd w GET /api/players/[id]:", error);
 
     return new Response(
       JSON.stringify({

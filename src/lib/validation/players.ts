@@ -60,6 +60,14 @@ export const createPlayerSchema = z.object({
 export type ListPlayersValidatedParams = z.infer<typeof listPlayersQuerySchema>;
 
 /**
+ * Schemat Zod do walidacji parametru ścieżki id gracza.
+ * Waliduje że id jest dodatnią liczbą całkowitą.
+ */
+export const playerIdParamSchema = z.object({
+  id: z.coerce.number().int().positive("ID gracza musi być dodatnią liczbą całkowitą"),
+});
+
+/**
  * Typ wywnioskowany z createPlayerSchema.
  * Zapewnia bezpieczeństwo typów między walidacją a tworzeniem gracza.
  */
@@ -99,4 +107,15 @@ export function validateListPlayersParams(params: Record<string, unknown>): List
   }
 
   return validated;
+}
+
+/**
+ * Waliduje parametr ścieżki id gracza.
+ *
+ * @param params - Parametry ścieżki zawierające id
+ * @returns Zwalidowane parametry zawierające id jako liczbę
+ * @throws ZodError jeśli walidacja nie powiedzie się
+ */
+export function validatePlayerIdParam(params: Record<string, unknown>): { id: number } {
+  return playerIdParamSchema.parse(params);
 }
