@@ -1,15 +1,15 @@
-# API Endpoint Implementation Plan: PATCH /api/events/{id}
+# API Endpoint Implementation Plan: PATCH /api/event/{id}
 
 ## 1. Przegląd punktu końcowego
 
 - Cel: zaktualizować szczegóły istniejącego wydarzenia (np. dane logistyczne, status) przez uprawnionego organizatora lub administratora.
-- Warstwa HTTP: `src/pages/api/events/[id].ts` (Astro endpoint; handler PATCH współdzielony z GET/DELETE).
-- Logika biznesowa: funkcja `updateEvent` w `src/lib/services/events.service.ts`.
+- Warstwa HTTP: `src/pages/api/event/[id].ts` (Astro endpoint; handler PATCH współdzielony z GET/DELETE).
+- Logika biznesowa: funkcja `updateEvent` w `src/lib/services/event.service.ts`.
 
 ## 2. Szczegóły żądania
 
 - Metoda HTTP: PATCH
-- Struktura URL: `/api/events/{id}`
+- Struktura URL: `/api/event/{id}`
 - Parametry:
   - Wymagane: `id` (parametr ścieżki, dodatnia liczba całkowita)
   - Body: dowolny podzbiór `UpdateEventCommand` (`name`, `location`, `event_datetime`, `max_places`, `optional_fee`, `status`)
@@ -19,7 +19,7 @@
 ## 3. Wykorzystywane typy
 
 - `UpdateEventCommand`, `EventDTO` z `src/types.ts`
-- Walidatory `eventIdParamSchema`, `updateEventBodySchema` w `src/lib/validation/events.ts`
+- Walidatory `eventIdParamSchema`, `updateEventBodySchema` w `src/lib/validation/event.ts`
 
 ## 3. Szczegóły odpowiedzi
 
@@ -68,8 +68,8 @@
 
 ## 8. Etapy wdrożenia
 
-1. Zdefiniować `updateEventBodySchema` w `src/lib/validation/events.ts` (wraz z regułą „co najmniej jedno pole”).
-2. Zaimplementować `updateEvent` w `src/lib/services/events.service.ts` (pobranie, autoryzacja, walidacja domenowa, update).
-3. Dodać obsługę PATCH w `src/pages/api/events/[id].ts`.
+1. Zdefiniować `updateEventBodySchema` w `src/lib/validation/event.ts` (wraz z regułą „co najmniej jedno pole”).
+2. Zaimplementować `updateEvent` w `src/lib/services/event.service.ts` (pobranie, autoryzacja, walidacja domenowa, update).
+3. Dodać obsługę PATCH w `src/pages/api/event/[id].ts`.
 4. Przygotować testy jednostkowe dla walidatora i serwisu (różne role, błędne statusy, daty w przeszłości).
 5. Uruchomić linter/testy oraz zaktualizować dokumentację API.
