@@ -1,15 +1,15 @@
-# API Endpoint Implementation Plan: GET /api/events/{id}
+# API Endpoint Implementation Plan: GET /api/event/{id}
 
 ## 1. Przegląd punktu końcowego
 
 - Cel: zwrócić szczegóły pojedynczego wydarzenia wraz z listą zapisów (`signups`).
-- Warstwa HTTP: `src/pages/api/events/[id].ts` (Astro endpoint, `export const prerender = false`).
-- Logika biznesowa: funkcja `getEventById` w `src/lib/services/events.service.ts`.
+- Warstwa HTTP: `src/pages/api/event/[id].ts` (Astro endpoint, `export const prerender = false`).
+- Logika biznesowa: funkcja `getEventById` w `src/lib/services/event.service.ts`.
 
 ## 2. Szczegóły żądania
 
 - Metoda HTTP: GET
-- Struktura URL: `/api/events/{id}`
+- Struktura URL: `/api/event/{id}`
 - Parametry:
   - Wymagane: `id` (parametr ścieżki, dodatnia liczba całkowita)
   - Opcjonalne: brak
@@ -18,8 +18,8 @@
 
 ## 3. Wykorzystywane typy
 
-- `EventDetailDTO`, `EventSignupDTO`, `EventDTO` z `src/types.ts`
-- Walidator `eventIdParamSchema` w `src/lib/validation/events.ts`
+- `EventDetailDTO`, `eventignupDTO`, `EventDTO` z `src/types.ts`
+- Walidator `eventIdParamSchema` w `src/lib/validation/event.ts`
 
 ## 3. Szczegóły odpowiedzi
 
@@ -36,7 +36,7 @@
 2. Waliduje `params.id` przy użyciu `eventIdParamSchema`.
 3. Weryfikuje autoryzację (rola `user`/`organizer`/`admin`; dodatkowa kontrola własności jeśli wymagana).
 4. Wywołuje `getEventById(supabase, id)`.
-5. Serwis pobiera event z tabeli `events` (filtr `deleted_at IS NULL`) oraz zagnieżdżone `event_signups` poprzez Supabase `select` z relacjami.
+5. Serwis pobiera event z tabeli `event` (filtr `deleted_at IS NULL`) oraz zagnieżdżone `event_signups` poprzez Supabase `select` z relacjami.
 6. Po otrzymaniu danych mapuje rekord na `EventDetailDTO`; w przypadku braku wyniku zwraca `null`.
 7. Handler zwraca odpowiednio 404 (gdy `null`) lub 200 z `EventDetailDTO`.
 
@@ -63,8 +63,8 @@
 
 ## 8. Etapy wdrożenia
 
-1. Dodać `eventIdParamSchema` do `src/lib/validation/events.ts`.
-2. Zaimplementować `getEventById` w `src/lib/services/events.service.ts` (zapytanie + mapowanie DTO).
-3. W pliku `src/pages/api/events/[id].ts` zaimplementować handler GET z walidacją, autoryzacją i obsługą 404.
+1. Dodać `eventIdParamSchema` do `src/lib/validation/event.ts`.
+2. Zaimplementować `getEventById` w `src/lib/services/event.service.ts` (zapytanie + mapowanie DTO).
+3. W pliku `src/pages/api/event/[id].ts` zaimplementować handler GET z walidacją, autoryzacją i obsługą 404.
 4. Przygotować testy jednostkowe dla walidatora i serwisu (mock Supabase).
 5. Uruchomić linter/testy oraz zaktualizować dokumentację API.

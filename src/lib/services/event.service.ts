@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
 import type { CreateEventValidatedParams, UpdateEventValidatedParams } from "../validation/event";
-import type { EventDTO, CreateEventCommand } from "../../types";
+import type { EventDTO, EventDetailDTO, CreateEventCommand } from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z wydarzeniami.
@@ -55,6 +55,78 @@ export class EventService {
 
     // Zwróć EventDTO (insertedEvent już ma właściwą strukturę)
     return insertedEvent;
+  }
+
+  /**
+   * Pobiera szczegóły pojedynczego wydarzenia wraz z listą zapisów.
+   * Filtruje usunięte wydarzenia (deleted_at IS NULL) i zwraca powiązane zapisy.
+   *
+   * @param id - ID wydarzenia do pobrania
+   * @returns Promise rozwiązujący się do EventDetailDTO lub null jeśli wydarzenie nie istnieje
+   * @throws Error jeśli wystąpi błąd podczas zapytania do bazy danych
+   */
+  async getEventById(id: number): Promise<EventDetailDTO | null> {
+    // Wykonaj zapytanie z relacjami aby pobrać wydarzenie i powiązane zapisy
+    const { data: eventData, error } = await this.supabase
+      .from("events")
+      .select(
+        `
+        id,
+        name,
+        location,
+        event_datetime,
+        max_places,
+        optional_fee,
+        status,
+        current_signups_count,
+        organizer_id,
+        created_at,
+        updated_at,
+        deleted_at,
+        event_signups (
+          id,
+          event_id,
+          player_id,
+          signup_timestamp,
+          status,
+          resignation_timestamp
+        )
+      `
+      )
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (error) {
+      // Jeśli nie znaleziono rekordu, zwróć null (nie rzucaj błędu)
+      if (error.code === "PGRST116") {
+        return null;
+      }
+      throw new Error(`Błąd podczas pobierania wydarzenia: ${error.message}`);
+    }
+
+    if (!eventData) {
+      return null;
+    }
+
+    // Mapuj dane na EventDetailDTO
+    const eventDetail: EventDetailDTO = {
+      id: eventData.id,
+      name: eventData.name,
+      location: eventData.location,
+      event_datetime: eventData.event_datetime,
+      max_places: eventData.max_places,
+      optional_fee: eventData.optional_fee,
+      status: eventData.status,
+      current_signups_count: eventData.current_signups_count,
+      organizer_id: eventData.organizer_id,
+      created_at: eventData.created_at,
+      updated_at: eventData.updated_at,
+      deleted_at: eventData.deleted_at,
+      signups: eventData.event_signups || [], // Zapewnij że signups zawsze jest tablicą
+    };
+
+    return eventDetail;
   }
 
   /**

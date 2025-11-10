@@ -4,6 +4,73 @@ import { createEventService } from "../../../lib/services/event.service";
 import { validateEventIdParam, updateEventBodySchema } from "../../../lib/validation/event";
 
 /**
+ * GET /api/event/{id}
+ *
+ * Zwraca szczegóły pojedynczego wydarzenia wraz z listą zapisów.
+ */
+export const GET: APIRoute = async ({ params, locals }) => {
+  try {
+    // 1. Parsuj i zwaliduj parametr id z ścieżki
+    let validatedParams;
+    try {
+      validatedParams = validateEventIdParam(params);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format ID wydarzenia",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 2. Wywołaj logikę biznesową (pomiń autoryzację na razie)
+    const eventService = createEventService(locals.supabase);
+    const eventDetail = await eventService.getEventById(validatedParams.id);
+
+    // 3. Zwróć odpowiedź na podstawie wyniku
+    if (!eventDetail) {
+      return new Response(
+        JSON.stringify({
+          error: "not_found",
+          message: "Wydarzenie o podanym ID nie zostało znalezione",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 4. Zwróć pomyślną odpowiedź z EventDetailDTO
+    return new Response(JSON.stringify(eventDetail), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Nieoczekiwany błąd w GET /api/event/[id]:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+/**
  * PATCH /api/event/{id}
  *
  * Częściowo aktualizuje dane wydarzenia.
