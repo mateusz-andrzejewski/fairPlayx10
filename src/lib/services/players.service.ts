@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
-import type { ListPlayersValidatedParams } from "../validation/players";
-import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO, CreatePlayerCommand } from "../../types";
+import type { ListPlayersValidatedParams, UpdatePlayerValidatedParams } from "../validation/players";
+import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO, CreatePlayerCommand, UpdatePlayerCommand } from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z graczami.
@@ -176,6 +176,56 @@ export class PlayersService {
     const playerDTO: PlayerDTO = {
       ...insertedPlayer,
       skill_rate: isAdmin ? insertedPlayer.skill_rate : null,
+    };
+
+    return playerDTO;
+  }
+
+  /**
+   * Aktualizuje dane gracza częściowo z kontrolą dostępu do skill_rate.
+   *
+   * @param id - ID gracza do aktualizacji
+   * @param command - Częściowe dane do aktualizacji (co najmniej jedno pole)
+   * @param isAdmin - Czy użytkownik ma rolę administratora (określa czy skill_rate może być aktualizowane)
+   * @returns Promise rozwiązujący się do zaktualizowanego PlayerDTO lub null jeśli gracz nie istnieje lub jest soft-deleted
+   * @throws Error jeśli operacja update nie powiedzie się
+   */
+  async updatePlayer(id: number, command: UpdatePlayerCommand, isAdmin: boolean): Promise<PlayerDTO | null> {
+    // Dla użytkowników niebędących adminami usuń skill_rate z payloadu jeśli jest obecne
+    const updateData = { ...command };
+    if (!isAdmin && 'skill_rate' in updateData) {
+      delete updateData.skill_rate;
+    }
+
+    // Wykonaj update z filtrem soft-deleted i zwróć zaktualizowany rekord
+    const { data: updatedPlayer, error } = await this.supabase
+      .from("players")
+      .update(updateData)
+      .eq("id", id)
+      .is("deleted_at", null) // Tylko aktywni gracze
+      .select("id, first_name, last_name, position, skill_rate, date_of_birth, created_at, updated_at")
+      .single();
+
+    if (error) {
+      // Jeśli błąd to "PGRST116" oznacza że rekord nie istnieje lub nie został zaktualizowany
+      if (error.code === "PGRST116") {
+        return null;
+      }
+      // Sprawdź czy to błąd konfliktu (np. constraint na duplikat imienia+nazwiska)
+      if (error.code === "23505") {
+        throw new Error("Gracz z podanym imieniem i nazwiskiem już istnieje");
+      }
+      throw new Error(`Nie udało się zaktualizować gracza: ${error.message}`);
+    }
+
+    if (!updatedPlayer) {
+      return null;
+    }
+
+    // Maskuj skill_rate dla użytkowników niebędących adminami
+    const playerDTO: PlayerDTO = {
+      ...updatedPlayer,
+      skill_rate: isAdmin ? updatedPlayer.skill_rate : null,
     };
 
     return playerDTO;

@@ -74,6 +74,18 @@ export const playerIdParamSchema = z.object({
 export type CreatePlayerValidatedParams = z.infer<typeof createPlayerSchema>;
 
 /**
+ * Schemat Zod do walidacji danych wejściowych dla częściowej aktualizacji gracza.
+ * Wszystkie pola są opcjonalne (partial), ale przynajmniej jedno pole musi być podane.
+ * Waliduje pola first_name, last_name, position, skill_rate i opcjonalne date_of_birth.
+ */
+export const updatePlayerSchema = createPlayerSchema
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    "Przynajmniej jedno pole musi zostać podane do aktualizacji"
+  );
+
+/**
  * Sanitizuje zapytanie wyszukiwania poprzez escape znaków specjalnych używanych w wzorcach SQL LIKE.
  * Escapuje znaki % i _ aby zapobiec SQL injection i nieoczekiwanemu dopasowaniu wildcard.
  *
@@ -119,3 +131,9 @@ export function validateListPlayersParams(params: Record<string, unknown>): List
 export function validatePlayerIdParam(params: Record<string, unknown>): { id: number } {
   return playerIdParamSchema.parse(params);
 }
+
+/**
+ * Typ wywnioskowany z updatePlayerSchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a aktualizacją gracza.
+ */
+export type UpdatePlayerValidatedParams = z.infer<typeof updatePlayerSchema>;
