@@ -1,27 +1,22 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "../../db/supabase.client";
 
-import type { Database } from "../../db/database.types";
 import type { ListPlayersValidatedParams } from "../validation/players";
 import type { PlayerDTO, PlayersListResponseDTO, PaginationMetaDTO } from "../../types";
-
-type SupabaseType = SupabaseClient<Database>;
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z graczami.
  * Obsługuje dostęp do danych, transformację i reguły biznesowe dla graczy.
  */
 export class PlayersService {
-  constructor(private supabase: SupabaseType) {}
+  constructor(private supabase: SupabaseClient) {}
 
   /**
    * Pobiera paginowaną listę aktywnych graczy z opcjonalnym filtrowaniem.
-   * Stosuje kontrolę dostępu opartą na roli dla widoczności skill_rate.
    *
    * @param params - Zwalidowane parametry zapytania
-   * @param canSeeSkillRate - Czy bieżący użytkownik może zobaczyć oceny umiejętności (tylko admin)
    * @returns Promise rozwiązujący się do paginowanej listy graczy
    */
-  async listPlayers(params: ListPlayersValidatedParams, canSeeSkillRate: boolean): Promise<PlayersListResponseDTO> {
+  async listPlayers(params: ListPlayersValidatedParams): Promise<PlayersListResponseDTO> {
     // Oblicz offset dla paginacji
     const from = (params.page - 1) * params.limit;
     const to = from + params.limit - 1;
@@ -82,10 +77,10 @@ export class PlayersService {
       };
     }
 
-    // Przekształć surowe dane na DTO z kontrolą dostępu
+    // Przekształć surowe dane na DTO
     const players: PlayerDTO[] = rawPlayers.map((player) => ({
       ...player,
-      skill_rate: canSeeSkillRate ? player.skill_rate : null,
+      skill_rate: player.skill_rate,
     }));
 
     // Oblicz metadane paginacji
@@ -112,6 +107,6 @@ export class PlayersService {
  * @param supabase - Instancja klienta Supabase
  * @returns Skonfigurowana instancja PlayersService
  */
-export function createPlayersService(supabase: SupabaseType): PlayersService {
+export function createPlayersService(supabase: SupabaseClient): PlayersService {
   return new PlayersService(supabase);
 }
