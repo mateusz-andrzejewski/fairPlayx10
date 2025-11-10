@@ -186,5 +186,87 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
   }
 };
 
+/**
+ * DELETE /api/player/{id}
+ *
+ * Wykonuje miękkie usunięcie gracza poprzez ustawienie deleted_at.
+ * Dostępne wyłącznie dla administratorów.
+ */
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  try {
+    // 1. Parsuj i zwaliduj parametr id z ścieżki
+    let validatedParams;
+    try {
+      validatedParams = validatePlayerIdParam(params);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format ID gracza",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // TODO: 2. Sprawdź autoryzację - tylko administratorzy mogą usuwać graczy
+    // const isAdmin = checkUserRole(locals.user, 'admin');
+    // if (!isAdmin) {
+    //   return new Response(
+    //     JSON.stringify({
+    //       error: "forbidden",
+    //       message: "Brak uprawnień do wykonania tej operacji",
+    //     }),
+    //     {
+    //       status: 403,
+    //       headers: { "Content-Type": "application/json" },
+    //     }
+    //   );
+    // }
+
+    // 3. Wywołaj logikę biznesową - miękkie usunięcie gracza
+    const playersService = createPlayersService(locals.supabase);
+    const deletedPlayerId = await playersService.softDeletePlayer(validatedParams.id);
+
+    // 4. Zwróć odpowiedź w zależności od wyniku
+    if (!deletedPlayerId) {
+      return new Response(
+        JSON.stringify({
+          error: "not_found",
+          message: "Gracz o podanym ID nie został znaleziony lub już został usunięty",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 5. Zwróć pomyślną odpowiedź - brak treści dla operacji DELETE
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Nieoczekiwany błąd w DELETE /api/player/[id]:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
 // Wyłącz prerendering dla endpointów API
 export const prerender = false;

@@ -236,6 +236,32 @@ export class PlayersService {
 
     return playerDTO;
   }
+
+  /**
+   * Wykonuje miękkie usunięcie gracza poprzez ustawienie deleted_at.
+   * Metoda dostępna wyłącznie dla administratorów.
+   *
+   * @param id - ID gracza do miękkiego usunięcia
+   * @returns Promise rozwiązujący się do ID usuniętego gracza lub null jeśli gracz nie istnieje lub już jest soft-deleted
+   * @throws Error jeśli operacja update nie powiedzie się
+   */
+  async softDeletePlayer(id: number): Promise<number | null> {
+    // Wykonaj miękkie usunięcie tylko dla aktywnych graczy (deleted_at is null)
+    const { data: deletedPlayer, error } = await this.supabase
+      .from("players")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null) // Tylko aktywni gracze
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Nie udało się wykonać miękkiego usunięcia gracza: ${error.message}`);
+    }
+
+    // Jeśli nie znaleziono rekordu (już soft-deleted lub nie istnieje), zwróć null
+    return deletedPlayer?.id ?? null;
+  }
 }
 
 /**
