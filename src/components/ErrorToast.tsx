@@ -9,7 +9,7 @@ function ErrorToast({ message }: ErrorToastProps) {
   useEffect(() => {
     if (message) {
       let title = "Błąd logowania";
-      let description = message;
+      const description = message;
 
       // Customize title based on error type
       if (message.includes("limit czasu")) {

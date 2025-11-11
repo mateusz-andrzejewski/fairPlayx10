@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchAndFilters } from "./SearchAndFilters";
 import { PlayersTable } from "./PlayersTable";
@@ -66,6 +66,18 @@ export default function PlayersListPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
+        {/* Przycisk powrotu do dashboard */}
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => window.location.href = "/dashboard"}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Powrót do dashboard
+          </Button>
+        </div>
+
         {/* Nagłówek */}
         <div className="flex items-center justify-between mb-6">
           <div>

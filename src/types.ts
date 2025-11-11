@@ -320,3 +320,64 @@ export interface SearchFiltersVM {
   page: number;
   limit: number;
 }
+
+/**
+ * EVENTS VIEW MODELS
+ */
+
+// Rozszerzony DTO wydarzenia dla karty na liście
+export interface EventCardViewModel extends EventDTO {
+  isFull: boolean; // czy wszystkie miejsca zajęte
+  canSignup: boolean; // czy użytkownik może się zapisać
+  daysUntilEvent: number; // dni do wydarzenia
+  formattedDate: string; // sformatowana data
+  formattedTime: string; // sformatowany czas
+}
+
+// Rozszerzony DTO szczegółów wydarzenia
+export interface EventDetailsViewModel extends EventDetailDTO {
+  isOrganizer: boolean; // czy użytkownik jest organizatorem
+  isSignedUp: boolean; // czy użytkownik jest zapisany
+  canManageSignups: boolean; // czy użytkownik może zarządzać zapisami
+  signupsWithNames: EventSignupWithNameViewModel[]; // zapisy z nazwami graczy
+}
+
+// Rozszerzony DTO zapisu z nazwą gracza
+export interface EventSignupWithNameViewModel extends EventSignupDTO {
+  playerName: string; // imię i nazwisko gracza
+  position?: PlayerPosition; // pozycja gracza
+  skillRate?: number; // skill rate - tylko dla organizatora/admina
+}
+
+// Parametry filtrów wydarzeń
+export interface EventFiltersViewModel {
+  page?: number;
+  limit?: number;
+  status?: EventStatus;
+  location?: string;
+  date_from?: string;
+  date_to?: string;
+  organizer_id?: number;
+  search?: string;
+}
+
+// Stan formularza wydarzenia
+export interface EventFormViewModel {
+  id?: number; // null dla tworzenia, number dla edycji
+  name: string;
+  location: string;
+  event_datetime: string;
+  max_places: number;
+  optional_fee?: number;
+  isSubmitting: boolean;
+  errors: EventFormErrors;
+}
+
+// Błędy formularza wydarzenia
+export interface EventFormErrors {
+  name: string[];
+  location: string[];
+  event_datetime: string[];
+  max_places: string[];
+  optional_fee: string[];
+}
