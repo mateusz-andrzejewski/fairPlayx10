@@ -259,6 +259,21 @@ export interface DashboardDTO {
   pending_users?: number;
 }
 
+export interface NotificationDTO {
+  id: number;
+  type: string;
+  message: string;
+  actionUrl: string;
+}
+
+export interface DashboardViewModel {
+  currentUser: UserDTO;
+  nearestEvent: EventDTO | null;
+  upcomingEvents: EventDTO[];
+  notifications: NotificationDTO[];
+  managementData: { users: UserDTO[], events: EventDTO[], players: PlayerDTO[] } | null;
+}
+
 /**
  * AUTHENTICATION
  */
