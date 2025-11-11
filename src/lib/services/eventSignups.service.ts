@@ -108,12 +108,13 @@ export class EventSignupsService {
       throw new Error(`Błąd podczas weryfikacji gracza: ${playerError.message}`);
     }
 
-    // Sprawdź czy gracz nie jest już zapisany na to wydarzenie
+    // Sprawdź czy gracz nie jest już aktywnie zapisany na to wydarzenie (wykluczając withdrawn)
     const { data: existingSignup, error: signupCheckError } = await this.supabase
       .from("event_signups")
-      .select("id")
+      .select("id, status")
       .eq("event_id", eventId)
       .eq("player_id", targetPlayerId)
+      .neq("status", "withdrawn")
       .single();
 
     if (signupCheckError && signupCheckError.code !== "PGRST116") {
@@ -124,31 +125,61 @@ export class EventSignupsService {
       throw new Error("Gracz jest już zapisany na to wydarzenie");
     }
 
-    // TODO: Zaimplementować jako transakcję Supabase zamiast dwóch oddzielnych operacji
-    // Obecnie używamy dwóch operacji ze względu na brak funkcji RPC w bazie danych
-
-    // Najpierw wstaw zapis
-    const { data: newSignup, error: insertError } = await this.supabase
+    // Sprawdź czy istnieje wycofany zapis, który możemy reaktywować
+    const { data: withdrawnSignup, error: withdrawnCheckError } = await this.supabase
       .from("event_signups")
-      .insert({
-        event_id: eventId,
-        player_id: targetPlayerId,
-        signup_timestamp: new Date().toISOString(),
-        status: "pending",
-      })
-      .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+      .select("id, status")
+      .eq("event_id", eventId)
+      .eq("player_id", targetPlayerId)
+      .eq("status", "withdrawn")
       .single();
 
-    if (insertError) {
-      // Sprawdź czy to błąd konfliktu unikalności
-      if (insertError.code === "23505") {
-        throw new Error("Gracz jest już zapisany na to wydarzenie");
-      }
-      throw new Error(`Nie udało się utworzyć zapisu: ${insertError.message}`);
+    if (withdrawnCheckError && withdrawnCheckError.code !== "PGRST116") {
+      throw new Error(`Błąd podczas sprawdzania wycofanego zapisu: ${withdrawnCheckError.message}`);
     }
 
-    if (!newSignup) {
-      throw new Error("Nie udało się utworzyć zapisu - brak danych zwrotnych");
+    let signupResult;
+
+    if (withdrawnSignup) {
+      // Reaktywuj istniejący wycofany zapis
+      const { data: updatedSignup, error: updateError } = await this.supabase
+        .from("event_signups")
+        .update({
+          status: "pending",
+          signup_timestamp: new Date().toISOString(),
+          resignation_timestamp: null,
+        })
+        .eq("id", withdrawnSignup.id)
+        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+        .single();
+
+      if (updateError) {
+        throw new Error(`Nie udało się reaktywować zapisu: ${updateError.message}`);
+      }
+
+      signupResult = updatedSignup;
+    } else {
+      // Utwórz nowy zapis
+      const { data: newSignup, error: insertError } = await this.supabase
+        .from("event_signups")
+        .insert({
+          event_id: eventId,
+          player_id: targetPlayerId,
+          signup_timestamp: new Date().toISOString(),
+          status: "pending",
+        })
+        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+        .single();
+
+      if (insertError) {
+        throw new Error(`Nie udało się utworzyć zapisu: ${insertError.message}`);
+      }
+
+      signupResult = newSignup;
+    }
+
+    if (!signupResult) {
+      throw new Error("Nie udało się utworzyć/reaktywować zapisu - brak danych zwrotnych");
     }
 
     // Następnie zwiększ licznik zapisów w wydarzeniu
@@ -162,18 +193,18 @@ export class EventSignupsService {
 
     if (updateError) {
       // W przypadku błędu aktualizacji licznika, spróbuj usunąć utworzony zapis
-      await this.supabase.from("event_signups").delete().eq("id", newSignup.id);
+      await this.supabase.from("event_signups").delete().eq("id", signupResult.id);
       throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
     }
 
     // Zwróć EventSignupDTO
     return {
-      id: newSignup.id,
-      event_id: newSignup.event_id,
-      player_id: newSignup.player_id,
-      signup_timestamp: newSignup.signup_timestamp,
-      status: newSignup.status,
-      resignation_timestamp: newSignup.resignation_timestamp,
+      id: signupResult.id,
+      event_id: signupResult.event_id,
+      player_id: signupResult.player_id,
+      signup_timestamp: signupResult.signup_timestamp,
+      status: signupResult.status,
+      resignation_timestamp: signupResult.resignation_timestamp,
     };
   }
 
@@ -408,6 +439,128 @@ export class EventSignupsService {
       data: signups,
       pagination,
     };
+  }
+
+  /**
+   * Wycofuje zapis z wydarzenia lub usuwa go całkowicie zgodnie z regułami biznesowymi.
+   * Gracz może wycofać własny zapis, organizator może wycofać zapisy tylko na własnych wydarzeniach,
+   * administrator może wycofać dowolny zapis. Operacja wykonywana w transakcji dla spójności.
+   *
+   * @param eventId - ID wydarzenia którego dotyczy zapis
+   * @param signupId - ID zapisu do wycofania
+   * @param actor - Kontekst użytkownika wykonującego operację (userId, role, playerId)
+   * @returns Promise rozwiązujący się bez wartości (204 No Content)
+   * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
+   */
+  async deleteEventSignup(
+    eventId: number,
+    signupId: number,
+    actor: SignupActor
+  ): Promise<void> {
+    // Sprawdź podstawowe uprawnienia do wykonania operacji
+    if (!canSignUpForEvents(actor.role) && !canManageEventSignups(actor.role)) {
+      throw new Error("Brak uprawnień do wycofywania zapisów na wydarzenia");
+    }
+
+    // Pobierz zapis wraz z informacjami o wydarzeniu dla weryfikacji przynależności
+    const { data: signupData, error: signupError } = await this.supabase
+      .from("event_signups")
+      .select(
+        `
+        id,
+        event_id,
+        player_id,
+        signup_timestamp,
+        status,
+        resignation_timestamp,
+        events!inner (
+          id,
+          organizer_id,
+          status,
+          current_signups_count,
+          max_places
+        )
+      `
+      )
+      .eq("id", signupId)
+      .eq("events.id", eventId)
+      .is("events.deleted_at", null)
+      .single();
+
+    if (signupError) {
+      if (signupError.code === "PGRST116") {
+        throw new Error("Zapis nie został znaleziony lub nie należy do podanego wydarzenia");
+      }
+      throw new Error(`Błąd podczas pobierania zapisu: ${signupError.message}`);
+    }
+
+    if (!signupData) {
+      throw new Error("Zapis nie został znaleziony lub nie należy do podanego wydarzenia");
+    }
+
+    // Sprawdź uprawnienia w zależności od roli użytkownika
+    if (canManageEventSignups(actor.role)) {
+      // Organizator może wycofać zapisy tylko na własnych wydarzeniach
+      if (actor.role === "organizer" && signupData.events.organizer_id !== actor.userId) {
+        throw new Error("Organizator może zarządzać zapisami tylko na własnych wydarzeniach");
+      }
+    } else if (canSignUpForEvents(actor.role)) {
+      // Gracz może wycofać tylko własny zapis
+      if (!actor.playerId || signupData.player_id !== actor.playerId) {
+        throw new Error("Gracz może wycofać tylko własny zapis");
+      }
+    }
+
+    // Sprawdź czy zapis można jeszcze wycofać (nie jest już withdrawn)
+    if (signupData.status === "withdrawn") {
+      throw new Error("Zapis został już wcześniej wycofany");
+    }
+
+    // Przygotuj dane do aktualizacji - preferujemy aktualizację statusu zamiast usuwania
+    const updateData: any = {
+      status: "withdrawn",
+      resignation_timestamp: new Date().toISOString(),
+    };
+
+    // Sprawdź czy trzeba dekrementować licznik zapisów
+    const shouldDecrementCounter = signupData.status === "pending" || signupData.status === "confirmed";
+
+    if (shouldDecrementCounter) {
+      // Wykonaj aktualizację w transakcji - najpierw zmniejsz licznik w events
+      const { error: counterUpdateError } = await this.supabase
+        .from("events")
+        .update({
+          current_signups_count: signupData.events.current_signups_count - 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+
+      if (counterUpdateError) {
+        throw new Error(`Nie udało się zaktualizować licznika zapisów: ${counterUpdateError.message}`);
+      }
+    }
+
+    // Aktualizuj status zapisu na withdrawn
+    const { error: updateError } = await this.supabase
+      .from("event_signups")
+      .update(updateData)
+      .eq("id", signupId);
+
+    if (updateError) {
+      // W przypadku błędu i wcześniejszej dekrementacji licznika, spróbuj cofnąć zmianę
+      if (shouldDecrementCounter) {
+        await this.supabase
+          .from("events")
+          .update({
+            current_signups_count: signupData.events.current_signups_count,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", eventId);
+      }
+      throw new Error(`Nie udało się wycofać zapisu: ${updateError.message}`);
+    }
+
+    // Operacja zakończona sukcesem - brak zwracanych danych (204 No Content)
   }
 }
 
