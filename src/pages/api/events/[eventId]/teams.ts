@@ -1,10 +1,7 @@
 import type { APIRoute } from "astro";
 
 import { createTeamAssignmentsService } from "../../../../lib/services/team-assignments.service";
-import {
-  createTeamAssignmentsSchema,
-  eventIdParamSchema,
-} from "../../../../lib/validation/teamAssignments";
+import { createTeamAssignmentsSchema, eventIdParamSchema } from "../../../../lib/validation/teamAssignments";
 import type { TeamAssignmentsListResponseDTO } from "../../../../types";
 
 /**
@@ -73,9 +70,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     const actor = {
       userId: 1, // TODO: Pobierz z locals.session.user.id
       role: "admin" as const, // TODO: Pobierz z locals.session.user.role
-      ipAddress: request.headers.get("x-forwarded-for") ||
-                request.headers.get("x-real-ip") ||
-                "127.0.0.1", // Fallback dla adresu IP
+      ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1", // Fallback dla adresu IP
     };
 
     // 3. Wywołaj logikę biznesową
@@ -112,8 +107,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       }
 
       // Błędy związane z walidacją biznesową (np. signup nie należy do wydarzenia)
-      if (error.message.includes("nie należą do wskazanego wydarzenia") ||
-          error.message.includes("signup_id muszą być unikalne")) {
+      if (
+        error.message.includes("nie należą do wskazanego wydarzenia") ||
+        error.message.includes("signup_id muszą być unikalne")
+      ) {
         return new Response(
           JSON.stringify({
             error: "validation_error",
@@ -206,10 +203,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     // 2. Wywołaj logikę biznesową
     const teamAssignmentsService = createTeamAssignmentsService(locals.supabase);
-    const assignments = await teamAssignmentsService.listAssignments(
-      validatedParams.eventId,
-      actor
-    );
+    const assignments = await teamAssignmentsService.listAssignments(validatedParams.eventId, actor);
 
     // 3. Przygotuj odpowiedź zgodnie z TeamAssignmentsListResponseDTO
     const response: TeamAssignmentsListResponseDTO = {

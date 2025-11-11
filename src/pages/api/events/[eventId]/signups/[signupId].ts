@@ -207,11 +207,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
 
     // 2. Wywołaj logikę biznesową wycofania zapisu
     const eventSignupsService = createEventSignupsService(locals.supabase);
-    await eventSignupsService.deleteEventSignup(
-      validatedParams.eventId,
-      validatedParams.signupId,
-      actor
-    );
+    await eventSignupsService.deleteEventSignup(validatedParams.eventId, validatedParams.signupId, actor);
 
     // 3. Zwróć pomyślną odpowiedź bez treści (204 No Content)
     return new Response(null, {

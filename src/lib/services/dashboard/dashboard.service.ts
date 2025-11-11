@@ -1,0 +1,217 @@
+import type { SupabaseClient } from "../../supabase.client";
+
+import type { DashboardDTO, UserDTO, EventDTO, EventSignupDTO } from "../../../types";
+
+/**
+ * Serwis do zarządzania logiką biznesową pulpitu nawigacyjnego.
+ * Agreguje dane kontekstowe dla zalogowanego użytkownika.
+ */
+export class DashboardService {
+  constructor(private supabase: SupabaseClient) {}
+
+  /**
+   * Pobiera agregowane dane pulpitu dla danego użytkownika.
+   * Wykonuje równoległe zapytania dla optymalizacji wydajności.
+   *
+   * @param userId - ID użytkownika
+   * @param userRole - Rola użytkownika (admin/organizer/player)
+   * @param playerId - Opcjonalne ID gracza powiązanego z użytkownikiem
+   * @returns Promise rozwiązujący się do danych pulpitu
+   */
+  async getDashboardData(userId: string, userRole: string, playerId?: string): Promise<DashboardDTO> {
+    // Równoległe pobranie wszystkich danych dla optymalizacji
+    const [userProfile, upcomingEvents, mySignups, organizedEvents, pendingUsersCount] = await Promise.all([
+      this.loadUserProfile(userId),
+      this.loadUpcomingEvents(),
+      playerId ? this.loadMySignups(playerId) : Promise.resolve([]),
+      this.shouldLoadOrganizedEvents(userRole) ? this.loadOrganizedEvents(userId) : Promise.resolve([]),
+      this.shouldLoadPendingUsers(userRole) ? this.loadPendingUsersCount() : Promise.resolve(undefined),
+    ]);
+
+    return {
+      user: userProfile,
+      upcoming_events: upcomingEvents,
+      my_signups: mySignups,
+      organized_events: organizedEvents,
+      ...(pendingUsersCount !== undefined && { pending_users: pendingUsersCount }),
+    };
+  }
+
+  /**
+   * Ładuje profil użytkownika na podstawie jego ID.
+   *
+   * @param userId - ID użytkownika
+   * @returns Promise rozwiązujący się do profilu użytkownika
+   * @throws Error gdy profil nie istnieje
+   */
+  private async loadUserProfile(userId: string): Promise<UserDTO> {
+    const { data, error } = await this.supabase
+      .from("users")
+      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at")
+      .eq("id", userId)
+      .is("deleted_at", null)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to load user profile: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error("User profile not found");
+    }
+
+    return data;
+  }
+
+  /**
+   * Ładuje nadchodzące wydarzenia (maksymalnie 5) z filtrami statusu i daty.
+   *
+   * @returns Promise rozwiązujący się do listy nadchodzących wydarzeń
+   */
+  private async loadUpcomingEvents(): Promise<EventDTO[]> {
+    const { data, error } = await this.supabase
+      .from("events")
+      .select(
+        `
+        id,
+        name,
+        location,
+        event_datetime,
+        max_places,
+        optional_fee,
+        status,
+        current_signups_count,
+        organizer_id,
+        created_at,
+        updated_at,
+        deleted_at
+      `
+      )
+      .gte("event_datetime", new Date().toISOString())
+      .is("deleted_at", null)
+      .in("status", ["published", "open_for_signups"])
+      .order("event_datetime", { ascending: true })
+      .limit(5);
+
+    if (error) {
+      throw new Error(`Failed to load upcoming events: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Ładuje zapisy gracza na wydarzenia z wykluczeniem rezygnacji.
+   *
+   * @param playerId - ID gracza
+   * @returns Promise rozwiązujący się do listy zapisów gracza
+   */
+  private async loadMySignups(playerId: string): Promise<EventSignupDTO[]> {
+    const { data, error } = await this.supabase
+      .from("event_signups")
+      .select(
+        `
+        id,
+        event_id,
+        player_id,
+        signup_timestamp,
+        status,
+        resignation_timestamp
+      `
+      )
+      .eq("player_id", playerId)
+      .neq("status", "resigned")
+      .order("signup_timestamp", { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to load my signups: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Ładuje wydarzenia organizowane przez użytkownika.
+   *
+   * @param userId - ID użytkownika-organizatora
+   * @returns Promise rozwiązujący się do listy organizowanych wydarzeń
+   */
+  private async loadOrganizedEvents(userId: string): Promise<EventDTO[]> {
+    const { data, error } = await this.supabase
+      .from("events")
+      .select(
+        `
+        id,
+        name,
+        location,
+        event_datetime,
+        max_places,
+        optional_fee,
+        status,
+        current_signups_count,
+        organizer_id,
+        created_at,
+        updated_at,
+        deleted_at
+      `
+      )
+      .eq("organizer_id", userId)
+      .is("deleted_at", null)
+      .order("event_datetime", { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to load organized events: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Ładuje liczbę oczekujących użytkowników (tylko dla administratorów).
+   *
+   * @returns Promise rozwiązujący się do liczby oczekujących użytkowników
+   */
+  private async loadPendingUsersCount(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending")
+      .is("deleted_at", null);
+
+    if (error) {
+      throw new Error(`Failed to load pending users count: ${error.message}`);
+    }
+
+    return count || 0;
+  }
+
+  /**
+   * Sprawdza czy należy ładować wydarzenia organizowane przez użytkownika.
+   *
+   * @param userRole - Rola użytkownika
+   * @returns true jeśli użytkownik może organizować wydarzenia
+   */
+  private shouldLoadOrganizedEvents(userRole: string): boolean {
+    return userRole === "organizer" || userRole === "admin";
+  }
+
+  /**
+   * Sprawdza czy należy ładować liczbę oczekujących użytkowników.
+   *
+   * @param userRole - Rola użytkownika
+   * @returns true jeśli użytkownik jest administratorem
+   */
+  private shouldLoadPendingUsers(userRole: string): boolean {
+    return userRole === "admin";
+  }
+}
+
+/**
+ * Fabryka do tworzenia instancji serwisu dashboard.
+ *
+ * @param supabase - Klient Supabase
+ * @returns Instancja DashboardService
+ */
+export function createDashboardService(supabase: SupabaseClient): DashboardService {
+  return new DashboardService(supabase);
+}

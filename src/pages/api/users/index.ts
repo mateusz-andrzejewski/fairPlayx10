@@ -1,0 +1,64 @@
+import type { APIRoute } from "astro";
+
+import { createUsersService } from "../../../lib/services/users.service";
+import { validateListUsersParams } from "../../../lib/validation/users";
+
+/**
+ * GET /api/users
+ *
+ * Pobiera paginowaną listę użytkowników z opcjonalnym filtrowaniem.
+ * Wymaga autoryzacji Bearer i roli admin - implementacja zostanie dodana później.
+ */
+export const GET: APIRoute = async ({ request, locals }) => {
+  try {
+    // Parsuj i zwaliduj parametry zapytania z URL
+    const url = new URL(request.url);
+    const rawParams = Object.fromEntries(url.searchParams.entries());
+
+    let validatedParams;
+    try {
+      validatedParams = validateListUsersParams(rawParams);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowe parametry zapytania",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Wykonaj logikę biznesową
+    const usersService = createUsersService(locals.supabase);
+    const result = await usersService.listUsers(validatedParams);
+
+    // Zwróć pomyślną odpowiedź z metadanymi paginacji
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Nieoczekiwany błąd w GET /api/users:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+// Wyłącz prerendering dla endpointów API
+export const prerender = false;

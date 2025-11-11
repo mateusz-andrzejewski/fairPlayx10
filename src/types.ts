@@ -45,7 +45,16 @@ export interface PaginatedDataDTO<T> {
  */
 export type UserDTO = Pick<
   UserRow,
-  "id" | "email" | "first_name" | "last_name" | "role" | "status" | "player_id" | "created_at" | "updated_at"
+  | "id"
+  | "email"
+  | "first_name"
+  | "last_name"
+  | "role"
+  | "status"
+  | "player_id"
+  | "created_at"
+  | "updated_at"
+  | "deleted_at"
 >;
 
 export interface ListUsersQueryParams {
@@ -57,6 +66,11 @@ export interface ListUsersQueryParams {
 }
 
 export type UsersListResponseDTO = PaginatedDataDTO<UserDTO>;
+
+export interface SoftDeleteUserResult {
+  deleted: boolean;
+  userId: number;
+}
 
 export interface ApproveUserCommand {
   role: UserRole;

@@ -74,10 +74,7 @@ export class TeamAssignmentsService {
     const existingAssignments = await this.getExistingAssignments(signupIds);
 
     // Usuń obecne przypisania dla przekazanych signup_id
-    const { error: deleteError } = await this.supabase
-      .from("team_assignments")
-      .delete()
-      .in("signup_id", signupIds);
+    const { error: deleteError } = await this.supabase.from("team_assignments").delete().in("signup_id", signupIds);
 
     if (deleteError) {
       throw new Error(`Błąd podczas usuwania obecnych przypisań: ${deleteError.message}`);
@@ -102,12 +99,7 @@ export class TeamAssignmentsService {
     const updatedAssignments = insertedAssignments || [];
 
     // Zarejestruj zmiany w audit_logs
-    await this.logAssignmentChanges(
-      eventId,
-      existingAssignments,
-      updatedAssignments,
-      actor
-    );
+    await this.logAssignmentChanges(eventId, existingAssignments, updatedAssignments, actor);
 
     return updatedAssignments;
   }
@@ -122,10 +114,7 @@ export class TeamAssignmentsService {
    * @returns Promise rozwiązujący się do tablicy TeamAssignmentDTO
    * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
    */
-  async listAssignments(
-    eventId: number,
-    actor: Omit<TeamAssignmentActor, "ipAddress">
-  ): Promise<TeamAssignmentDTO[]> {
+  async listAssignments(eventId: number, actor: Omit<TeamAssignmentActor, "ipAddress">): Promise<TeamAssignmentDTO[]> {
     // Sprawdź podstawowe uprawnienia do wykonania operacji
     if (!this.canManageTeamAssignments(actor.role)) {
       throw new Error("Brak uprawnień do przeglądania przypisań drużyn");
@@ -142,7 +131,8 @@ export class TeamAssignmentsService {
     // Pobierz przypisania drużynowe dla wskazanego wydarzenia
     const { data, error } = await this.supabase
       .from("team_assignments")
-      .select(`
+      .select(
+        `
         id,
         signup_id,
         team_number,
@@ -150,7 +140,8 @@ export class TeamAssignmentsService {
         event_signups!inner (
           event_id
         )
-      `)
+      `
+      )
       .eq("event_signups.event_id", eventId)
       .order("assignment_timestamp", { ascending: false });
 
@@ -172,11 +163,7 @@ export class TeamAssignmentsService {
    * @returns Promise rozwiązujący się do TeamDrawResultDTO zawierającego wynik algorytmu
    * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
    */
-  async runDraw(
-    eventId: number,
-    command: RunTeamDrawCommand,
-    actor: TeamAssignmentActor
-  ): Promise<TeamDrawResultDTO> {
+  async runDraw(eventId: number, command: RunTeamDrawCommand, actor: TeamAssignmentActor): Promise<TeamDrawResultDTO> {
     // Sprawdź podstawowe uprawnienia do wykonania operacji
     if (!this.canManageTeamAssignments(actor.role)) {
       throw new Error("Brak uprawnień do zarządzania przypisaniami drużyn");
@@ -235,11 +222,7 @@ export class TeamAssignmentsService {
    * @returns Promise rozwiązujący się do boolean wskazującego czy użytkownik jest organizatorem
    */
   private async checkEventOrganizer(eventId: number, userId: number): Promise<boolean> {
-    const { data, error } = await this.supabase
-      .from("events")
-      .select("organizer_id")
-      .eq("id", eventId)
-      .single();
+    const { data, error } = await this.supabase.from("events").select("organizer_id").eq("id", eventId).single();
 
     if (error) {
       throw new Error(`Błąd podczas sprawdzania organizatora wydarzenia: ${error.message}`);
@@ -351,9 +334,7 @@ export class TeamAssignmentsService {
     });
 
     // Wstaw wszystkie wpisy audytu
-    const { error } = await this.supabase
-      .from("audit_logs")
-      .insert(auditEntries);
+    const { error } = await this.supabase.from("audit_logs").insert(auditEntries);
 
     if (error) {
       // Loguj błąd ale nie przerywaj operacji - audyt nie powinien blokować biznesowej logiki
@@ -368,11 +349,7 @@ export class TeamAssignmentsService {
    * @throws Error jeśli wydarzenie nie istnieje lub nie pozwala na losowanie
    */
   private async validateEventForDraw(eventId: number): Promise<void> {
-    const { data, error } = await this.supabase
-      .from("events")
-      .select("id, status")
-      .eq("id", eventId)
-      .single();
+    const { data, error } = await this.supabase.from("events").select("id, status").eq("id", eventId).single();
 
     if (error) {
       throw new Error(`Błąd podczas sprawdzania wydarzenia: ${error.message}`);
@@ -397,7 +374,8 @@ export class TeamAssignmentsService {
   private async getConfirmedSignupsWithPlayers(eventId: number) {
     const { data, error } = await this.supabase
       .from("event_signups")
-      .select(`
+      .select(
+        `
         id,
         event_id,
         player_id,
@@ -408,7 +386,8 @@ export class TeamAssignmentsService {
           position,
           skill_rate
         )
-      `)
+      `
+      )
       .eq("event_id", eventId)
       .eq("status", "confirmed");
 
@@ -467,12 +446,9 @@ export class TeamAssignmentsService {
    */
   private async saveTeamAssignments(eventId: number, assignments: any[], actor: TeamAssignmentActor): Promise<void> {
     // Najpierw usuń istniejące przypisania dla wszystkich zapisów tego wydarzenia
-    const signupIds = assignments.map(a => a.signup_id);
+    const signupIds = assignments.map((a) => a.signup_id);
     if (signupIds.length > 0) {
-      const { error: deleteError } = await this.supabase
-        .from("team_assignments")
-        .delete()
-        .in("signup_id", signupIds);
+      const { error: deleteError } = await this.supabase.from("team_assignments").delete().in("signup_id", signupIds);
 
       if (deleteError) {
         throw new Error(`Błąd podczas usuwania istniejących przypisań: ${deleteError.message}`);
@@ -481,9 +457,7 @@ export class TeamAssignmentsService {
 
     // Dodaj nowe przypisania
     if (assignments.length > 0) {
-      const { error: insertError } = await this.supabase
-        .from("team_assignments")
-        .insert(assignments);
+      const { error: insertError } = await this.supabase.from("team_assignments").insert(assignments);
 
       if (insertError) {
         throw new Error(`Błąd podczas tworzenia nowych przypisań: ${insertError.message}`);
@@ -519,9 +493,7 @@ export class TeamAssignmentsService {
       ip_address: actor.ipAddress,
     };
 
-    const { error } = await this.supabase
-      .from("audit_logs")
-      .insert(auditEntry);
+    const { error } = await this.supabase.from("audit_logs").insert(auditEntry);
 
     if (error) {
       // Loguj błąd ale nie przerywaj operacji - audyt nie powinien blokować biznesowej logiki

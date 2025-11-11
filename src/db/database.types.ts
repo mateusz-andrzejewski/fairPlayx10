@@ -226,6 +226,7 @@ export interface Database {
           consent_date: string;
           consent_version: string;
           created_at: string;
+          deleted_at: string | null;
           email: string;
           first_name: string;
           id: number;
@@ -240,6 +241,7 @@ export interface Database {
           consent_date?: string;
           consent_version: string;
           created_at?: string;
+          deleted_at?: string | null;
           email: string;
           first_name: string;
           id?: number;
@@ -254,6 +256,7 @@ export interface Database {
           consent_date?: string;
           consent_version?: string;
           created_at?: string;
+          deleted_at?: string | null;
           email?: string;
           first_name?: string;
           id?: number;
@@ -281,6 +284,7 @@ export interface Database {
       audit_action:
         | "user_approved"
         | "user_rejected"
+        | "user_deleted"
         | "player_created"
         | "player_updated"
         | "player_deleted"
@@ -419,6 +423,7 @@ export const Constants = {
       audit_action: [
         "user_approved",
         "user_rejected",
+        "user_deleted",
         "player_created",
         "player_updated",
         "player_deleted",

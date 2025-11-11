@@ -41,10 +41,7 @@ export class TeamDrawEngine {
    * @param command - Parametry algorytmu (iterations, balance_threshold)
    * @returns Promise rozwiązujący się do TeamDrawResultDTO
    */
-  static async computeBalancedTeams(
-    confirmedSignups: any[],
-    command: RunTeamDrawCommand
-  ): Promise<TeamDrawResultDTO> {
+  static async computeBalancedTeams(confirmedSignups: any[], command: RunTeamDrawCommand): Promise<TeamDrawResultDTO> {
     try {
       // Przygotuj dane graczy do algorytmu
       const players = this.preparePlayerData(confirmedSignups);
@@ -187,7 +184,7 @@ export class TeamDrawEngine {
    * @returns Ocena balansu (niższa = lepsza)
    */
   private static calculateBalanceScore(teams: DrawTeam[]): number {
-    const avgSkills = teams.map(team => team.total_skill / team.players.length);
+    const avgSkills = teams.map((team) => team.total_skill / team.players.length);
     const skillMean = avgSkills.reduce((sum, skill) => sum + skill, 0) / avgSkills.length;
     const skillVariance = avgSkills.reduce((sum, skill) => sum + Math.pow(skill - skillMean, 2), 0) / avgSkills.length;
 
@@ -204,13 +201,14 @@ export class TeamDrawEngine {
    * @returns Kara za nierówny rozkład pozycji
    */
   private static calculatePositionVariance(teams: DrawTeam[]): number {
-    const positions = new Set(teams.flatMap(team => Object.keys(team.position_counts)));
+    const positions = new Set(teams.flatMap((team) => Object.keys(team.position_counts)));
     let totalVariance = 0;
 
     for (const position of positions) {
-      const positionCounts = teams.map(team => team.position_counts[position] || 0);
+      const positionCounts = teams.map((team) => team.position_counts[position] || 0);
       const positionMean = positionCounts.reduce((sum, count) => sum + count, 0) / positionCounts.length;
-      const positionVariance = positionCounts.reduce((sum, count) => sum + Math.pow(count - positionMean, 2), 0) / positionCounts.length;
+      const positionVariance =
+        positionCounts.reduce((sum, count) => sum + Math.pow(count - positionMean, 2), 0) / positionCounts.length;
       totalVariance += positionVariance;
     }
 
@@ -224,9 +222,9 @@ export class TeamDrawEngine {
    * @returns Drużyny w formacie TeamDrawTeamDTO
    */
   private static convertToTeamDrawTeams(teams: DrawTeam[]): TeamDrawTeamDTO[] {
-    return teams.map(team => ({
+    return teams.map((team) => ({
       team_number: team.team_number,
-      players: team.players.map(player => ({
+      players: team.players.map((player) => ({
         player_id: player.player_id,
         player_name: player.player_name,
         position: player.position as any, // Type assertion - zakładamy zgodność typów
@@ -249,9 +247,9 @@ export class TeamDrawEngine {
   private static checkBalanceAchieved(teams: TeamDrawTeamDTO[], threshold: number): boolean {
     if (teams.length === 0) return false;
 
-    const avgSkills = teams.map(team => team.stats.avg_skill_rate);
+    const avgSkills = teams.map((team) => team.stats.avg_skill_rate);
     const skillMean = avgSkills.reduce((sum, skill) => sum + skill, 0) / avgSkills.length;
-    const maxDeviation = Math.max(...avgSkills.map(skill => Math.abs(skill - skillMean)));
+    const maxDeviation = Math.max(...avgSkills.map((skill) => Math.abs(skill - skillMean)));
 
     return maxDeviation <= threshold;
   }

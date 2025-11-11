@@ -68,7 +68,12 @@ export type EventSignupIdValidatedParams = z.infer<typeof eventSignupIdParamsSch
  */
 export const listEventSignupsQuerySchema = z.object({
   page: z.coerce.number().int().positive("Numer strony musi być dodatnią liczbą całkowitą").default(1),
-  limit: z.coerce.number().int().positive("Limit musi być dodatnią liczbą całkowitą").max(100, "Limit nie może przekraczać 100").default(20),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive("Limit musi być dodatnią liczbą całkowitą")
+    .max(100, "Limit nie może przekraczać 100")
+    .default(20),
   status: z.enum(["pending", "confirmed", "withdrawn"]).optional(),
 });
 
