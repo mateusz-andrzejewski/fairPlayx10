@@ -17,6 +17,7 @@ interface ImportMetaEnv {
   readonly PUBLIC_SUPABASE_URL?: string;
   readonly PUBLIC_SUPABASE_ANON_KEY?: string;
   readonly OPENROUTER_API_KEY: string;
+  readonly DISABLE_DASHBOARD_AUTH?: string;
   // more env variables...
 }
 
