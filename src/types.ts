@@ -81,6 +81,34 @@ export interface ApproveUserCommand {
   player_id?: UserInsert["player_id"];
 }
 
+export interface CreateUserCommand {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  position: PlayerPosition;
+  consent_date: Date;
+  consent_version: string;
+}
+
+export interface RegisterFormData {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  position: PlayerPosition | "";
+  consent: boolean;
+}
+
+export interface RegisterFormErrors {
+  email: string[];
+  password: string[];
+  first_name: string[];
+  last_name: string[];
+  position: string[];
+  consent: string[];
+}
+
 /**
  * PLAYERS
  */
