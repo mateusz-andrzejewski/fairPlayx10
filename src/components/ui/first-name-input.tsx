@@ -11,7 +11,10 @@ export const FirstNameInput = forwardRef<HTMLInputElement, FirstNameInputProps>(
   ({ value, onChange, error, ...props }, ref) => {
     return (
       <div className="space-y-2">
-        <label htmlFor="first_name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label
+          htmlFor="first_name"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
           Imię *
         </label>
         <Input
@@ -37,4 +40,3 @@ export const FirstNameInput = forwardRef<HTMLInputElement, FirstNameInputProps>(
 );
 
 FirstNameInput.displayName = "FirstNameInput";
-

@@ -59,18 +59,18 @@ export function useLoginForm() {
     setErrors(newErrors);
 
     // Check if any field has errors
-    return Object.values(newErrors).every(fieldErrors => fieldErrors.length === 0);
+    return Object.values(newErrors).every((fieldErrors) => fieldErrors.length === 0);
   };
 
   const handleChange = (name: keyof LoginFormData, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
 
     // Clear errors for this field when user starts typing
     if (errors[name].length > 0) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [name]: [],
       }));
@@ -105,8 +105,8 @@ export function useLoginForm() {
 
       // Symulacja opóźnienia API z możliwością timeout
       await Promise.race([
-        new Promise(resolve => setTimeout(resolve, Math.random() * 3000 + 1000)), // 1-4 sekundy
-        timeoutPromise
+        new Promise((resolve) => setTimeout(resolve, Math.random() * 3000 + 1000)), // 1-4 sekundy
+        timeoutPromise,
       ]);
 
       // Symulacja różnych scenariuszy błędów (można zmienić dla testowania)
@@ -158,7 +158,7 @@ export function useLoginForm() {
 
       // Dla błędów związanych z emailem/hasłem, ustaw błąd w formularzu
       if (errorMessage.includes("email") || errorMessage.includes("hasło") || errorMessage.includes("dane")) {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
           email: [errorMessage],
           password: [],

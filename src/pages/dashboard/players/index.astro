@@ -1,0 +1,10 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PlayersListPage from "../../../components/players/PlayersListPage.tsx";
+import { ToastProvider } from "../../../components/ToastProvider.tsx";
+---
+
+<Layout title="Lista graczy">
+  <PlayersListPage client:load />
+  <ToastProvider client:load />
+</Layout>

@@ -9,14 +9,7 @@ import { SubmitButton } from "./ui/submit-button";
 import { SuccessMessage } from "./SuccessMessage";
 
 function RegisterForm() {
-  const {
-    formData,
-    errors,
-    isSubmitting,
-    isSuccess,
-    handleChange,
-    handleSubmit,
-  } = useRegisterForm();
+  const { formData, errors, isSubmitting, isSuccess, handleChange, handleSubmit } = useRegisterForm();
 
   if (isSuccess) {
     return <SuccessMessage />;
@@ -24,11 +17,7 @@ function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <EmailInput
-        value={formData.email}
-        onChange={(value) => handleChange("email", value)}
-        error={errors.email}
-      />
+      <EmailInput value={formData.email} onChange={(value) => handleChange("email", value)} error={errors.email} />
 
       <PasswordInput
         value={formData.password}

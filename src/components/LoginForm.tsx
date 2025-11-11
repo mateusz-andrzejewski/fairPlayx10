@@ -28,7 +28,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
 
     // Clear email validation error when user starts typing
     if (validationErrors.email) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
         email: undefined,
       }));
@@ -40,7 +40,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
 
     // Clear password validation error when user starts typing
     if (validationErrors.password) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
         password: undefined,
       }));
@@ -81,11 +81,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <EmailInput
-        value={viewModel.email}
-        onChange={handleEmailChange}
-        error={validationErrors.email?.[0]}
-      />
+      <EmailInput value={viewModel.email} onChange={handleEmailChange} error={validationErrors.email?.[0]} />
 
       <PasswordInput
         value={viewModel.password}

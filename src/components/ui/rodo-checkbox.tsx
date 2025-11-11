@@ -49,4 +49,3 @@ export const RodoCheckbox = forwardRef<HTMLButtonElement, RodoCheckboxProps>(
 );
 
 RodoCheckbox.displayName = "RodoCheckbox";
-

@@ -227,6 +227,7 @@ Stan widoku będzie zarządzany przez custom hook `usePlayersManagement`, który
 - Zarządza stanem wszystkich modali i dialogów
 
 Hook zwraca:
+
 - `players: PlayerListItemVM[]` - lista graczy
 - `pagination: PaginationMetaDTO` - metadane paginacji
 - `loading: boolean` - ogólny stan ładowania
@@ -271,11 +272,13 @@ Wszystkie wywołania API obsługują autoryzację JWT i role-based dostęp.
 ## 9. Warunki i walidacja
 
 ### Warunki dostępu:
+
 - Widok dostępny tylko dla ról `admin` i `organizer`
 - Pole `skill_rate` widoczne/edytowalne tylko dla roli `admin`
 - Akcje CRUD sprawdzane pod kątem uprawnień użytkownika
 
 ### Walidacja pól formularza:
+
 - `first_name`: wymagane, 1-100 znaków, tylko litery i spacje
 - `last_name`: wymagane, 1-100 znaków, tylko litery i spacje
 - `position`: wymagane, wartość z enum `PlayerPosition`
@@ -283,6 +286,7 @@ Wszystkie wywołania API obsługują autoryzację JWT i role-based dostęp.
 - `date_of_birth`: opcjonalne, prawidłowa data w przeszłości
 
 ### Warunki biznesowe:
+
 - Unikalność kombinacji imię + nazwisko
 - Data urodzenia nie może być w przyszłości
 - Paginação: page >= 1, limit między 10-100

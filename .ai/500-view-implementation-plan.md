@@ -95,6 +95,7 @@ export interface RetryButtonProps {
 Zarządzanie stanem w widoku błędu 500 jest proste, ponieważ strona jest głównie statyczna. Stan jest zarządzany lokalnie w komponencie ErrorPage za pomocą hooka useState z React. Nie jest wymagany customowy hook, ale można utworzyć opcjonalny `useErrorHandler` dla ponownego użycia w innych miejscach aplikacji. Hook ten może obsługiwać parsowanie błędów z API i ustawianie odpowiedniego ViewModel.
 
 Przykładowe użycie:
+
 - Stan: `const [errorState, setErrorState] = useState<ErrorViewModel>({ ... });`
 - Hook: `useErrorHandler` - przyjmuje ErrorDTO i zwraca ErrorViewModel, obsługuje mapowanie kodów błędów na przyjazne wiadomości.
 

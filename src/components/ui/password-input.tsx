@@ -11,7 +11,10 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ value, onChange, error, ...props }, ref) => {
     return (
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label
+          htmlFor="password"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
           Hasło *
         </label>
         <Input
@@ -37,4 +40,3 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 );
 
 PasswordInput.displayName = "PasswordInput";
-

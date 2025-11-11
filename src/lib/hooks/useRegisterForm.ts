@@ -92,18 +92,18 @@ export function useRegisterForm() {
     setErrors(newErrors);
 
     // Check if any field has errors
-    return Object.values(newErrors).every(fieldErrors => fieldErrors.length === 0);
+    return Object.values(newErrors).every((fieldErrors) => fieldErrors.length === 0);
   };
 
   const handleChange = (name: keyof RegisterFormData, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
 
     // Clear errors for this field when user starts typing
     if (errors[name].length > 0) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [name]: [],
       }));
@@ -145,8 +145,8 @@ export function useRegisterForm() {
 
       // Symulacja opóźnienia API z możliwością timeout
       await Promise.race([
-        new Promise(resolve => setTimeout(resolve, Math.random() * 3000 + 1000)), // 1-4 sekundy
-        timeoutPromise
+        new Promise((resolve) => setTimeout(resolve, Math.random() * 3000 + 1000)), // 1-4 sekundy
+        timeoutPromise,
       ]);
 
       // Symulacja różnych scenariuszy błędów (można zmienić dla testowania)
@@ -195,7 +195,7 @@ export function useRegisterForm() {
 
       // Dla błędów związanych z emailem, ustaw błąd w formularzu
       if (errorMessage.includes("email") || errorMessage.includes("Email")) {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
           email: [errorMessage],
         }));

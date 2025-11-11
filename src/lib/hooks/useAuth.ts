@@ -11,7 +11,9 @@ export function useAuth() {
     // Check for existing session on mount
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
         if (session?.user) {
           setIsAuthenticated(true);
           // TODO: Fetch user profile from users table
@@ -27,19 +29,19 @@ export function useAuth() {
     checkSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
-          setIsAuthenticated(true);
-          // TODO: Fetch user profile from users table
-          setUser(null); // For now, set to null
-        } else if (event === "SIGNED_OUT") {
-          setIsAuthenticated(false);
-          setUser(null);
-        }
-        setIsLoading(false);
+    const {
+      data: { subscription },
+    } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setIsAuthenticated(true);
+        // TODO: Fetch user profile from users table
+        setUser(null); // For now, set to null
+      } else if (event === "SIGNED_OUT") {
+        setIsAuthenticated(false);
+        setUser(null);
       }
-    );
+      setIsLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);

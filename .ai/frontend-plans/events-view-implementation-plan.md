@@ -80,12 +80,14 @@ EventsPage (główny layout)
 ## 5. Typy
 
 ### DTO (Data Transfer Objects)
+
 - `EventDTO`: Podstawowy DTO wydarzenia zawierający pola: `id`, `name`, `location`, `event_datetime`, `max_places`, `optional_fee`, `status`, `current_signups_count`, `organizer_id`, `created_at`, `updated_at`, `deleted_at`
 - `EventDetailDTO`: Rozszerzony EventDTO o pole `signups: EventSignupDTO[]`
 - `EventSignupDTO`: DTO zapisu zawierający: `id`, `event_id`, `player_id`, `signup_timestamp`, `status`, `resignation_timestamp`
 - `EventsListResponseDTO`: PaginatedDataDTO<EventDTO> - paginowana odpowiedź z listą wydarzeń
 
 ### ViewModel Types
+
 - `EventCardViewModel`: Rozszerza EventDTO o computed properties: `isFull: boolean` (czy wszystkie miejsca zajęte), `canSignup: boolean` (czy użytkownik może się zapisać), `daysUntilEvent: number` (dni do wydarzenia), `formattedDate: string` (sformatowana data), `formattedTime: string` (sformatowany czas)
 - `EventDetailsViewModel`: Rozszerza EventDetailDTO o: `isOrganizer: boolean` (czy użytkownik jest organizatorem), `isSignedUp: boolean` (czy użytkownik jest zapisany), `canManageSignups: boolean` (czy użytkownik może zarządzać zapisami), `signupsWithNames: EventSignupWithNameViewModel[]` (zapisy z nazwami graczy)
 - `EventSignupWithNameViewModel`: Rozszerza EventSignupDTO o: `playerName: string` (imię i nazwisko gracza), `position?: PlayerPosition` (pozycja gracza), `skillRate?: number` (skill rate - tylko dla organizatora/admina)

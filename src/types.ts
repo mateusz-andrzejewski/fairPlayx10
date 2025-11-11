@@ -289,3 +289,34 @@ export interface LoginViewModel {
   isLoading: boolean;
   error: string | null;
 }
+
+/**
+ * PLAYERS VIEW MODELS
+ */
+
+// Rozszerzony DTO gracza dla widoku listy
+export interface PlayerListItemVM extends PlayerDTO {
+  fullName: string; // Obliczone: `${first_name} ${last_name}`
+  canEditSkillRate: boolean; // Na podstawie roli użytkownika
+  canDelete: boolean; // Na podstawie roli użytkownika
+}
+
+// Model formularza gracza
+export interface PlayerFormVM {
+  id?: number; // null dla tworzenia, number dla edycji
+  first_name: string;
+  last_name: string;
+  position: PlayerPosition;
+  skill_rate: number | null; // null jeśli nie admin
+  date_of_birth: string | null;
+  isEditing: boolean;
+  canEditSkillRate: boolean;
+}
+
+// Stan filtrów wyszukiwania
+export interface SearchFiltersVM {
+  search: string;
+  position: PlayerPosition | null;
+  page: number;
+  limit: number;
+}

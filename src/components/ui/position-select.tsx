@@ -1,11 +1,5 @@
 import { forwardRef } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import type { PlayerPosition } from "../../types";
 
 interface PositionSelectProps {
@@ -25,16 +19,14 @@ export const PositionSelect = forwardRef<HTMLButtonElement, PositionSelectProps>
   ({ value, onChange, error, ...props }, ref) => {
     return (
       <div className="space-y-2">
-        <label htmlFor="position" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label
+          htmlFor="position"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
           Pozycja piłkarska *
         </label>
         <Select value={value} onValueChange={(val) => onChange(val as PlayerPosition)}>
-          <SelectTrigger
-            ref={ref}
-            id="position"
-            aria-invalid={error && error.length > 0}
-            {...props}
-          >
+          <SelectTrigger ref={ref} id="position" aria-invalid={error && error.length > 0} {...props}>
             <SelectValue placeholder="Wybierz pozycję" />
           </SelectTrigger>
           <SelectContent>
@@ -58,4 +50,3 @@ export const PositionSelect = forwardRef<HTMLButtonElement, PositionSelectProps>
 );
 
 PositionSelect.displayName = "PositionSelect";
-

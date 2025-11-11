@@ -7,12 +7,10 @@ export function SuccessMessage() {
         <CheckCircleIcon className="h-6 w-6 text-green-600" />
       </div>
       <div className="space-y-2">
-        <h3 className="text-lg font-medium text-gray-900">
-          Rejestracja zakończona sukcesem!
-        </h3>
+        <h3 className="text-lg font-medium text-gray-900">Rejestracja zakończona sukcesem!</h3>
         <p className="text-sm text-gray-600">
-          Twoje konto zostało utworzone i oczekuje na zatwierdzenie przez administratora.
-          Otrzymasz powiadomienie na adres email po zatwierdzeniu konta.
+          Twoje konto zostało utworzone i oczekuje na zatwierdzenie przez administratora. Otrzymasz powiadomienie na
+          adres email po zatwierdzeniu konta.
         </p>
       </div>
       <div className="pt-4">
@@ -26,4 +24,3 @@ export function SuccessMessage() {
     </div>
   );
 }
-

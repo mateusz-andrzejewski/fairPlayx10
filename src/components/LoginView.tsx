@@ -14,7 +14,7 @@ function LoginView() {
   });
 
   const handleLoginSubmit = async (loginRequest: LoginRequest) => {
-    setViewModel(prev => ({
+    setViewModel((prev) => ({
       ...prev,
       isLoading: true,
       error: null,
@@ -32,7 +32,7 @@ function LoginView() {
         errorMessage = error.message;
       }
 
-      setViewModel(prev => ({
+      setViewModel((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
@@ -41,7 +41,7 @@ function LoginView() {
   };
 
   const updateViewModel = (updates: Partial<LoginViewModel>) => {
-    setViewModel(prev => ({
+    setViewModel((prev) => ({
       ...prev,
       ...updates,
     }));
@@ -49,11 +49,7 @@ function LoginView() {
 
   return (
     <>
-      <LoginForm
-        viewModel={viewModel}
-        onViewModelChange={updateViewModel}
-        onSubmit={handleLoginSubmit}
-      />
+      <LoginForm viewModel={viewModel} onViewModelChange={updateViewModel} onSubmit={handleLoginSubmit} />
       <ErrorToast message={viewModel.error} />
     </>
   );

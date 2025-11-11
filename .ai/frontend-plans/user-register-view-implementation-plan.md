@@ -24,6 +24,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 ## 4. Szczegóły komponentów
 
 ### RegisterPage
+
 - **Opis komponentu**: Główna strona Astro dla widoku rejestracji, zawiera podstawowy layout aplikacji oraz komponent RegisterForm. Nie zawiera własnej logiki biznesowej, służy jako kontener.
 - **Główne elementy**: Element `<main>` z tytułem strony i komponentem RegisterForm.
 - **Obsługiwane interakcje**: Brak bezpośrednich interakcji użytkownika.
@@ -32,10 +33,11 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: Brak (interfejs komponentu jest pusty, komponent nie przyjmuje propsów).
 
 ### RegisterForm
+
 - **Opis komponentu**: Główny komponent formularza rejestracji, zarządza stanem formularza, walidacją danych, obsługą błędów i integracją z API. Składa się z pól wprowadzania danych i przycisku submit.
 - **Główne elementy**: Formularz HTML z komponentami dzieci: EmailInput, PasswordInput, FirstNameInput, LastNameInput, PositionSelect, RodoCheckbox, SubmitButton. Używa hooka useRegisterForm do zarządzania stanem.
 - **Obsługiwane interakcje**: onChange dla pól (aktualizacja stanu), onSubmit formularza (walidacja i wysyłka).
-- **Obsługiwana walidacja**: 
+- **Obsługiwana walidacja**:
   - Email: format regex /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.
   - Hasło: minimum 8 znaków, zawiera co najmniej jedną cyfrę i jedną wielką literę.
   - Imię i nazwisko: wymagane, maksymalnie 100 znaków.
@@ -45,6 +47,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: Brak (interfejs komponentu jest pusty, komponent nie przyjmuje propsów od rodzica).
 
 ### EmailInput
+
 - **Opis komponentu**: Pole wprowadzania adresu email oparte na komponencie Shadcn/ui Input.
 - **Główne elementy**: Element `<input type="email">` z etykietą i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości email w stanie formularza).
@@ -53,6 +56,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: value (string), onChange (funkcja), error (string[]).
 
 ### PasswordInput
+
 - **Opis komponentu**: Pole wprowadzania hasła oparte na komponencie Shadcn/ui Input z typem "password".
 - **Główne elementy**: Element `<input type="password">` z etykietą i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości hasła w stanie formularza).
@@ -61,6 +65,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: value (string), onChange (funkcja), error (string[]).
 
 ### FirstNameInput
+
 - **Opis komponentu**: Pole wprowadzania imienia oparte na komponencie Shadcn/ui Input.
 - **Główne elementy**: Element `<input type="text">` z etykietą i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości imienia w stanie formularza).
@@ -69,6 +74,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: value (string), onChange (funkcja), error (string[]).
 
 ### LastNameInput
+
 - **Opis komponentu**: Pole wprowadzania nazwiska oparte na komponencie Shadcn/ui Input.
 - **Główne elementy**: Element `<input type="text">` z etykietą i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości nazwiska w stanie formularza).
@@ -77,6 +83,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: value (string), onChange (funkcja), error (string[]).
 
 ### PositionSelect
+
 - **Opis komponentu**: Lista wyboru pozycji piłkarskiej oparta na komponencie Shadcn/ui Select.
 - **Główne elementy**: Element `<select>` z opcjami enum PlayerPosition i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości pozycji w stanie formularza).
@@ -85,6 +92,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: value (PlayerPosition), onChange (funkcja), error (string[]).
 
 ### RodoCheckbox
+
 - **Opis komponentu**: Checkbox zgody na przetwarzanie danych zgodnie z RODO oparty na komponencie Shadcn/ui Checkbox.
 - **Główne elementy**: Element `<input type="checkbox">` z etykietą zawierającą link do polityki prywatności i obsługą błędów.
 - **Obsługiwane interakcje**: onChange (aktualizacja wartości zgody w stanie formularza).
@@ -93,6 +101,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: checked (boolean), onChange (funkcja), error (string[]).
 
 ### SubmitButton
+
 - **Opis komponentu**: Przycisk wysyłania formularza oparty na komponencie Shadcn/ui Button.
 - **Główne elementy**: Element `<button>` z tekstem "Zarejestruj się" i stanem disabled podczas wysyłki.
 - **Obsługiwane interakcje**: onClick (wywołanie handleSubmit w RegisterForm).
@@ -101,6 +110,7 @@ Widok powinien być dostępny pod ścieżką `/register` jako strona Astro w kat
 - **Propsy**: disabled (boolean), isLoading (boolean).
 
 ### SuccessMessage
+
 - **Opis komponentu**: Komponent wyświetlający komunikat po pomyślnej rejestracji, informujący o statusie pending.
 - **Główne elementy**: Element `<div>` z tekstem komunikatu.
 - **Obsługiwane interakcje**: Brak.
