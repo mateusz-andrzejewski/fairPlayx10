@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 import type { UserRole } from "../../types";
 
-import type { CreateEventSignupValidatedParams, EventSignupDTO, UpdateEventSignupValidatedParams, ListEventSignupsQueryParams, EventSignupsListResponseDTO } from "../../types";
+import type {
+  CreateEventSignupValidatedParams,
+  EventSignupDTO,
+  UpdateEventSignupValidatedParams,
+  ListEventSignupsQueryParams,
+  EventSignupsListResponseDTO,
+} from "../../types";
 import { canManageEventSignups, canSignUpForEvents } from "../utils/auth";
 
 /**
@@ -452,11 +458,7 @@ export class EventSignupsService {
    * @returns Promise rozwiązujący się bez wartości (204 No Content)
    * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
    */
-  async deleteEventSignup(
-    eventId: number,
-    signupId: number,
-    actor: SignupActor
-  ): Promise<void> {
+  async deleteEventSignup(eventId: number, signupId: number, actor: SignupActor): Promise<void> {
     // Sprawdź podstawowe uprawnienia do wykonania operacji
     if (!canSignUpForEvents(actor.role) && !canManageEventSignups(actor.role)) {
       throw new Error("Brak uprawnień do wycofywania zapisów na wydarzenia");
@@ -541,10 +543,7 @@ export class EventSignupsService {
     }
 
     // Aktualizuj status zapisu na withdrawn
-    const { error: updateError } = await this.supabase
-      .from("event_signups")
-      .update(updateData)
-      .eq("id", signupId);
+    const { error: updateError } = await this.supabase.from("event_signups").update(updateData).eq("id", signupId);
 
     if (updateError) {
       // W przypadku błędu i wcześniejszej dekrementacji licznika, spróbuj cofnąć zmianę
