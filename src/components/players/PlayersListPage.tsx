@@ -68,11 +68,7 @@ export default function PlayersListPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Przycisk powrotu do dashboard */}
         <div className="mb-4">
-          <Button
-            variant="ghost"
-            onClick={() => window.location.href = "/dashboard"}
-            className="gap-2"
-          >
+          <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Powrót do dashboard
           </Button>

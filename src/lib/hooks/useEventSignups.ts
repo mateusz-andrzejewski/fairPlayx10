@@ -210,25 +210,22 @@ export function useEventSignups(eventId: number, userRole: UserRole) {
   /**
    * Obsługa akcji z kart zapisów
    */
-  const handleSignupAction = useCallback(
-    (action: SignupAction) => {
-      if (action.type === "updateStatus") {
-        setConfirmData({
-          action: "updateStatus",
-          signupId: action.signupId,
-          newStatus: action.newStatus,
-        });
-        setConfirmOpen(true);
-      } else if (action.type === "withdraw") {
-        setConfirmData({
-          action: "withdraw",
-          signupId: action.signupId,
-        });
-        setConfirmOpen(true);
-      }
-    },
-    []
-  );
+  const handleSignupAction = useCallback((action: SignupAction) => {
+    if (action.type === "updateStatus") {
+      setConfirmData({
+        action: "updateStatus",
+        signupId: action.signupId,
+        newStatus: action.newStatus,
+      });
+      setConfirmOpen(true);
+    } else if (action.type === "withdraw") {
+      setConfirmData({
+        action: "withdraw",
+        signupId: action.signupId,
+      });
+      setConfirmOpen(true);
+    }
+  }, []);
 
   /**
    * Potwierdzenie akcji w modalu

@@ -81,9 +81,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">
-            {isEditing ? "Edytuj wydarzenie" : "Utwórz nowe wydarzenie"}
-          </CardTitle>
+          <CardTitle className="text-xl">{isEditing ? "Edytuj wydarzenie" : "Utwórz nowe wydarzenie"}</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -153,9 +151,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                   {getErrorMessage("event_datetime")}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Wydarzenie musi być zaplanowane w przyszłości
-              </p>
+              <p className="text-xs text-muted-foreground">Wydarzenie musi być zaplanowane w przyszłości</p>
             </div>
 
             {/* Maksymalna liczba miejsc */}
@@ -180,9 +176,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                   {getErrorMessage("max_places")}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Liczba miejsc musi być między 1 a 100
-              </p>
+              <p className="text-xs text-muted-foreground">Liczba miejsc musi być między 1 a 100</p>
             </div>
 
             {/* Opcjonalna opłata */}
@@ -210,35 +204,25 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                   {getErrorMessage("optional_fee")}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Pozostaw puste jeśli udział jest bezpłatny
-              </p>
+              <p className="text-xs text-muted-foreground">Pozostaw puste jeśli udział jest bezpłatny</p>
             </div>
 
             {/* Przyciski akcji */}
             <div className="flex gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isValid}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting || !isValid} className="flex-1">
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     {isEditing ? "Aktualizuję..." : "Tworzę..."}
                   </>
+                ) : isEditing ? (
+                  "Aktualizuj wydarzenie"
                 ) : (
-                  isEditing ? "Aktualizuj wydarzenie" : "Utwórz wydarzenie"
+                  "Utwórz wydarzenie"
                 )}
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isSubmitting}
-                className="flex-1"
-              >
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting} className="flex-1">
                 Anuluj
               </Button>
             </div>
@@ -247,8 +231,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
           {/* Informacje o wymaganych polach */}
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              <strong>*</strong> Pola oznaczone gwiazdką są wymagane.
-              Wszystkie dane są walidowane automatycznie.
+              <strong>*</strong> Pola oznaczone gwiazdką są wymagane. Wszystkie dane są walidowane automatycznie.
             </p>
           </div>
         </CardContent>

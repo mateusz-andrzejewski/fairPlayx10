@@ -1,10 +1,6 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import type {
-  EventFormViewModel,
-  EventFormErrors,
-  EventDTO,
-} from "../../types";
+import type { EventFormViewModel, EventFormErrors, EventDTO } from "../../types";
 
 /**
  * Akcje dostępne w hooku formularza wydarzenia

@@ -219,7 +219,9 @@ export function EventFilters({
 
       {/* Komunikaty błędów */}
       {!isDateRangeValid && (
-        <div className="text-sm text-destructive">Data &quot;od&quot; nie może być późniejsza niż data &quot;do&quot;</div>
+        <div className="text-sm text-destructive">
+          Data &quot;od&quot; nie może być późniejsza niż data &quot;do&quot;
+        </div>
       )}
 
       {/* Przyciski akcji */}

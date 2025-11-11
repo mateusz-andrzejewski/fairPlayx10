@@ -11,7 +11,7 @@ import {
   Shuffle,
   UserMinus,
   Loader2,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,11 +33,7 @@ interface EventDetailsProps {
  */
 export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsProps) {
   // Hook zarządzania szczegółami wydarzenia
-  const { event, loading, error, isSubmitting, actions } = useEventDetails(
-    eventId,
-    userRole,
-    currentUserId
-  );
+  const { event, loading, error, isSubmitting, actions } = useEventDetails(eventId, userRole, currentUserId);
 
   // Stan lokalny dla modalnych akcji
   const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false);
@@ -98,10 +94,12 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>{new Date(event.event_datetime).toLocaleTimeString("pl-PL", {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })}</span>
+                  <span>
+                    {new Date(event.event_datetime).toLocaleTimeString("pl-PL", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
               </div>
             </div>
@@ -112,9 +110,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                   {event.optional_fee}
                 </Badge>
               )}
-              <Badge
-                variant={event.status === "active" ? "default" : "secondary"}
-              >
+              <Badge variant={event.status === "active" ? "default" : "secondary"}>
                 {event.status === "active" ? "Aktywne" : "Nieaktywne"}
               </Badge>
             </div>
@@ -134,7 +130,9 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                 <span className="text-sm text-muted-foreground">zapisanych</span>
               </div>
               {event.current_signups_count >= event.max_places && (
-                <Badge variant="destructive" className="text-xs">Brak miejsc</Badge>
+                <Badge variant="destructive" className="text-xs">
+                  Brak miejsc
+                </Badge>
               )}
             </div>
 
@@ -163,11 +161,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Lista uczestników</CardTitle>
             {event.canManageSignups && (
-              <Button
-                onClick={() => setShowAddPlayerDialog(true)}
-                className="gap-2"
-                disabled={isSubmitting}
-              >
+              <Button onClick={() => setShowAddPlayerDialog(true)} className="gap-2" disabled={isSubmitting}>
                 <UserPlus className="h-4 w-4" />
                 Dodaj gracza
               </Button>
@@ -184,10 +178,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
           ) : (
             <div className="space-y-3">
               {event.signupsWithNames.map((signup) => (
-                <div
-                  key={signup.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
+                <div key={signup.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium text-primary">
@@ -196,19 +187,25 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                     </div>
                     <div>
                       <p className="font-medium">{signup.playerName}</p>
-                      {signup.position && (
-                        <p className="text-sm text-muted-foreground">{signup.position}</p>
-                      )}
+                      {signup.position && <p className="text-sm text-muted-foreground">{signup.position}</p>}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Badge variant={
-                      signup.status === "confirmed" ? "default" :
-                      signup.status === "pending" ? "secondary" : "destructive"
-                    }>
-                      {signup.status === "confirmed" ? "Potwierdzony" :
-                       signup.status === "pending" ? "Oczekujący" : "Anulowany"}
+                    <Badge
+                      variant={
+                        signup.status === "confirmed"
+                          ? "default"
+                          : signup.status === "pending"
+                            ? "secondary"
+                            : "destructive"
+                      }
+                    >
+                      {signup.status === "confirmed"
+                        ? "Potwierdzony"
+                        : signup.status === "pending"
+                          ? "Oczekujący"
+                          : "Anulowany"}
                     </Badge>
 
                     {/* Przyciski akcji dla organizatora/admina */}
@@ -246,7 +243,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      const userSignup = event.signupsWithNames.find(s => s.player_id === currentUserId);
+                      const userSignup = event.signupsWithNames.find((s) => s.player_id === currentUserId);
                       if (userSignup) {
                         actions.resignFromEvent(userSignup.id);
                       }
@@ -260,14 +257,12 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                 ) : (
                   <Button
                     onClick={actions.signupForEvent}
-                    disabled={isSubmitting || event.current_signups_count >= event.max_places || event.status !== "active"}
+                    disabled={
+                      isSubmitting || event.current_signups_count >= event.max_places || event.status !== "active"
+                    }
                     className="gap-2"
                   >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <UserPlus className="h-4 w-4" />
-                    )}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                     Zapisz się
                   </Button>
                 )}
@@ -279,12 +274,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
               <>
                 <Separator orientation="vertical" className="h-8" />
 
-                <Button
-                  variant="outline"
-                  onClick={actions.editEvent}
-                  disabled={isSubmitting}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={actions.editEvent} disabled={isSubmitting} className="gap-2">
                   <Edit className="h-4 w-4" />
                   Edytuj wydarzenie
                 </Button>
@@ -292,7 +282,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                 <Button
                   variant="outline"
                   onClick={actions.drawTeams}
-                  disabled={isSubmitting || event.signupsWithNames.filter(s => s.status === "confirmed").length < 2}
+                  disabled={isSubmitting || event.signupsWithNames.filter((s) => s.status === "confirmed").length < 2}
                   className="gap-2"
                 >
                   <Shuffle className="h-4 w-4" />
@@ -315,9 +305,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
           {event.status !== "active" && (
             <Alert className="mt-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                To wydarzenie nie jest aktywne. Zapisy są niedostępne.
-              </AlertDescription>
+              <AlertDescription>To wydarzenie nie jest aktywne. Zapisy są niedostępne.</AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -336,11 +324,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
               </p>
             </CardContent>
             <div className="flex gap-2 p-6 pt-0">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddPlayerDialog(false)}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={() => setShowAddPlayerDialog(false)} className="flex-1">
                 Anuluj
               </Button>
             </div>

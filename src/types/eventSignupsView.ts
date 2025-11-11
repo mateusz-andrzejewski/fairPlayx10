@@ -1,4 +1,4 @@
-import type { EventSignupDTO, PaginationMetaDTO, SignupStatus, PlayerPosition } from './types';
+import type { EventSignupDTO, PaginationMetaDTO, SignupStatus, PlayerPosition } from "./types";
 
 /**
  * EVENT SIGNUPS VIEW MODELS
@@ -30,15 +30,15 @@ export interface AddPlayerFormData {
 
 // Nowy typ dla danych akcji wymagających potwierdzenia
 export interface ConfirmActionData {
-  action: 'withdraw' | 'updateStatus';
+  action: "withdraw" | "updateStatus";
   signupId: number;
   newStatus?: SignupStatus; // opcjonalne dla akcji updateStatus
 }
 
 // Nowy typ union dla akcji z kart
 export type SignupAction =
-  | { type: 'updateStatus'; signupId: number; newStatus: SignupStatus }
-  | { type: 'withdraw'; signupId: number };
+  | { type: "updateStatus"; signupId: number; newStatus: SignupStatus }
+  | { type: "withdraw"; signupId: number };
 
 // Stan zarządzania zapisami na wydarzenie
 export interface EventSignupsState {

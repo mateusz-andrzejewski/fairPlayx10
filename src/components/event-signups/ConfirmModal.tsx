@@ -26,13 +26,7 @@ interface ConfirmModalProps {
  * Ogólny modal potwierdzenia dla akcji wymagających zgody użytkownika.
  * Wyświetla komunikat potwierdzający akcję oraz przyciski Tak/Nie.
  */
-export function ConfirmModal({
-  isOpen,
-  actionData,
-  onConfirm,
-  onCancel,
-  isSubmitting = false,
-}: ConfirmModalProps) {
+export function ConfirmModal({ isOpen, actionData, onConfirm, onCancel, isSubmitting = false }: ConfirmModalProps) {
   // Konfiguracja komunikatów dla różnych akcji
   const getActionConfig = (action: ConfirmActionData["action"]) => {
     switch (action) {
@@ -108,7 +102,7 @@ export function ConfirmModal({
             disabled={isSubmitting}
             className="w-full sm:w-auto"
           >
-            {isSubmitting ? "Wykonywanie..." : (config?.confirmText || "Potwierdź")}
+            {isSubmitting ? "Wykonywanie..." : config?.confirmText || "Potwierdź"}
           </Button>
         </DialogFooter>
       </DialogContent>

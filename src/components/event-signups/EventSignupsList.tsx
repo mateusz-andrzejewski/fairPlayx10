@@ -6,12 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon, UsersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SignupCard } from "./SignupCard";
-import type {
-  SignupCardViewModel,
-  PaginationMetaDTO,
-  SignupAction,
-  UserRole,
-} from "@/types";
+import type { SignupCardViewModel, PaginationMetaDTO, SignupAction, UserRole } from "@/types";
 
 interface EventSignupsListProps {
   signups: SignupCardViewModel[];
@@ -69,12 +64,8 @@ export function EventSignupsList({
     return (
       <div className="text-center py-12">
         <UsersIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Brak zapisów
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Na to wydarzenie nie ma jeszcze żadnych zapisów.
-        </p>
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">Brak zapisów</h3>
+        <p className="text-sm text-muted-foreground">Na to wydarzenie nie ma jeszcze żadnych zapisów.</p>
       </div>
     );
   }
@@ -84,12 +75,7 @@ export function EventSignupsList({
       {/* Lista kart zapisów */}
       <div className="space-y-3">
         {signups.map((signup) => (
-          <SignupCard
-            key={signup.id}
-            signup={signup}
-            userRole={userRole}
-            onAction={onAction}
-          />
+          <SignupCard key={signup.id} signup={signup} userRole={userRole} onAction={onAction} />
         ))}
       </div>
 
@@ -97,9 +83,8 @@ export function EventSignupsList({
       {pagination.total_pages > 1 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t">
           <div className="text-sm text-muted-foreground text-center sm:text-left">
-            Wyświetlanie {((pagination.page - 1) * pagination.limit) + 1} do{" "}
-            {Math.min(pagination.page * pagination.limit, pagination.total)} z{" "}
-            {pagination.total} zapisów
+            Wyświetlanie {(pagination.page - 1) * pagination.limit + 1} do{" "}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} z {pagination.total} zapisów
           </div>
 
           <div className="flex items-center justify-center gap-2">

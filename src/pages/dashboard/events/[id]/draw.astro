@@ -1,6 +1,7 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
-import { EventSignupsView } from "../../../../components/event-signups/EventSignupsView.tsx";
+import { DrawTeamsView } from "../../../../components/DrawTeamsView.tsx";
+import { ToastProvider } from "../../../../components/ToastProvider.tsx";
 
 export const prerender = false;
 
@@ -12,6 +13,7 @@ if (!eventId || isNaN(eventId)) {
 }
 ---
 
-<Layout title="Zapisani gracze - FairPlay">
-  <EventSignupsView eventId={eventId} client:load />
+<Layout title="Losowanie drużyn - FairPlay">
+  <DrawTeamsView eventId={eventId} client:load />
+  <ToastProvider client:load />
 </Layout>

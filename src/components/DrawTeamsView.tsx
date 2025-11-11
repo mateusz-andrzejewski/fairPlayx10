@@ -1,34 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeftIcon, UserPlusIcon, AlertCircleIcon } from "lucide-react";
+import { ArrowLeftIcon, AlertCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { EventSignupsList } from "./EventSignupsList";
-import { AddPlayerModal } from "./AddPlayerModal";
-import { ConfirmModal } from "./ConfirmModal";
-import { useEventSignups } from "@/lib/hooks/useEventSignups";
+import { useDrawTeams } from "@/lib/hooks/useDrawTeams";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { TeamStats } from "./TeamStats";
+import { DrawButton } from "./DrawButton";
+import { DragDropTeams } from "./DragDropTeams";
 import type { EventDTO } from "@/types";
 
-interface EventSignupsViewProps {
+interface DrawTeamsViewProps {
   eventId: number;
 }
 
 /**
- * Główny komponent widoku zarządzania zapisami na wydarzenie.
- * Koordynuje wszystkie podkomponenty i integruje się z hookiem useEventSignups.
+ * Główny komponent widoku losowania drużyn dla wydarzenia.
+ * Koordynuje wszystkie podkomponenty i integruje się z hookiem useDrawTeams.
  */
-export function EventSignupsView({ eventId }: EventSignupsViewProps) {
+export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
   // Hooki
   const { user } = useAuth();
-  const { state, actions, isSubmitting, loadingPlayers, availablePlayers } = useEventSignups(
-    eventId,
-    user?.role || "player"
-  );
+  const { state, actions } = useDrawTeams(eventId, user?.role || "player");
 
   // Stan lokalny dla informacji o wydarzeniu
   const [event, setEvent] = useState<EventDTO | null>(null);
@@ -65,8 +62,7 @@ export function EventSignupsView({ eventId }: EventSignupsViewProps) {
   }, [eventId]);
 
   // Sprawdzanie uprawnień
-  const canManageSignups = user?.role === "admin" || user?.role === "organizer";
-  const isOrganizer = user?.role === "organizer" && event?.organizer_id === user.id;
+  const canManageDraw = user?.role === "admin" || user?.role === "organizer";
 
   // Obsługa błędów walidacji eventId
   if (!eventId || isNaN(eventId)) {
@@ -93,7 +89,7 @@ export function EventSignupsView({ eventId }: EventSignupsViewProps) {
   }
 
   // Ładowanie
-  if (eventLoading || state.loading) {
+  if (eventLoading || state.isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-6">
@@ -110,29 +106,41 @@ export function EventSignupsView({ eventId }: EventSignupsViewProps) {
             </div>
           </div>
 
-          {/* Lista - skeleton */}
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="border rounded-xl p-4 space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="h-3 w-28" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Skeleton className="h-6 w-20" />
-                    <div className="flex gap-1">
-                      <Skeleton className="h-7 w-16" />
-                      <Skeleton className="h-7 w-20" />
-                    </div>
-                  </div>
+          {/* Statystyki drużyn - skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="border rounded-lg p-4 space-y-3">
+                <Skeleton className="h-6 w-20" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-28" />
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Przycisk losowania - skeleton */}
+          <div className="flex justify-center">
+            <Skeleton className="h-10 w-48" />
+          </div>
+
+          {/* Obszar drag-and-drop - skeleton */}
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3">
+                  <Skeleton className="h-6 w-16" />
+                  <div className="space-y-2">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <div key={j} className="border rounded p-2">
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -151,8 +159,22 @@ export function EventSignupsView({ eventId }: EventSignupsViewProps) {
     );
   }
 
+  // Brak uprawnień
+  if (!canManageDraw) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircleIcon className="h-4 w-4" />
+          <AlertDescription>
+            Brak uprawnień do zarządzania losowaniem drużyn. Wymagana rola organizatora lub administratora.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Nagłówek */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
@@ -173,51 +195,58 @@ export function EventSignupsView({ eventId }: EventSignupsViewProps) {
               {event.optional_fee && <span>Wpisowe: {event.optional_fee} zł</span>}
             </div>
           </div>
-
-          {/* Przycisk dodawania gracza - tylko dla organizatora/admina */}
-          {canManageSignups && (
-            <div className="flex-shrink-0">
-              <Button
-                onClick={actions.openAddPlayerModal}
-                disabled={loadingPlayers}
-                className="flex items-center gap-2 w-full sm:w-auto"
-              >
-                <UserPlusIcon className="w-4 h-4" />
-                Dodaj gracza
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
       <Separator className="my-6" />
 
-      {/* Lista zapisów */}
-      <EventSignupsList
-        signups={state.signups}
-        pagination={state.pagination}
-        userRole={user?.role || "player"}
-        loading={state.loading}
-        onAction={actions.handleSignupAction}
-        onPageChange={actions.changePage}
-      />
+      {/* Statystyki drużyn */}
+      <section className="mb-8" aria-labelledby="teams-stats-heading">
+        <h2 id="teams-stats-heading" className="text-lg font-semibold mb-4">
+          Statystyki drużyn
+        </h2>
+        <TeamStats teams={state.teams} userRole={user?.role || "player"} />
+      </section>
 
-      {/* Modals */}
-      <AddPlayerModal
-        isOpen={state.modals.addPlayerOpen}
-        onClose={actions.closeAddPlayerModal}
-        onSubmit={actions.addPlayerToEvent}
-        availablePlayers={availablePlayers}
-        isSubmitting={isSubmitting}
-      />
+      {/* Przycisk losowania */}
+      <section className="mb-8 flex justify-center" aria-labelledby="draw-button-heading">
+        <div className="w-full max-w-md">
+          <h2 id="draw-button-heading" className="sr-only">
+            Losowanie drużyn
+          </h2>
+          <DrawButton
+            onDraw={actions.runDraw}
+            isLoading={state.isLoading}
+            disabled={event.current_signups_count < 4}
+            minPlayersRequired={4}
+            currentPlayersCount={event.current_signups_count}
+          />
+        </div>
+      </section>
 
-      <ConfirmModal
-        isOpen={state.modals.confirmOpen}
-        actionData={state.modals.confirmData}
-        onConfirm={actions.confirmAction}
-        onCancel={actions.closeConfirmModal}
-        isSubmitting={isSubmitting}
-      />
+      {/* Obszar drag-and-drop */}
+      <section className="mb-8" aria-labelledby="drag-drop-heading">
+        <h2 id="drag-drop-heading" className="text-lg font-semibold mb-4">
+          Ręczne przypisywanie graczy
+          {!state.balanceAchieved && (
+            <span className="ml-2 text-sm text-muted-foreground">(Różnica średniego skill rate przekracza 7%)</span>
+          )}
+        </h2>
+        <DragDropTeams
+          teams={state.teams}
+          onAssignTeams={actions.assignTeams}
+          userRole={user?.role || "player"}
+          balanceAchieved={state.balanceAchieved}
+        />
+      </section>
+
+      {/* Obsługa błędów */}
+      {state.error && (
+        <Alert variant="destructive" className="mt-6">
+          <AlertCircleIcon className="h-4 w-4" />
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }

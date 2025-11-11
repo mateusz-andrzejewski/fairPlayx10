@@ -51,9 +51,7 @@ function Dashboard() {
   ];
 
   // Filtrowanie elementów nawigacji na podstawie roli użytkownika
-  const availableItems = navigationItems.filter(item =>
-    item.roles.includes(userRole)
-  );
+  const availableItems = navigationItems.filter((item) => item.roles.includes(userRole));
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,9 +77,7 @@ function Dashboard() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2">Panel zarządzania</h2>
-          <p className="text-muted-foreground text-lg">
-            Wybierz sekcję, którą chcesz zarządzać
-          </p>
+          <p className="text-muted-foreground text-lg">Wybierz sekcję, którą chcesz zarządzać</p>
         </div>
 
         {/* Navigation cards */}
@@ -92,7 +88,7 @@ function Dashboard() {
               <Card
                 key={item.href}
                 className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                onClick={() => window.location.href = item.href}
+                onClick={() => (window.location.href = item.href)}
               >
                 <CardHeader className="text-center pb-4">
                   <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">

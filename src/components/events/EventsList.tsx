@@ -25,13 +25,10 @@ export function EventsList({
   currentUserId,
   onEventClick,
   initialFilters,
-  showBackToDashboard = false
+  showBackToDashboard = false,
 }: EventsListProps) {
   // Hook zarządzania listą wydarzeń
-  const { events, pagination, loading, error, filters, actions } = useEventsList(
-    userRole,
-    currentUserId
-  );
+  const { events, pagination, loading, error, filters, actions } = useEventsList(userRole, currentUserId);
 
   // Lista dostępnych lokalizacji (w przyszłości może pochodzić z API)
   const availableLocations = useMemo(
@@ -54,7 +51,7 @@ export function EventsList({
     }
     // Domyślne zachowanie - nawigacja przez URL
     // W Astro/React używamy routera zamiast window.location
-    window.history.pushState({}, '', `/dashboard/events/${eventId}`);
+    window.history.pushState({}, "", `/dashboard/events/${eventId}`);
   };
 
   /**
@@ -160,11 +157,7 @@ export function EventsList({
       {/* Przycisk powrotu do dashboard */}
       {showBackToDashboard && (
         <div className="mb-4">
-          <Button
-            variant="ghost"
-            onClick={() => window.location.href = "/dashboard"}
-            className="gap-2"
-          >
+          <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Powrót do dashboard
           </Button>

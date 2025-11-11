@@ -381,3 +381,32 @@ export interface EventFormErrors {
   max_places: string[];
   optional_fee: string[];
 }
+
+/**
+ * TEAM DRAW VIEW MODELS
+ */
+
+// Model widoku losowania drużyn
+export interface DrawTeamsViewModel {
+  eventId: number;
+  teams: TeamViewModel[];
+  isLoading: boolean;
+  error: string | null;
+  balanceAchieved: boolean;
+}
+
+// Model drużyny w widoku losowania
+export interface TeamViewModel {
+  teamNumber: number;
+  players: PlayerViewModel[];
+  avgSkillRate: number; // średnia ocena umiejętności
+  positions: Record<string, number>; // obiekt z kluczami pozycji (np. "forward": 5)
+}
+
+// Model gracza w widoku losowania drużyn
+export interface PlayerViewModel {
+  id: number;
+  name: string;
+  position: string;
+  skillRate: number; // widoczny tylko dla admina
+}
