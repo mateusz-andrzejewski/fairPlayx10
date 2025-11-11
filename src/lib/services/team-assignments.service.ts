@@ -113,6 +113,55 @@ export class TeamAssignmentsService {
   }
 
   /**
+   * Pobiera listę przypisań drużyn dla wskazanego wydarzenia.
+   * Sprawdza istnienie wydarzenia i uprawnienia użytkownika (admin lub organizer),
+   * następnie pobiera wszystkie przypisania drużynowe dla tego wydarzenia.
+   *
+   * @param eventId - ID wydarzenia dla którego pobierane są przypisania
+   * @param actor - Kontekst użytkownika wykonującego operację (userId, role)
+   * @returns Promise rozwiązujący się do tablicy TeamAssignmentDTO
+   * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
+   */
+  async listAssignments(
+    eventId: number,
+    actor: Omit<TeamAssignmentActor, "ipAddress">
+  ): Promise<TeamAssignmentDTO[]> {
+    // Sprawdź podstawowe uprawnienia do wykonania operacji
+    if (!this.canManageTeamAssignments(actor.role)) {
+      throw new Error("Brak uprawnień do przeglądania przypisań drużyn");
+    }
+
+    // Sprawdź czy użytkownik jest organizatorem tego wydarzenia (jeśli nie jest adminem)
+    if (!isAdmin(actor.role)) {
+      const isEventOrganizer = await this.checkEventOrganizer(eventId, actor.userId);
+      if (!isEventOrganizer) {
+        throw new Error("Tylko organizator wydarzenia lub administrator może przeglądać przypisania drużyn");
+      }
+    }
+
+    // Pobierz przypisania drużynowe dla wskazanego wydarzenia
+    const { data, error } = await this.supabase
+      .from("team_assignments")
+      .select(`
+        id,
+        signup_id,
+        team_number,
+        assignment_timestamp,
+        event_signups!inner (
+          event_id
+        )
+      `)
+      .eq("event_signups.event_id", eventId)
+      .order("assignment_timestamp", { ascending: false });
+
+    if (error) {
+      throw new Error(`Błąd podczas pobierania przypisań drużyn: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
    * Uruchamia algorytm losowania drużyn dla wskazanego wydarzenia.
    * Sprawdza uprawnienia użytkownika, pobiera potwierdzone zapisy, uruchamia algorytm balansowania,
    * zapisuje wyniki w team_assignments i rejestruje operację w audit_logs.

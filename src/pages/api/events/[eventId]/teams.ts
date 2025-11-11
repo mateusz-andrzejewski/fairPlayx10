@@ -5,6 +5,7 @@ import {
   createTeamAssignmentsSchema,
   eventIdParamSchema,
 } from "../../../../lib/validation/teamAssignments";
+import type { TeamAssignmentsListResponseDTO } from "../../../../types";
 
 /**
  * POST /api/events/{eventId}/teams
@@ -203,17 +204,20 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       role: "admin" as const, // TODO: Pobierz z locals.session.user.role
     };
 
-    // TODO: Zaimplementuj metodę listTeamAssignments w serwisie
-    // const teamAssignmentsService = createTeamAssignmentsService(locals.supabase);
-    // const assignments = await teamAssignmentsService.listTeamAssignments(validatedParams.eventId, actor);
+    // 2. Wywołaj logikę biznesową
+    const teamAssignmentsService = createTeamAssignmentsService(locals.supabase);
+    const assignments = await teamAssignmentsService.listAssignments(
+      validatedParams.eventId,
+      actor
+    );
 
-    // Tymczasowa odpowiedź dla GET - do zaimplementowania w następnych krokach
-    const assignments = {
-      data: [], // TODO: Zaimplementuj pobieranie przypisań
+    // 3. Przygotuj odpowiedź zgodnie z TeamAssignmentsListResponseDTO
+    const response: TeamAssignmentsListResponseDTO = {
+      data: assignments,
     };
 
     // 4. Zwróć pomyślną odpowiedź z listą przypisań
-    return new Response(JSON.stringify(assignments), {
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -224,7 +228,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     // Sprawdź czy to błąd biznesowy i mapuj na odpowiednie kody statusu
     if (error instanceof Error) {
       // Błędy związane z brakiem uprawnień
-      if (error.message.includes("Brak uprawnień")) {
+      if (error.message.includes("Brak uprawnień do przeglądania przypisań drużyn")) {
         return new Response(
           JSON.stringify({
             error: "forbidden",
@@ -232,6 +236,35 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
           }),
           {
             status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Błędy związane z nieznalezieniem wydarzenia lub brakiem dostępu
+      if (error.message.includes("Tylko organizator wydarzenia lub administrator")) {
+        return new Response(
+          JSON.stringify({
+            error: "not_found",
+            message: "Wydarzenie nie istnieje lub brak dostępu do niego",
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Błędy bazy danych
+      if (error.message.includes("Błąd podczas pobierania przypisań drużyn")) {
+        console.error("Database error in team assignments GET:", error);
+        return new Response(
+          JSON.stringify({
+            error: "database_error",
+            message: "Wystąpił błąd podczas przetwarzania żądania",
+          }),
+          {
+            status: 500,
             headers: { "Content-Type": "application/json" },
           }
         );
