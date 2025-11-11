@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 import type { UserRole } from "../../types";
 
-import type { CreateEventSignupValidatedParams, EventSignupDTO } from "../../types";
+import type { CreateEventSignupValidatedParams, EventSignupDTO, UpdateEventSignupValidatedParams } from "../../types";
 import { canManageEventSignups, canSignUpForEvents } from "../utils/auth";
 
 /**
@@ -174,6 +174,150 @@ export class EventSignupsService {
       signup_timestamp: newSignup.signup_timestamp,
       status: newSignup.status,
       resignation_timestamp: newSignup.resignation_timestamp,
+    };
+  }
+
+  /**
+   * Aktualizuje status istniejącego zapisu na wydarzenie zgodnie z regułami biznesowymi.
+   * Sprawdza uprawnienia aktora, waliduje dozwolone przejścia statusów oraz aktualizuje
+   * licznik zapisów w przypadku wycofania. Operacja wykonywana w transakcji dla spójności.
+   *
+   * @param eventId - ID wydarzenia którego dotyczy zapis
+   * @param signupId - ID zapisu do aktualizacji
+   * @param payload - Zwalidowane dane aktualizacji (nowy status)
+   * @param actor - Kontekst użytkownika wykonującego operację (userId, role)
+   * @returns Promise rozwiązujący się do zaktualizowanego EventSignupDTO
+   * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
+   */
+  async updateEventSignupStatus(
+    eventId: number,
+    signupId: number,
+    payload: UpdateEventSignupValidatedParams,
+    actor: Omit<SignupActor, "playerId">
+  ): Promise<EventSignupDTO> {
+    // Sprawdź podstawowe uprawnienia do zarządzania zapisami
+    if (!canManageEventSignups(actor.role)) {
+      throw new Error("Brak uprawnień do zarządzania zapisami na wydarzenia");
+    }
+
+    // Pobierz zapis wraz z informacjami o wydarzeniu dla weryfikacji przynależności
+    const { data: signupData, error: signupError } = await this.supabase
+      .from("event_signups")
+      .select(
+        `
+        id,
+        event_id,
+        player_id,
+        signup_timestamp,
+        status,
+        resignation_timestamp,
+        events!inner (
+          id,
+          organizer_id,
+          status,
+          current_signups_count,
+          max_places
+        )
+      `
+      )
+      .eq("id", signupId)
+      .eq("events.id", eventId)
+      .is("events.deleted_at", null)
+      .single();
+
+    if (signupError) {
+      if (signupError.code === "PGRST116") {
+        throw new Error("Zapis nie został znaleziony lub nie należy do podanego wydarzenia");
+      }
+      throw new Error(`Błąd podczas pobierania zapisu: ${signupError.message}`);
+    }
+
+    if (!signupData) {
+      throw new Error("Zapis nie został znaleziony lub nie należy do podanego wydarzenia");
+    }
+
+    // Sprawdź czy organizator może zarządzać tym wydarzeniem
+    if (actor.role === "organizer" && signupData.events.organizer_id !== actor.userId) {
+      throw new Error("Organizator może zarządzać zapisami tylko na własnych wydarzeniach");
+    }
+
+    // Walidacja dozwolonych przejść statusów
+    const currentStatus = signupData.status;
+    const newStatus = payload.status;
+
+    // Zdefiniuj dozwolone przejścia
+    const allowedTransitions: Record<string, string[]> = {
+      pending: ["confirmed", "withdrawn"],
+      confirmed: ["withdrawn"],
+      withdrawn: [], // Brak możliwości powrotu ze statusu withdrawn
+    };
+
+    if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
+      throw new Error(`Niedozwolone przejście statusu z '${currentStatus}' na '${newStatus}'`);
+    }
+
+    // Przygotuj dane do aktualizacji
+    const updateData: any = {
+      status: newStatus,
+    };
+
+    // Jeśli status zmienia się na withdrawn, ustaw resignation_timestamp
+    if (newStatus === "withdrawn" && currentStatus !== "withdrawn") {
+      updateData.resignation_timestamp = new Date().toISOString();
+    }
+
+    // Sprawdź czy trzeba aktualizować licznik zapisów
+    const shouldDecrementCounter = newStatus === "withdrawn" && currentStatus !== "withdrawn";
+
+    if (shouldDecrementCounter) {
+      // Wykonaj aktualizację w transakcji - najpierw zmniejsz licznik w events
+      const { error: counterUpdateError } = await this.supabase
+        .from("events")
+        .update({
+          current_signups_count: signupData.events.current_signups_count - 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+
+      if (counterUpdateError) {
+        throw new Error(`Nie udało się zaktualizować licznika zapisów: ${counterUpdateError.message}`);
+      }
+    }
+
+    // Aktualizuj status zapisu
+    const { data: updatedSignup, error: updateError } = await this.supabase
+      .from("event_signups")
+      .update(updateData)
+      .eq("id", signupId)
+      .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+      .single();
+
+    if (updateError) {
+      // W przypadku błędu i wcześniejszej dekrementacji licznika, spróbuj cofnąć zmianę
+      if (shouldDecrementCounter) {
+        await this.supabase
+          .from("events")
+          .update({
+            current_signups_count: signupData.events.current_signups_count,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", eventId);
+      }
+      throw new Error(`Nie udało się zaktualizować statusu zapisu: ${updateError.message}`);
+    }
+
+    if (!updatedSignup) {
+      throw new Error("Nie udało się zaktualizować zapisu - brak danych zwrotnych");
+    }
+
+    // Zwróć EventSignupDTO
+    return {
+      id: updatedSignup.id,
+      event_id: updatedSignup.event_id,
+      player_id: updatedSignup.player_id,
+      signup_timestamp: updatedSignup.signup_timestamp,
+      status: updatedSignup.status,
+      resignation_timestamp: updatedSignup.resignation_timestamp,
     };
   }
 }
