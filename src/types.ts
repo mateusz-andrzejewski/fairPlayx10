@@ -258,3 +258,24 @@ export interface DashboardDTO {
   organized_events: EventDTO[];
   pending_users?: number;
 }
+
+/**
+ * AUTHENTICATION
+ */
+export interface AuthRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: UserDTO;
+  expiresIn: number;
+}
+
+export interface LoginViewModel {
+  email: string;
+  password: string;
+  isLoading: boolean;
+  error: string | null;
+}
