@@ -62,3 +62,29 @@ export const eventIdParamSchema = z.object({
  * Typ wywnioskowany z eventIdParamSchema.
  */
 export type EventIdValidatedParams = z.infer<typeof eventIdParamSchema>;
+
+/**
+ * Schemat Zod do walidacji komendy uruchomienia losowania drużyn.
+ * Waliduje parametry algorytmu: iterations i balance_threshold z domyślnymi wartościami i zakresami.
+ */
+export const teamDrawCommandSchema = z.object({
+  iterations: z
+    .number()
+    .int("Liczba iteracji musi być liczbą całkowitą")
+    .min(1, "Minimalna liczba iteracji to 1")
+    .max(200, "Maksymalna liczba iteracji to 200")
+    .default(20)
+    .optional(),
+  balance_threshold: z
+    .number()
+    .min(0, "Próg balansu musi być większy lub równy 0")
+    .max(1, "Próg balansu musi być mniejszy lub równy 1")
+    .default(0.07)
+    .optional(),
+});
+
+/**
+ * Typ wywnioskowany z teamDrawCommandSchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a uruchomieniem algorytmu losowania.
+ */
+export type TeamDrawValidatedParams = z.infer<typeof teamDrawCommandSchema>;
