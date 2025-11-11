@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 import type { UserRole } from "../../types";
 
-import type { CreateEventSignupValidatedParams, EventSignupDTO, UpdateEventSignupValidatedParams } from "../../types";
+import type { CreateEventSignupValidatedParams, EventSignupDTO, UpdateEventSignupValidatedParams, ListEventSignupsQueryParams, EventSignupsListResponseDTO } from "../../types";
 import { canManageEventSignups, canSignUpForEvents } from "../utils/auth";
 
 /**
@@ -318,6 +318,95 @@ export class EventSignupsService {
       signup_timestamp: updatedSignup.signup_timestamp,
       status: updatedSignup.status,
       resignation_timestamp: updatedSignup.resignation_timestamp,
+    };
+  }
+
+  /**
+   * Pobiera paginowaną listę zapisów na wskazane wydarzenie zgodnie z regułami biznesowymi.
+   * Dostępne tylko dla organizatorów danego wydarzenia oraz administratorów.
+   * Obsługuje filtrowanie po statusie oraz paginację wyników.
+   *
+   * @param eventId - ID wydarzenia którego zapisy mają być pobrane
+   * @param params - Zwalidowane parametry zapytania (paginacja, filtry)
+   * @param actor - Kontekst użytkownika wykonującego operację (userId, role)
+   * @returns Promise rozwiązujący się do EventSignupsListResponseDTO z paginowanymi wynikami
+   * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
+   */
+  async listEventSignups(
+    eventId: number,
+    params: ListEventSignupsQueryParams,
+    actor: { userId: number; role: UserRole }
+  ): Promise<EventSignupsListResponseDTO> {
+    // Sprawdź podstawowe uprawnienia do przeglądania zapisów
+    if (!canManageEventSignups(actor.role)) {
+      throw new Error("Brak uprawnień do przeglądania zapisów na wydarzenia");
+    }
+
+    // Sprawdź czy wydarzenie istnieje i czy użytkownik może je zarządzać
+    const { data: eventData, error: eventError } = await this.supabase
+      .from("events")
+      .select("id, name, organizer_id, deleted_at")
+      .eq("id", eventId)
+      .is("deleted_at", null)
+      .single();
+
+    if (eventError) {
+      if (eventError.code === "PGRST116") {
+        throw new Error("Wydarzenie nie zostało znalezione");
+      }
+      throw new Error(`Błąd podczas pobierania wydarzenia: ${eventError.message}`);
+    }
+
+    if (!eventData) {
+      throw new Error("Wydarzenie nie zostało znalezione");
+    }
+
+    // Sprawdź czy organizator może zarządzać tym wydarzeniem
+    if (actor.role === "organizer" && eventData.organizer_id !== actor.userId) {
+      throw new Error("Brak dostępu do zapisów na to wydarzenie");
+    }
+
+    // Przygotuj zapytanie bazowe
+    let query = this.supabase
+      .from("event_signups")
+      .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp", { count: "exact" })
+      .eq("event_id", eventId)
+      .order("signup_timestamp", { ascending: false });
+
+    // Dodaj filtr statusu jeśli został podany
+    if (params.status) {
+      query = query.eq("status", params.status);
+    }
+
+    // Pobierz dane z paginacją
+    const from = (params.page - 1) * params.limit;
+    const to = from + params.limit - 1;
+
+    const { data: signups, error: signupsError, count } = await query.range(from, to);
+
+    if (signupsError) {
+      throw new Error(`Błąd podczas pobierania zapisów: ${signupsError.message}`);
+    }
+
+    if (!signups) {
+      throw new Error("Nie udało się pobrać zapisów");
+    }
+
+    // Oblicz metadane paginacji
+    const total = count || 0;
+    const totalPages = Math.ceil(total / params.limit);
+
+    const pagination = {
+      page: params.page,
+      limit: params.limit,
+      total,
+      total_pages: totalPages,
+    };
+
+    // Zwróć sformatowaną odpowiedź
+    return {
+      data: signups,
+      pagination,
     };
   }
 }

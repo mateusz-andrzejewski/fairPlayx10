@@ -61,3 +61,19 @@ export const eventSignupIdParamsSchema = z.object({
  * Typ wywnioskowany z eventSignupIdParamsSchema.
  */
 export type EventSignupIdValidatedParams = z.infer<typeof eventSignupIdParamsSchema>;
+
+/**
+ * Schemat Zod do walidacji parametrów query dla listowania zapisów na wydarzenie.
+ * Obsługuje paginację oraz opcjonalne filtrowanie po statusie zapisu.
+ */
+export const listEventSignupsQuerySchema = z.object({
+  page: z.coerce.number().int().positive("Numer strony musi być dodatnią liczbą całkowitą").default(1),
+  limit: z.coerce.number().int().positive("Limit musi być dodatnią liczbą całkowitą").max(100, "Limit nie może przekraczać 100").default(20),
+  status: z.enum(["pending", "confirmed", "withdrawn"]).optional(),
+});
+
+/**
+ * Typ wywnioskowany z listEventSignupsQuerySchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a listowaniem zapisów na wydarzenie.
+ */
+export type ListEventSignupsValidatedQuery = z.infer<typeof listEventSignupsQuerySchema>;

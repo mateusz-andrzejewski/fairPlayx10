@@ -1,7 +1,137 @@
 import type { APIRoute } from "astro";
 
 import { createEventSignupsService } from "../../../../lib/services/eventSignups.service";
-import { createEventSignupSchema, eventIdParamSchema } from "../../../../lib/validation/eventSignups";
+import {
+  createEventSignupSchema,
+  eventIdParamSchema,
+  listEventSignupsQuerySchema,
+} from "../../../../lib/validation/eventSignups";
+
+/**
+ * GET /api/events/{eventId}/signups
+ *
+ * Zwraca paginowaną listę zapisów na wskazane wydarzenie z możliwością filtrowania po statusie.
+ * Dostępne tylko dla organizatorów danego wydarzenia oraz administratorów.
+ */
+export const GET: APIRoute = async ({ params, request, locals }) => {
+  try {
+    // 1. Parsuj i zwaliduj parametr eventId z ścieżki
+    let validatedParams;
+    try {
+      validatedParams = eventIdParamSchema.parse(params);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format ID wydarzenia",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 2. Parsuj i zwaliduj parametry query (paginacja, filtry)
+    const url = new URL(request.url);
+    const queryParams = Object.fromEntries(url.searchParams);
+    let validatedQuery;
+    try {
+      validatedQuery = listEventSignupsQuerySchema.parse(queryParams);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowe parametry zapytania",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
+    // Na razie używamy tymczasowych danych dla testowania
+    const actor = {
+      userId: 1, // TODO: Pobierz z locals.session.user.id
+      role: "admin" as const, // TODO: Pobierz z locals.session.user.role
+    };
+
+    // 3. Wywołaj logikę biznesową
+    const eventSignupsService = createEventSignupsService(locals.supabase);
+    const signupsList = await eventSignupsService.listEventSignups(validatedParams.eventId, validatedQuery, actor);
+
+    // 4. Zwróć pomyślną odpowiedź z EventSignupsListResponseDTO
+    return new Response(JSON.stringify(signupsList), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    // Sprawdź czy to błąd biznesowy i mapuj na odpowiednie kody statusu
+    if (error instanceof Error) {
+      // Błędy związane z brakiem uprawnień
+      if (error.message.includes("Brak uprawnień")) {
+        return new Response(
+          JSON.stringify({
+            error: "forbidden",
+            message: "Brak uprawnień do wykonania tej operacji",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Błędy związane z walidacją biznesową
+      if (error.message.includes("Brak dostępu do zapisów")) {
+        return new Response(
+          JSON.stringify({
+            error: "forbidden",
+            message: error.message,
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Błędy związane z nieznalezionymi zasobami
+      if (error.message.includes("Wydarzenie nie zostało znalezione")) {
+        return new Response(
+          JSON.stringify({
+            error: "not_found",
+            message: error.message,
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    console.error("Nieoczekiwany błąd w GET /api/events/[eventId]/signups:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
 
 /**
  * POST /api/events/{eventId}/signups
