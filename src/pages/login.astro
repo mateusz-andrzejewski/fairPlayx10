@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import LoginForm from "../components/LoginForm.tsx";
+import LoginView from "../components/LoginView.tsx";
 import { ToastProvider } from "../components/ToastProvider.tsx";
 ---
 
@@ -15,7 +15,7 @@ import { ToastProvider } from "../components/ToastProvider.tsx";
           Dostęp do systemu zarządzania rozgrywkami piłkarskimi
         </p>
       </div>
-      <LoginForm client:load />
+      <LoginView client:load />
     </div>
   </main>
   <ToastProvider client:load />

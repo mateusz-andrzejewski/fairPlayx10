@@ -273,6 +273,16 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: UserDTO;
+  session: any; // Supabase session type
+}
+
 export interface LoginViewModel {
   email: string;
   password: string;

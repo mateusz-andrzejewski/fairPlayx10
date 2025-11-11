@@ -1,48 +1,103 @@
-import { useLoginForm } from "../lib/hooks/useLoginForm";
+import { useState } from "react";
+import { z } from "zod";
 import { EmailInput } from "./ui/email-input";
 import { PasswordInput } from "./ui/password-input";
-import { SubmitButton } from "./ui/submit-button";
+import { LoginButton } from "./LoginButton";
+import { RegisterLink } from "./RegisterLink";
+import type { LoginRequest, LoginViewModel } from "../types";
 
-function LoginForm() {
-  const {
-    formData,
-    errors,
-    isSubmitting,
-    handleChange,
-    handleSubmit,
-  } = useLoginForm();
+const loginSchema = z.object({
+  email: z.string().min(1, "Adres email jest wymagany").email("Nieprawidłowy format adresu email"),
+  password: z.string().min(1, "Hasło jest wymagane"),
+});
+
+interface LoginFormProps {
+  viewModel: LoginViewModel;
+  onViewModelChange: (updates: Partial<LoginViewModel>) => void;
+  onSubmit: (loginRequest: LoginRequest) => void;
+}
+
+function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string[];
+    password?: string[];
+  }>({});
+
+  const handleEmailChange = (value: string) => {
+    onViewModelChange({ email: value });
+
+    // Clear email validation error when user starts typing
+    if (validationErrors.email) {
+      setValidationErrors(prev => ({
+        ...prev,
+        email: undefined,
+      }));
+    }
+  };
+
+  const handlePasswordChange = (value: string) => {
+    onViewModelChange({ password: value });
+
+    // Clear password validation error when user starts typing
+    if (validationErrors.password) {
+      setValidationErrors(prev => ({
+        ...prev,
+        password: undefined,
+      }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate form
+    const result = loginSchema.safeParse({
+      email: viewModel.email,
+      password: viewModel.password,
+    });
+
+    if (!result.success) {
+      const errors: { email?: string[]; password?: string[] } = {};
+      result.error.errors.forEach((error) => {
+        const field = error.path[0] as keyof typeof errors;
+        if (!errors[field]) {
+          errors[field] = [];
+        }
+        errors[field]!.push(error.message);
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Clear any previous validation errors
+    setValidationErrors({});
+
+    // Submit form
+    onSubmit({
+      email: viewModel.email.trim().toLowerCase(),
+      password: viewModel.password,
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <EmailInput
-        value={formData.email}
-        onChange={(value) => handleChange("email", value)}
-        error={errors.email}
+        value={viewModel.email}
+        onChange={handleEmailChange}
+        error={validationErrors.email?.[0]}
       />
 
       <PasswordInput
-        value={formData.password}
-        onChange={(value) => handleChange("password", value)}
-        error={errors.password}
+        value={viewModel.password}
+        onChange={handlePasswordChange}
+        error={validationErrors.password?.[0]}
       />
 
-      <SubmitButton disabled={isSubmitting} isLoading={isSubmitting}>
-        Zaloguj się
-      </SubmitButton>
+      <LoginButton disabled={viewModel.isLoading} />
 
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
-          Nie masz jeszcze konta?{" "}
-          <a
-            href="/register"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Zarejestruj się
-          </a>
-        </p>
-      </div>
+      <RegisterLink />
     </form>
   );
 }
 
-export default LoginForm;
+export { LoginForm };
