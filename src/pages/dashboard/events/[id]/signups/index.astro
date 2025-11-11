@@ -1,0 +1,20 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import { EventSignupsView } from "../../../../components/event-signups/EventSignupsView.tsx";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const eventId = parseInt(id as string, 10);
+
+if (!eventId || isNaN(eventId)) {
+  throw new Error("Nieprawidłowy identyfikator wydarzenia");
+}
+---
+
+<Layout title="Zapisani gracze - FairPlay">
+  <EventSignupsView
+    eventId={eventId}
+    client:load
+  />
+</Layout>
