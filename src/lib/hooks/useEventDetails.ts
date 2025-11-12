@@ -284,29 +284,9 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/events/${eventId}/teams/draw`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ iterations: 100, balance_threshold: 0.1 }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Nie udało się wylosować drużyn");
-      }
-
-      await response.json();
-      toast.success("Sukces", { description: "Drużyny zostały wylosowane" });
-
-      // TODO: Przejście do widoku drużyn lub odświeżenie danych
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Nie udało się wylosować drużyn";
-      toast.error("Błąd", { description: errorMessage });
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Przekieruj bezpośrednio na stronę losowania drużyn
+    // Tam użytkownik kliknie przycisk "Losuj" aby wygenerować składy
+    window.location.href = `/dashboard/events/${eventId}/draw`;
   }, [eventVM?.canManageSignups, eventId, toast]);
 
   /**

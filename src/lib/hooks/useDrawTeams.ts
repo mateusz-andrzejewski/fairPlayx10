@@ -22,6 +22,9 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [balanceAchieved, setBalanceAchieved] = useState(false);
+  // Nowe stany
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Czy są niezapisane losowania
+  const [isConfirmed, setIsConfirmed] = useState(false); // Czy składy zostały zatwierdzone
 
   /**
    * Transformacja surowych danych przypisań na TeamViewModel
@@ -189,11 +192,13 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
         setTeams(teamsData);
         setBalanceAchieved(result.balance_achieved);
+        setHasUnsavedChanges(true); // Oznacz że są niezapisane zmiany
+        setIsConfirmed(false); // Resetuj status zatwierdzenia
 
-        toast.success("Sukces", {
+        toast.success("Losowanie wykonane", {
           description: result.balance_achieved
-            ? "Losowanie drużyn zostało pomyślnie wykonane"
-            : "Losowanie zostało wykonane, ale balans drużyn nie został osiągnięty. Rozważ ręczną edycję.",
+            ? "Sprawdź składy i potwierdź aby zapisać."
+            : "Balans nie został osiągnięty. Możesz losować ponownie lub edytować ręcznie.",
         });
       } else {
         throw new Error("Algorytm losowania nie powiódł się");
@@ -206,6 +211,78 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
       setIsLoading(false);
     }
   }, [eventId, userRole, teams, toast]);
+
+  /**
+   * Potwierdzenie i zapisanie wylosowanych składów do bazy
+   */
+  const confirmTeams = useCallback(async () => {
+    // Walidacja roli użytkownika
+    if (userRole !== "admin" && userRole !== "organizer") {
+      const errorMessage = "Brak uprawnień do zatwierdzania składów drużyn";
+      setError(errorMessage);
+      toast.error("Błąd", { description: errorMessage });
+      return;
+    }
+
+    // Sprawdź czy są drużyny do zapisania
+    if (teams.length === 0) {
+      const errorMessage = "Brak drużyn do zapisania. Najpierw uruchom losowanie.";
+      setError(errorMessage);
+      toast.error("Błąd", { description: errorMessage });
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Przygotuj przypisania na podstawie aktualnych teams
+      const assignments: ManualTeamAssignmentEntry[] = [];
+      teams.forEach((team) => {
+        team.players.forEach((player) => {
+          assignments.push({
+            signup_id: player.signupId,
+            team_number: team.teamNumber,
+          });
+        });
+      });
+
+      const command: CreateTeamAssignmentsCommand = {
+        assignments,
+      };
+
+      // Zapisz przypisania do bazy
+      const response = await fetch(`/api/events/${eventId}/teams`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(command),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Nie udało się zapisać składów drużyn");
+      }
+
+      // TODO: Tutaj wysłać powiadomienia do graczy (Task #4)
+      // TODO: Zmienić status wydarzenia na 'teams_drawn' (Task #3)
+
+      toast.success("Sukces", { 
+        description: "Składy drużyn zostały zatwierdzone i zapisane. Gracze otrzymają powiadomienia." 
+      });
+
+      setHasUnsavedChanges(false);
+      setIsConfirmed(true);
+
+      // Odśwież dane drużyn z bazy
+      await fetchTeams();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Nie udało się zapisać składów drużyn";
+      setError(errorMessage);
+      toast.error("Błąd", { description: errorMessage });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [eventId, userRole, teams, fetchTeams, toast]);
 
   /**
    * Ręczne przypisanie graczy do drużyn
@@ -302,6 +379,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
    */
   const actions = {
     runDraw,
+    confirmTeams,
     assignTeams,
     refresh: fetchTeams,
   };
@@ -309,5 +387,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
   return {
     state,
     actions,
+    hasUnsavedChanges,
+    isConfirmed,
   };
 }

@@ -25,7 +25,7 @@ interface DrawTeamsViewProps {
 export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
   // Hooki
   const { user } = useAuth();
-  const { state, actions } = useDrawTeams(eventId, user?.role || "player");
+  const { state, actions, hasUnsavedChanges, isConfirmed } = useDrawTeams(eventId, user?.role || "player");
 
   // Stan lokalny dla informacji o wydarzeniu
   const [event, setEvent] = useState<EventDTO | null>(null);
@@ -208,20 +208,58 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
         <TeamStats teams={state.teams} userRole={user?.role || "player"} />
       </section>
 
-      {/* Przycisk losowania */}
-      <section className="mb-8 flex justify-center" aria-labelledby="draw-button-heading">
-        <div className="w-full max-w-md">
-          <h2 id="draw-button-heading" className="sr-only">
-            Losowanie drużyn
-          </h2>
+      {/* Przyciski akcji */}
+      <section className="mb-8" aria-labelledby="draw-actions-heading">
+        <h2 id="draw-actions-heading" className="sr-only">
+          Akcje losowania drużyn
+        </h2>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
+          {/* Przycisk losowania */}
           <DrawButton
             onDraw={actions.runDraw}
             isLoading={state.isLoading}
-            disabled={event.current_signups_count < 4}
+            disabled={event.current_signups_count < 4 || isConfirmed}
             minPlayersRequired={4}
             currentPlayersCount={event.current_signups_count}
           />
+          
+          {/* Przycisk potwierdzenia składów */}
+          {hasUnsavedChanges && state.teams.length > 0 && !isConfirmed && (
+            <Button
+              onClick={actions.confirmTeams}
+              disabled={state.isLoading}
+              size="lg"
+              variant="default"
+              className="flex items-center gap-2 px-6 sm:px-8 py-3 text-sm sm:text-base font-medium w-full sm:w-auto bg-green-600 hover:bg-green-700"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Potwierdź składy
+            </Button>
+          )}
+          
+          {/* Status zatwierdzenia */}
+          {isConfirmed && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Składy zatwierdzone</span>
+            </div>
+          )}
         </div>
+        
+        {/* Ostrzeżenie o niezapisanych zmianach */}
+        {hasUnsavedChanges && !isConfirmed && state.teams.length > 0 && (
+          <Alert className="mt-4 max-w-2xl mx-auto">
+            <AlertCircleIcon className="h-4 w-4" />
+            <AlertDescription>
+              Wylosowane składy nie zostały jeszcze zapisane. Kliknij "Potwierdź składy" aby zapisać i wysłać powiadomienia do graczy.
+            </AlertDescription>
+          </Alert>
+        )}
       </section>
 
       {/* Obszar drag-and-drop */}
