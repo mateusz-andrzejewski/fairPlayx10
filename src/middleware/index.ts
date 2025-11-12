@@ -60,6 +60,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const user = context.locals.user;
 
+  // Handle root path - redirect based on auth status
+  if (pathname === "/") {
+    if (user) {
+      if (user.status === "pending") {
+        return context.redirect("/pending-approval");
+      }
+      return context.redirect("/dashboard");
+    }
+    return context.redirect("/login");
+  }
+
   if (publicPath) {
     if (pathname === "/login" && user) {
       if (user.status === "pending") {
