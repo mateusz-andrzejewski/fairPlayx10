@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../lib/hooks/useAuth";
+import { useAuth, AuthClientError } from "../lib/hooks/useAuth";
 import { LoginForm } from "./LoginForm";
 import { ErrorToast } from "./ErrorToast";
 import type { LoginRequest, LoginViewModel } from "../types";
@@ -23,12 +23,24 @@ function LoginView() {
     try {
       await login(loginRequest);
 
+      setViewModel((prev) => ({
+        ...prev,
+        isLoading: false,
+      }));
+
       // Success - redirect to dashboard
       window.location.href = "/dashboard";
     } catch (error) {
       let errorMessage = "Wystąpił błąd podczas logowania";
+      let shouldRedirectToPending = false;
 
-      if (error instanceof Error) {
+      if (error instanceof AuthClientError) {
+        errorMessage = error.message;
+
+        if (error.code === "PENDING_APPROVAL") {
+          shouldRedirectToPending = true;
+        }
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
 
@@ -37,6 +49,10 @@ function LoginView() {
         isLoading: false,
         error: errorMessage,
       }));
+
+      if (shouldRedirectToPending) {
+        window.location.href = "/pending-approval";
+      }
     }
   };
 

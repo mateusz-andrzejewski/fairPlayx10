@@ -6,11 +6,23 @@ import { isDashboardAuthDisabled } from "../lib/utils/featureFlags";
 import { mockDashboardUser } from "../lib/mocks/dashboardMock";
 import { toRequestActor } from "../lib/auth/request-actor";
 
-function requiresUserContext(pathname: string): boolean {
-  if (pathname.startsWith("/dashboard")) {
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/session",
+];
+
+const PENDING_ALLOWED_PATHS = ["/pending-approval", "/api/auth/logout"];
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return true;
   }
-  if (pathname.startsWith("/api")) {
+  if (pathname.startsWith("/assets/") || pathname === "/favicon.png") {
     return true;
   }
   return false;
@@ -20,10 +32,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const authDisabled = isDashboardAuthDisabled();
   context.locals.supabase = supabaseClient;
   context.locals.isDashboardAuthDisabled = authDisabled;
-
-  if (!requiresUserContext(context.url.pathname)) {
-    return next();
-  }
 
   if (authDisabled) {
     try {
@@ -38,6 +46,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
+  const pathname = context.url.pathname;
+  const publicPath = isPublicPath(pathname);
+
   try {
     const {
       data: { session },
@@ -45,29 +56,47 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } = await supabaseClient.auth.getSession();
 
     if (sessionError || !session?.user) {
-      return context.redirect("/login");
+      context.locals.user = undefined;
+    } else {
+      const { data: userProfile, error: profileError } = await supabaseClient
+        .from("users")
+        .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
+        .eq("email", session.user.email ?? "")
+        .is("deleted_at", null)
+        .single();
+
+      if (!profileError && userProfile) {
+        context.locals.user = userProfile;
+        context.locals.actor = toRequestActor(userProfile);
+      }
     }
-
-    const { data: userProfile, error: profileError } = await supabaseClient
-      .from("users")
-      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-      .eq("id", session.user.id)
-      .is("deleted_at", null)
-      .single();
-
-    if (profileError || !userProfile) {
-      return context.redirect("/login");
-    }
-
-    if (userProfile.status !== "approved") {
-      return context.redirect("/login");
-    }
-
-    context.locals.user = userProfile;
-    context.locals.actor = toRequestActor(userProfile);
   } catch (error) {
     console.error("[middleware] Auth guard error", error);
+  }
+
+  const user = context.locals.user;
+
+  if (publicPath) {
+    if (pathname === "/login" && user) {
+      if (user.status === "pending") {
+        return context.redirect("/pending-approval");
+      }
+      return context.redirect("/dashboard");
+    }
+
+    if (pathname === "/pending-approval" && user?.status !== "pending") {
+      return context.redirect("/dashboard");
+    }
+
+    return next();
+  }
+
+  if (!user) {
     return context.redirect("/login");
+  }
+
+  if (user.status === "pending" && !PENDING_ALLOWED_PATHS.includes(pathname)) {
+    return context.redirect("/pending-approval");
   }
 
   return next();

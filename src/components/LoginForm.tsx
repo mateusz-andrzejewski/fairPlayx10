@@ -1,15 +1,10 @@
 import { type FormEvent, useState } from "react";
-import { z } from "zod";
 import { EmailInput } from "./ui/email-input";
 import { PasswordInput } from "./ui/password-input";
 import { LoginButton } from "./LoginButton";
 import { RegisterLink } from "./RegisterLink";
 import type { LoginRequest, LoginViewModel } from "../types";
-
-const loginSchema = z.object({
-  email: z.string().min(1, "Adres email jest wymagany").email("Nieprawidłowy format adresu email"),
-  password: z.string().min(1, "Hasło jest wymagane"),
-});
+import { loginSchema } from "../lib/validation/auth";
 
 interface LoginFormProps {
   viewModel: LoginViewModel;
@@ -74,8 +69,8 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
 
     // Submit form
     onSubmit({
-      email: viewModel.email.trim().toLowerCase(),
-      password: viewModel.password,
+      email: result.data.email,
+      password: result.data.password,
     });
   };
 
@@ -84,11 +79,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
       <div className="space-y-4">
         <EmailInput value={viewModel.email} onChange={handleEmailChange} error={validationErrors.email} />
 
-        <PasswordInput
-          value={viewModel.password}
-          onChange={handlePasswordChange}
-          error={validationErrors.password}
-        />
+        <PasswordInput value={viewModel.password} onChange={handlePasswordChange} error={validationErrors.password} />
       </div>
 
       <div className="flex items-center justify-end">

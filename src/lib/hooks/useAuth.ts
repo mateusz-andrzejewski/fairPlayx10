@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { supabaseClient } from "../../db/supabase.client";
-import type { AuthRequest, AuthResponse, UserDTO } from "../../types";
+import type { AuthRequest, LoginSuccessResponse, LoginSessionDTO, UserDTO, AuthErrorCode } from "../../types";
 import { isDashboardAuthDisabled } from "../utils/featureFlags";
+
+export class AuthClientError extends Error {
+  constructor(
+    public readonly code: AuthErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = "AuthClientError";
+  }
+}
 
 export function useAuth() {
   const authDisabled = useMemo(() => isDashboardAuthDisabled(), []);
@@ -55,7 +66,7 @@ export function useAuth() {
           const profile = await supabaseClient
             .from("users")
             .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-            .eq("id", session.user.id)
+            .eq("email", session.user.email ?? "")
             .is("deleted_at", null)
             .single();
 
@@ -88,7 +99,7 @@ export function useAuth() {
           const profile = await supabaseClient
             .from("users")
             .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-            .eq("id", session.user.id)
+            .eq("email", session.user.email ?? "")
             .is("deleted_at", null)
             .single();
 
@@ -109,7 +120,7 @@ export function useAuth() {
     };
   }, [authDisabled]);
 
-  const login = async (credentials: AuthRequest): Promise<AuthResponse> => {
+  const login = async (credentials: AuthRequest): Promise<LoginSuccessResponse> => {
     if (authDisabled) {
       const sessionUser = await fetchSession();
       if (!sessionUser) {
@@ -118,51 +129,65 @@ export function useAuth() {
       setIsAuthenticated(true);
       setUser(sessionUser);
       return {
-        token: "dev-mode-token",
         user: sessionUser,
-        expiresIn: 60 * 60,
+        success: true,
+        message: "Zalogowano w trybie deweloperskim",
       };
     }
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: credentials.email,
+    const normalizedCredentials = {
+      email: credentials.email.trim().toLowerCase(),
       password: credentials.password,
+    };
+
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(normalizedCredentials),
     });
 
-    if (error) {
-      throw new Error(error.message);
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error("Nieprawidłowa odpowiedź serwera logowania");
     }
 
-    if (!data.session || !data.user) {
-      throw new Error("Nie udało się zalogować - brak sesji");
+    if (!response.ok) {
+      const errorPayload = payload as { error?: AuthErrorCode; message?: string };
+      throw new AuthClientError(
+        errorPayload.error ?? "INTERNAL_ERROR",
+        errorPayload.message ?? "Wystąpił błąd podczas logowania"
+      );
     }
 
-    const profile = await supabaseClient
-      .from("users")
-      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-      .eq("id", data.user.id)
-      .is("deleted_at", null)
-      .single();
+    const {
+      user: loggedUser,
+      session,
+      message,
+    } = payload as LoginSuccessResponse & {
+      session: LoginSessionDTO;
+    };
 
-    const resolvedUser = (profile.data as UserDTO | null) ?? null;
-    setUser(resolvedUser);
+    const { error: setSessionError } = await supabaseClient.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+
+    if (setSessionError) {
+      throw new Error("Nie udało się utrwalić sesji logowania");
+    }
+
+    setUser(loggedUser);
     setIsAuthenticated(true);
 
     return {
-      token: data.session.access_token,
-      user: resolvedUser ?? {
-        id: Number.parseInt(data.user.id, 10),
-        email: data.user.email ?? "",
-        first_name: data.user.user_metadata?.first_name ?? "",
-        last_name: data.user.user_metadata?.last_name ?? "",
-        role: "player",
-        status: "approved",
-        player_id: null,
-        created_at: data.user.created_at,
-        updated_at: data.user.updated_at,
-        deleted_at: null,
-      },
-      expiresIn: data.session.expires_in ?? 3600,
+      success: true,
+      message,
+      user: loggedUser,
     };
   };
 

@@ -289,7 +289,7 @@ export interface DashboardViewModel {
   nearestEvent: EventDTO | null;
   upcomingEvents: EventDTO[];
   notifications: NotificationDTO[];
-  managementData: { users: UserDTO[], events: EventDTO[], players: PlayerDTO[] } | null;
+  managementData: { users: UserDTO[]; events: EventDTO[]; players: PlayerDTO[] } | null;
 }
 
 /**
@@ -306,14 +306,40 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
+export type AuthErrorCode =
+  | "VALIDATION_ERROR"
+  | "EMAIL_TAKEN"
+  | "INVALID_CREDENTIALS"
+  | "PENDING_APPROVAL"
+  | "ACCOUNT_DISABLED"
+  | "INVALID_TOKEN"
+  | "PASSWORD_MISMATCH"
+  | "INTERNAL_ERROR";
+
+export interface AuthErrorResponse {
+  success: false;
+  error: AuthErrorCode;
+  message: string;
+  details?: Record<string, string[]>;
+}
+
+export interface LoginSuccessResponse {
+  success: true;
+  message: string;
+  user: UserDTO;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface LoginResponse {
-  user: UserDTO;
-  session: any; // Supabase session type
+export interface LoginSessionDTO {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  expires_at?: number;
+  token_type?: string;
 }
 
 export interface LoginViewModel {
