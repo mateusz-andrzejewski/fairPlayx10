@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, UserCheck, UserX, Loader2 } from "lucide-react";
+import { ArrowLeft, UserCheck, UserX, Loader2, Edit } from "lucide-react";
 
 import { useAuth } from "../../lib/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import ApproveUserModal from "./ApproveUserModal";
-import type { UserDTO } from "../../types";
+import { DeleteUserModal } from "./DeleteUserModal";
+import { EditUserRoleModal } from "./EditUserRoleModal";
+import type { UserDTO, UserRole } from "../../types";
 
 interface UsersManagementPageProps {
   initialUsers?: UserDTO[];
@@ -27,6 +29,10 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserDTO | null>(null);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditingRole, setIsEditingRole] = useState(false);
 
   // Ładowanie danych użytkowników
   const loadUsers = async (page = 1, status?: string) => {
@@ -69,6 +75,96 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
   const handleUserApproved = async () => {
     // Odśwież listę użytkowników
     await loadUsers(pagination.page);
+  };
+
+  // Obsługa otwierania modalu usuwania
+  const handleOpenDeleteModal = (user: UserDTO) => {
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Obsługa zamknięcia modalu usuwania
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  // Obsługa usunięcia użytkownika
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Wystąpił błąd podczas usuwania użytkownika");
+      }
+
+      toast.success("Użytkownik został usunięty", {
+        description: `Użytkownik ${selectedUser.first_name} ${selectedUser.last_name} został pomyślnie usunięty.`,
+      });
+
+      // Zamknij modal i odśwież listę
+      handleCloseDeleteModal();
+      await loadUsers(pagination.page);
+    } catch (error) {
+      console.error("Błąd podczas usuwania użytkownika:", error);
+      toast.error("Błąd podczas usuwania użytkownika", {
+        description: error instanceof Error ? error.message : "Spróbuj ponownie później.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Obsługa otwierania modalu edycji roli
+  const handleOpenEditRoleModal = (user: UserDTO) => {
+    setSelectedUser(user);
+    setIsEditRoleModalOpen(true);
+  };
+
+  // Obsługa zamknięcia modalu edycji roli
+  const handleCloseEditRoleModal = () => {
+    setIsEditRoleModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  // Obsługa zapisania zmian roli użytkownika
+  const handleSaveUserRole = async (userId: number, newRole: UserRole) => {
+    setIsEditingRole(true);
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: newRole, status: "approved" }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Wystąpił błąd podczas aktualizacji roli użytkownika");
+      }
+
+      toast.success("Rola użytkownika została zaktualizowana", {
+        description: `Nowa rola: ${newRole}`,
+      });
+
+      // Zamknij modal i odśwież listę
+      handleCloseEditRoleModal();
+      await loadUsers(pagination.page);
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji roli użytkownika:", error);
+      toast.error("Błąd podczas aktualizacji roli", {
+        description: error instanceof Error ? error.message : "Spróbuj ponownie później.",
+      });
+    } finally {
+      setIsEditingRole(false);
+    }
   };
 
   // Ładowanie danych przy montowaniu komponentu
@@ -206,31 +302,41 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
                       </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("pl-PL")}</TableCell>
                       <TableCell>
-                        {user.status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => handleOpenApproveModal(user)}
-                          >
-                            <UserCheck className="h-3 w-3" />
-                            Zatwierdź
-                          </Button>
-                        )}
-                        {user.status === "approved" && !user.deleted_at && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="gap-1"
-                            onClick={() => {
-                              // TODO: Implementacja usuwania użytkowników
-                              toast.info("Funkcjonalność usuwania użytkowników zostanie dodana wkrótce");
-                            }}
-                          >
-                            <UserX className="h-3 w-3" />
-                            Usuń
-                          </Button>
-                        )}
+                        <div className="flex gap-2">
+                          {user.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => handleOpenApproveModal(user)}
+                            >
+                              <UserCheck className="h-3 w-3" />
+                              Zatwierdź
+                            </Button>
+                          )}
+                          {user.status === "approved" && !user.deleted_at && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => handleOpenEditRoleModal(user)}
+                              >
+                                <Edit className="h-3 w-3" />
+                                Edytuj
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="gap-1"
+                                onClick={() => handleOpenDeleteModal(user)}
+                              >
+                                <UserX className="h-3 w-3" />
+                                Usuń
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -274,6 +380,24 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
         isOpen={isApproveModalOpen}
         onClose={handleCloseApproveModal}
         onApprove={handleUserApproved}
+      />
+
+      {/* Delete User Modal */}
+      <DeleteUserModal
+        user={selectedUser}
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleDeleteUser}
+        isDeleting={isDeleting}
+      />
+
+      {/* Edit User Role Modal */}
+      <EditUserRoleModal
+        user={selectedUser}
+        isOpen={isEditRoleModalOpen}
+        onClose={handleCloseEditRoleModal}
+        onSave={handleSaveUserRole}
+        isSubmitting={isEditingRole}
       />
     </div>
   );

@@ -84,6 +84,25 @@ export const approveUserSchema = z
 export type ApproveUserValidatedParams = z.infer<typeof approveUserSchema>;
 
 /**
+ * Schemat Zod do walidacji danych aktualizacji roli użytkownika.
+ * Admin może zmienić rolę zatwierdzonego użytkownika.
+ */
+export const updateUserRoleSchema = z
+  .object({
+    role: z.enum(["player", "organizer", "admin"], {
+      errorMap: () => ({ message: "Rola musi być 'player', 'organizer' lub 'admin'" }),
+    }),
+    status: z.literal("approved").optional(), // Akceptujemy status, ale go ignorujemy
+  })
+  .strict();
+
+/**
+ * Typ wywnioskowany z updateUserRoleSchema.
+ * Zapewnia bezpieczeństwo typów między walidacją a użyciem.
+ */
+export type UpdateUserRoleValidatedParams = z.infer<typeof updateUserRoleSchema>;
+
+/**
  * Sanitizuje zapytanie wyszukiwania poprzez escape znaków specjalnych używanych w wzorcach SQL LIKE.
  * Escapuje znaki % i _ aby zapobiec SQL injection i nieoczekiwanemu dopasowaniu wildcard.
  *
@@ -100,7 +119,7 @@ export function escapeIlikePattern(query: string): string {
 }
 
 /**
- * Waliduje i sanitizuje parametry zapytania dla endpointa listy użytkowników.
+ * Waliduje i sanityzuje parametry zapytania dla endpointa listy użytkowników.
  * Łączy walidację schematu z sanitizacją zapytania wyszukiwania.
  *
  * @param params - Surowe parametry z żądania

@@ -361,6 +361,92 @@ export class UsersService {
       newStatus: "approved",
     };
   }
+
+  /**
+   * Aktualizuje rolę użytkownika.
+   * Operacja dostępna tylko dla administratorów.
+   * Dodaje wpis do dziennika audytu z informacją o zmianie roli.
+   *
+   * @param actorId - ID użytkownika wykonującego operację (musi mieć rolę admin)
+   * @param targetId - ID użytkownika do aktualizacji
+   * @param newRole - Nowa rola użytkownika
+   * @returns Promise rozwiązujący się do informacji o powodzeniu operacji
+   * @throws Error jeśli użytkownik nie istnieje lub wystąpi błąd bazy danych
+   */
+  async updateUserRole(
+    actorId: number,
+    targetId: number,
+    newRole: string
+  ): Promise<{ updated: boolean; userId: number; previousRole: string; newRole: string }> {
+    // Pobierz dane użytkownika przed aktualizacją
+    const { data: existingUser, error: fetchError } = await this.supabase
+      .from("users")
+      .select("id, email, first_name, last_name, status, role")
+      .eq("id", targetId)
+      .is("deleted_at", null) // tylko aktywni użytkownicy
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === "PGRST116") {
+        throw new Error("Użytkownik nie został znaleziony");
+      }
+      throw new Error(`Błąd podczas pobierania danych użytkownika: ${fetchError.message}`);
+    }
+
+    if (!existingUser) {
+      throw new Error("Użytkownik nie został znaleziony");
+    }
+
+    // Jeśli rola jest taka sama, zwróć sukces (idempotentność)
+    if (existingUser.role === newRole) {
+      return {
+        updated: true,
+        userId: targetId,
+        previousRole: existingUser.role,
+        newRole: newRole,
+      };
+    }
+
+    const auditChanges = {
+      previous_role: existingUser.role,
+      new_role: newRole,
+    };
+
+    // Wykonaj aktualizację roli
+    const updatedAt = new Date().toISOString();
+    const { error: updateError } = await this.supabase
+      .from("users")
+      .update({
+        role: newRole,
+        updated_at: updatedAt,
+      })
+      .eq("id", targetId);
+
+    if (updateError) {
+      throw new Error(`Błąd podczas aktualizacji roli użytkownika: ${updateError.message}`);
+    }
+
+    // Dodaj wpis do dziennika audytu
+    const { error: auditError } = await this.supabase.from("audit_logs").insert({
+      action_type: "user_role_updated",
+      actor_id: actorId,
+      target_table: "users",
+      target_id: targetId,
+      changes: auditChanges,
+    });
+
+    if (auditError) {
+      console.error("Błąd podczas tworzenia wpisu audytu:", auditError);
+      // Nie cofamy zmian - audit log nie jest krytyczny
+    }
+
+    return {
+      updated: true,
+      userId: targetId,
+      previousRole: existingUser.role,
+      newRole: newRole,
+    };
+  }
 }
 
 /**

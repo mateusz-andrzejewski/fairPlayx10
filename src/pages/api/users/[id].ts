@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 import { createUsersService } from "../../../lib/services/users.service";
-import { userIdParamSchema, updateUserStatusSchema, approveUserSchema } from "../../../lib/validation/users";
+import { userIdParamSchema, updateUserStatusSchema, approveUserSchema, updateUserRoleSchema } from "../../../lib/validation/users";
 import { requireAdmin } from "../../../lib/auth/request-actor";
 
 /**
@@ -67,13 +67,73 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // Sprawdź czy to stare API (tylko status) czy nowe API (role + player_id)
+    // Sprawdź typ operacji na podstawie zawartości body
     const bodyObj = body as Record<string, unknown>;
+    const usersService = createUsersService(locals.supabase);
     
-    // Backward compatibility: jeśli tylko status='approved', używamy domyślnych wartości
+    // Przypadek 1: Aktualizacja roli zatwierdzonego użytkownika (tylko role + opcjonalnie status)
+    // Sprawdzamy czy body zawiera tylko role (i ewentualnie status="approved")
+    const hasOnlyRole = bodyObj.role && !bodyObj.player_id && !bodyObj.create_player;
+    if (hasOnlyRole) {
+      // Waliduj dane aktualizacji roli
+      let validatedRoleParams;
+      try {
+        validatedRoleParams = updateUserRoleSchema.parse(body);
+      } catch (validationError) {
+        return new Response(
+          JSON.stringify({
+            error: "validation_error",
+            message: "Nieprawidłowe dane aktualizacji roli",
+            details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Wykonaj aktualizację roli
+      try {
+        const result = await usersService.updateUserRole(
+          adminActor.userId,
+          validatedIdParams.id,
+          validatedRoleParams.role
+        );
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Rola użytkownika została zaktualizowana",
+            userId: result.userId,
+            previousRole: result.previousRole,
+            newRole: result.newRole,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } catch (error) {
+        // Obsłuż błąd "Użytkownik nie został znaleziony"
+        if (error instanceof Error && error.message.includes("nie został znaleziony")) {
+          return new Response(
+            JSON.stringify({
+              error: "not_found",
+              message: "Użytkownik nie został znaleziony",
+            }),
+            {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+        throw error; // Rzuć dalej inne błędy
+      }
+    }
+    
+    // Przypadek 2: Backward compatibility - stare API (tylko status='approved')
     if (bodyObj.status === "approved" && !bodyObj.role && bodyObj.player_id === undefined) {
-      // Stare API - użyj domyślnych wartości
-      const usersService = createUsersService(locals.supabase);
       const result = await usersService.approveUser(adminActor.userId, validatedIdParams.id, {
         role: "player", // domyślna rola
         create_player: true, // utwórz gracza
@@ -107,7 +167,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       }
     }
 
-    // Nowe API - waliduj dane zatwierdzenia
+    // Przypadek 3: Nowe API - zatwierdzenie użytkownika z pełnymi danymi (role + player_id/create_player)
     let validatedApprovalParams;
     try {
       validatedApprovalParams = approveUserSchema.parse(body);
@@ -126,7 +186,6 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     }
 
     // Wykonaj zatwierdzenie użytkownika z nowymi danymi
-    const usersService = createUsersService(locals.supabase);
     const result = await usersService.approveUser(adminActor.userId, validatedIdParams.id, validatedApprovalParams);
 
     // Zwróć odpowiedź w zależności od wyniku

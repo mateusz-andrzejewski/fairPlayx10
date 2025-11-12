@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { EventForm } from "./EventForm";
+import { DeleteEventModal } from "./DeleteEventModal";
 import { useAuth } from "../../lib/hooks/useAuth";
 import type { EventDetailDTO } from "../../types";
 import type { CreateEventValidatedParams } from "../../lib/validation/event";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface EventEditPageProps {
   eventId: number;
@@ -18,6 +20,8 @@ export function EventEditPage({ eventId }: EventEditPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const canEdit = useMemo(() => {
     if (!user || !event) {
@@ -91,6 +95,41 @@ export function EventEditPage({ eventId }: EventEditPageProps) {
     window.history.back();
   };
 
+  const handleOpenDeleteModal = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleDeleteEvent = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/event/${eventId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message ?? `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      toast.success("Wydarzenie zostało usunięte", {
+        description: "Wydarzenie zostało pomyślnie usunięte i zapisane w archiwum.",
+      });
+
+      // Przekieruj do listy wydarzeń
+      window.location.href = "/dashboard/events";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Nie udało się usunąć wydarzenia";
+      toast.error("Usunięcie wydarzenia nie powiodło się", { description: message });
+    } finally {
+      setIsDeleting(false);
+      handleCloseDeleteModal();
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -138,9 +177,38 @@ export function EventEditPage({ eventId }: EventEditPageProps) {
     );
   }
 
+  const canDelete = user?.role === "admin";
+
   return (
     <div className="py-8">
       <EventForm event={event} onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isSubmitting} />
+
+      {/* Przycisk usuwania wydarzenia - tylko dla admina */}
+      {canDelete && (
+        <div className="max-w-2xl mx-auto mt-8">
+          <div className="border border-destructive/30 rounded-lg p-6 bg-destructive/5">
+            <h3 className="text-lg font-semibold text-destructive mb-2">Strefa niebezpieczna</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Usunięcie wydarzenia jest operacją nieodwracalną. Wydarzenie zostanie oznaczone jako usunięte i nie będzie
+              możliwe jego przywrócenie.
+            </p>
+            <Button variant="destructive" onClick={handleOpenDeleteModal} disabled={isDeleting} className="gap-2">
+              <Trash2 className="h-4 w-4" />
+              Usuń wydarzenie
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal potwierdzenia usunięcia */}
+      <DeleteEventModal
+        eventName={event?.name || ""}
+        eventId={eventId}
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleDeleteEvent}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
