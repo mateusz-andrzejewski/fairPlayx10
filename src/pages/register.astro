@@ -5,13 +5,25 @@ import { ToastProvider } from "../components/ToastProvider.tsx";
 ---
 
 <Layout title="Rejestracja - FairPlay">
-  <main class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h1 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Zarejestruj się w FairPlay</h1>
-        <p class="mt-2 text-center text-sm text-gray-600">Dołącz do społeczności piłkarskiej</p>
-      </div>
-      <RegisterForm client:load />
+  <main class="min-h-screen bg-muted/40 flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-2xl space-y-6">
+      <section class="rounded-xl border border-border bg-background shadow-sm">
+        <header class="px-6 pt-6 text-center space-y-2">
+          <p class="text-xs font-medium uppercase tracking-wide text-primary/80">Dołącz do FairPlay</p>
+          <h1 class="text-3xl font-semibold text-foreground">Utwórz konto zawodnika</h1>
+          <p class="text-sm text-muted-foreground">
+            Wypełnij formularz, aby poprosić administratora o dostęp do panelu zawodnika. Weryfikacja konta zajmuje
+            zwykle mniej niż 24&nbsp;godziny.
+          </p>
+        </header>
+        <div class="px-6 pb-6 pt-4">
+          <RegisterForm client:load />
+        </div>
+      </section>
+      <p class="text-center text-xs text-muted-foreground">
+        Rejestrując konto, akceptujesz politykę prywatności i wyrażasz zgodę na przetwarzanie danych w celu obsługi
+        rozgrywek FairPlay.
+      </p>
     </div>
   </main>
   <ToastProvider client:load />

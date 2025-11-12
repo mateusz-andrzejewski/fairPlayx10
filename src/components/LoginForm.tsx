@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { z } from "zod";
 import { EmailInput } from "./ui/email-input";
 import { PasswordInput } from "./ui/password-input";
@@ -47,7 +47,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Validate form
@@ -80,16 +80,24 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <EmailInput value={viewModel.email} onChange={handleEmailChange} error={validationErrors.email?.[0]} />
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <div className="space-y-4">
+        <EmailInput value={viewModel.email} onChange={handleEmailChange} error={validationErrors.email} />
 
-      <PasswordInput
-        value={viewModel.password}
-        onChange={handlePasswordChange}
-        error={validationErrors.password?.[0]}
-      />
+        <PasswordInput
+          value={viewModel.password}
+          onChange={handlePasswordChange}
+          error={validationErrors.password}
+        />
+      </div>
 
-      <LoginButton disabled={viewModel.isLoading} />
+      <div className="flex items-center justify-end">
+        <a href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+          Zapomniałeś hasła?
+        </a>
+      </div>
+
+      <LoginButton disabled={viewModel.isLoading} isLoading={viewModel.isLoading} />
 
       <RegisterLink />
     </form>

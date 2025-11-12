@@ -16,7 +16,7 @@ function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <EmailInput value={formData.email} onChange={(value) => handleChange("email", value)} error={errors.email} />
 
       <PasswordInput
@@ -25,7 +25,7 @@ function RegisterForm() {
         error={errors.password}
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <FirstNameInput
           value={formData.first_name}
           onChange={(value) => handleChange("first_name", value)}
@@ -54,6 +54,13 @@ function RegisterForm() {
       <SubmitButton disabled={isSubmitting} isLoading={isSubmitting}>
         Zarejestruj się
       </SubmitButton>
+
+      <div className="text-center text-sm text-muted-foreground">
+        Masz już konto?{" "}
+        <a href="/login" className="font-medium text-primary hover:underline">
+          Wróć do logowania
+        </a>
+      </div>
     </form>
   );
 }
