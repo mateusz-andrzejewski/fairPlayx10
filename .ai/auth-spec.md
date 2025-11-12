@@ -29,30 +29,11 @@ Aplikacja wykorzystuje hybrydowy model renderowania Astro 5 (SSR) z komponentami
 - **Meta**: `title="Rejestracja - FairPlay"`
 
 **Strona `/pages/index.astro`**
-- **Odpowiedzialność**: Strona główna (landing page) dla niezalogowanych użytkowników
-- **Struktura**: Komponent `Welcome.astro`
-- **Middleware**: Publiczny dostęp, bez przekierowania
-- **Uwaga PRD**: "Dla niezalogowanych tylko strona logowania" - wymaga modyfikacji routingu aby niezalogowani widzieli tylko login/register
+- **Odpowiedzialność**: Strona główna przekierowująca do logowania dla niezalogowanych użytkowników
+- **Struktura**: Brak zawartości, automatyczne przekierowanie do `/login`
+- **Middleware**: Publiczny dostęp z natychmiastowym przekierowaniem do `/login`
+- **Uwaga PRD**: "Dla niezalogowanych tylko strona logowania" - zgodnie z PRD, niezalogowani nie mają dostępu do żadnej informacji
 
-**Nowa strona `/pages/forgot-password.astro`** (do utworzenia)
-- **Odpowiedzialność**: Strona odzyskiwania hasła
-- **Struktura**:
-  - Layout wrapper
-  - Kontener z formularzem resetowania hasła
-  - Komponent React `ForgotPasswordForm` z `client:load`
-  - `ToastProvider`
-- **Middleware**: Publiczny dostęp
-- **Meta**: `title="Odzyskiwanie hasła - FairPlay"`
-
-**Nowa strona `/pages/reset-password.astro`** (do utworzenia)
-- **Odpowiedzialność**: Strona ustawiania nowego hasła po otrzymaniu linku resetującego
-- **Struktura**:
-  - Layout wrapper
-  - Kontener z formularzem nowego hasła
-  - Komponent React `ResetPasswordForm` z `client:load`
-  - Walidacja tokenu z URL
-- **Middleware**: Publiczny dostęp, weryfikacja tokenu resetowania
-- **Meta**: `title="Resetowanie hasła - FairPlay"`
 
 **Nowa strona `/pages/pending-approval.astro`** (do utworzenia)
 - **Odpowiedzialność**: Strona informująca o oczekiwaniu na zatwierdzenie konta
@@ -151,29 +132,6 @@ Aplikacja wykorzystuje hybrydowy model renderowania Astro 5 (SSR) z komponentami
   - Card z ikoną sukcesu
   - Tekst informujący o pending status
   - Link do strony logowania
-
-**Nowy komponent `ForgotPasswordForm.tsx`** (do utworzenia)
-- **Odpowiedzialność**: Formularz żądania resetu hasła
-- **Struktura**:
-  - Hook `useForgotPasswordForm`
-  - `EmailInput`
-  - `SubmitButton`
-  - Komunikat sukcesu (email wysłany)
-- **API Call**: `POST /api/auth/forgot-password`
-- **Walidacja**: Email (wymagane, format)
-
-**Nowy komponent `ResetPasswordForm.tsx`** (do utworzenia)
-- **Odpowiedzialność**: Formularz ustawiania nowego hasła
-- **Struktura**:
-  - Hook `useResetPasswordForm`
-  - `PasswordInput` (nowe hasło)
-  - `PasswordInput` (potwierdzenie hasła)
-  - `SubmitButton`
-- **API Call**: `POST /api/auth/reset-password`
-- **Walidacja**: 
-  - Hasło: regex password
-  - Potwierdzenie: musi być identyczne
-  - Token z URL (automatyczne)
 
 **Nowy hook `useAuth.ts`** (istniejący, do rozszerzenia)
 - **Odpowiedzialność**: Globalne zarządzanie sesją użytkownika
@@ -311,35 +269,6 @@ Wykorzystanie istniejących komponentów z `./components/ui/`:
 - Błąd Supabase → logowanie błędu, ale mimo to czyszczenie stanu lokalnego
 - Redirect → zawsze do `/login`, nawet w przypadku błędu
 
-#### 1.2.4 Scenariusz: Odzyskiwanie hasła
-
-**Przebieg - Żądanie resetu:**
-1. Użytkownik na stronie `/login` klika "Nie pamiętam hasła"
-2. Przekierowanie do `/forgot-password`
-3. Wprowadzenie emaila
-4. Submit → POST `/api/auth/forgot-password`
-5. Backend: wywołanie `supabase.auth.resetPasswordForEmail()`
-6. Backend: Supabase wysyła email z linkiem
-7. Komunikat sukcesu: "Email z instrukcjami został wysłany"
-
-**Przebieg - Ustawienie nowego hasła:**
-1. Użytkownik klika link w emailu
-2. Redirect do `/reset-password?token=XXX&type=recovery`
-3. Formularz nowego hasła
-4. Submit → POST `/api/auth/reset-password`
-5. Backend: weryfikacja tokenu, aktualizacja hasła przez Supabase
-6. Komunikat sukcesu + redirect do `/login`
-
-**Walidacja:**
-- Email (forgot): format email
-- Nowe hasło: regex password
-- Potwierdzenie hasła: identyczne z nowym
-- Token: automatyczna weryfikacja przez Supabase
-
-**Komunikaty błędów:**
-- "Adres email jest wymagany"
-- "Link resetowania wygasł lub jest nieprawidłowy"
-- "Hasła nie są identyczne"
 
 #### 1.2.5 Scenariusz: Oczekiwanie na zatwierdzenie (związane z US-003)
 
@@ -453,7 +382,7 @@ Wszystkie endpointy w katalogu `/pages/api/auth/`:
    - Role: `player` (default)
    - Consent_date: `now()`
    - Consent_version: "1.0"
-7. Opcjonalnie: utworzenie rekordu w `public.players` i powiązanie z `users.player_id`
+7. Nie tworzyć automatycznie rekordu w `public.players` - baza graczy jest niezależna i zarządzana przez admina
 8. Logowanie audytu (opcjonalne na tym etapie)
 9. Zwrot odpowiedzi 201
 
@@ -554,77 +483,7 @@ Schemat bazy używa `serial` (integer) dla `public.users.id`, ale Supabase Auth 
 3. Czyszczenie cookies sesji Supabase (automatyczne przez SDK)
 4. Zwrot 200
 
-#### 2.1.4 Endpoint `POST /api/auth/forgot-password`
-
-**Plik:** `src/pages/api/auth/forgot-password.ts`
-
-**Odpowiedzialność:**
-- Wysłanie emaila z linkiem resetowania hasła
-
-**Request Body:**
-```typescript
-{
-  email: string
-}
-```
-
-**Response 200 OK:**
-```typescript
-{
-  success: true,
-  message: "Jeśli konto z tym emailem istnieje, wysłano instrukcje resetowania hasła"
-}
-```
-*(Zawsze sukces dla bezpieczeństwa, nawet jeśli email nie istnieje)*
-
-**Logika implementacji:**
-1. Walidacja email
-2. Normalizacja email
-3. Wywołanie `supabase.auth.resetPasswordForEmail(email, { redirectTo: `${BASE_URL}/reset-password` })`
-4. Supabase wysyła email z tokenem
-5. Zwrot 200 (zawsze, niezależnie od istnienia konta)
-
-#### 2.1.5 Endpoint `POST /api/auth/reset-password`
-
-**Plik:** `src/pages/api/auth/reset-password.ts`
-
-**Odpowiedzialność:**
-- Ustawienie nowego hasła po weryfikacji tokenu
-
-**Request Body:**
-```typescript
-{
-  password: string,        // nowe hasło
-  confirmPassword: string, // potwierdzenie
-  token: string            // z URL
-}
-```
-
-**Response 200 OK:**
-```typescript
-{
-  success: true,
-  message: "Hasło zostało zmienione"
-}
-```
-
-**Response 400 Bad Request:**
-```typescript
-{
-  success: false,
-  error: "INVALID_TOKEN" | "PASSWORD_MISMATCH",
-  message: string
-}
-```
-
-**Logika implementacji:**
-1. Walidacja body
-2. Sprawdzenie zgodności `password === confirmPassword`
-3. Weryfikacja tokenu przez Supabase: `supabase.auth.verifyOtp({ token_hash: token, type: 'recovery' })`
-4. Aktualizacja hasła: `supabase.auth.updateUser({ password: newPassword })`
-5. Zwrot 200
-
-#### 2.1.6 Endpoint `GET /api/auth/session` (istniejący, do aktualizacji)
+#### 2.1.4 Endpoint `GET /api/auth/session` (istniejący, do aktualizacji)
 
 **Plik:** `src/pages/api/auth/session.ts`
 
@@ -679,31 +538,6 @@ export const loginSchema = z.object({
     .trim(),
   password: z.string()
     .min(1, "Hasło jest wymagane")
-});
-```
-
-**Schema forgot password:**
-```typescript
-export const forgotPasswordSchema = z.object({
-  email: z.string()
-    .min(1, "Email jest wymagany")
-    .email("Nieprawidłowy format email")
-    .toLowerCase()
-    .trim()
-});
-```
-
-**Schema reset password:**
-```typescript
-export const resetPasswordSchema = z.object({
-  password: z.string()
-    .min(8, "Hasło musi mieć minimum 8 znaków")
-    .regex(/^(?=.*[A-Z])(?=.*\d)/, "Hasło musi zawierać wielką literę i cyfrę"),
-  confirmPassword: z.string(),
-  token: z.string().min(1, "Token jest wymagany")
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Hasła nie są identyczne",
-  path: ["confirmPassword"]
 });
 ```
 
@@ -792,12 +626,8 @@ export function handleAuthError(error: unknown): Response {
 const PUBLIC_PATHS = [
   '/login',
   '/register',
-  '/forgot-password',
-  '/reset-password',
   '/api/auth/register',
-  '/api/auth/login',
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password'
+  '/api/auth/login'
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -1014,25 +844,6 @@ const { data: userProfile, error: profileError } = await supabase
   .single();
 ```
 
-4. **Opcjonalnie: utworzenie profilu gracza:**
-```typescript
-const { data: playerProfile } = await supabase
-  .from('players')
-  .insert({
-    first_name: validatedData.first_name,
-    last_name: validatedData.last_name,
-    position: validatedData.position,
-    skill_rate: null // Będzie ustawione przez admina
-  })
-  .select()
-  .single();
-
-// Powiąż gracza z użytkownikiem
-await supabase
-  .from('users')
-  .update({ player_id: playerProfile.id })
-  .eq('auth_id', authData.user!.id);
-```
 
 5. **Wylogowanie użytkownika (aby wymagał logowania po zatwierdzeniu):**
 ```typescript
@@ -1336,25 +1147,6 @@ export interface RegisterResponse {
   };
 }
 
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ForgotPasswordResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface ResetPasswordRequest {
-  password: string;
-  confirmPassword: string;
-  token: string;
-}
-
-export interface ResetPasswordResponse {
-  success: boolean;
-  message: string;
-}
 
 // Error response type
 export interface AuthErrorResponse {
@@ -1399,13 +1191,11 @@ declare namespace App {
 
 ```typescript
 import type { SupabaseClient } from '@/db/supabase.client';
-import type { 
-  RegisterRequest, 
-  RegisterResponse, 
-  LoginRequest, 
-  LoginResponse, 
-  ForgotPasswordRequest,
-  ResetPasswordRequest 
+import type {
+  RegisterRequest,
+  RegisterResponse,
+  LoginRequest,
+  LoginResponse
 } from '@/types';
 
 export class AuthService {
@@ -1421,14 +1211,6 @@ export class AuthService {
 
   async logout(): Promise<void> {
     // Implementacja wylogowania
-  }
-
-  async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
-    // Implementacja forgot password
-  }
-
-  async resetPassword(data: ResetPasswordRequest): Promise<void> {
-    // Implementacja reset password
   }
 
   async verifySession(authId: string): Promise<UserDTO | null> {
@@ -1557,44 +1339,40 @@ FOR UPDATE USING (
 
 ## 6. PLAN WDROŻENIA
 
-### 6.1 Faza 1: Przygotowanie infrastruktury (Dzień 1)
+### 6.1 Faza 1: Przygotowanie infrastruktury
 - Utworzenie migracji bazy danych
 - Konfiguracja Supabase Auth w projekcie
 - Utworzenie Zod schemas dla walidacji
 - Utworzenie service `AuthService`
 - Utworzenie helperów dla obsługi błędów
 
-### 6.2 Faza 2: Backend API (Dzień 2-3)
+### 6.2 Faza 2: Backend API
 - Endpoint `/api/auth/register`
 - Endpoint `/api/auth/login`
 - Endpoint `/api/auth/logout`
-- Endpoint `/api/auth/forgot-password`
-- Endpoint `/api/auth/reset-password`
 - Aktualizacja `/api/auth/session`
 - Testy jednostkowe endpointów
 
-### 6.3 Faza 3: Middleware i SSR (Dzień 4)
+### 6.3 Faza 3: Middleware i SSR
 - Aktualizacja middleware z obsługą statusu pending
 - Whitelist publicznych stron
 - Logika przekierowań
 - Integracja z `useAuth` hook
 
-### 6.4 Faza 4: Frontend - Formularze (Dzień 5-6)
+### 6.4 Faza 4: Frontend - Formularze
 - Aktualizacja `useLoginForm` z prawdziwym API
 - Aktualizacja `useRegisterForm` z prawdziwym API
-- Utworzenie `ForgotPasswordForm` i `ResetPasswordForm`
 - Utworzenie strony `/pending-approval`
 - Aktualizacja komponentów UI
 
-### 6.5 Faza 5: Integracja i testy (Dzień 7)
+### 6.5 Faza 5: Integracja i testy
 - Testy end-to-end rejestracji
 - Testy logowania i wylogowania
-- Testy odzyskiwania hasła
 - Testy middleware (przekierowania, statusy)
 - Testy ról i uprawnień
 - Code review
 
-### 6.6 Faza 6: Dokumentacja i polish (Dzień 8)
+### 6.6 Faza 6: Dokumentacja i polish
 - Dokumentacja API
 - Dokumentacja flows
 - Aktualizacja README
@@ -1617,7 +1395,7 @@ Specyfikacja jest zgodna z następującymi wymaganiami PRD:
 
 1. **Mapowanie ID:** Zalecana migracja na UUID dla `public.users.id` vs zachowanie serial z dodatkowym `auth_id` (specyfikacja zakłada UUID)
 
-2. **Automatyczne tworzenie gracza:** Czy przy rejestracji automatycznie tworzyć profil w `players` czy zostawić to adminowi? (Specyfikacja zakłada opcjonalne automatyczne)
+2. **Automatyczne tworzenie gracza:** Nie tworzyć automatycznie przy rejestracji - zgodnie z PRD, baza graczy jest niezależna i zarządzana przez admina
 
 3. **Email confirmation:** Czy włączyć Supabase email confirmation przed logowaniem? (Specyfikacja zakłada brak w MVP)
 
