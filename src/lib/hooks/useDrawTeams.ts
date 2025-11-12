@@ -278,6 +278,11 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
       // Odśwież dane drużyn z bazy
       await fetchTeams();
+
+      // Przekieruj na widok wydarzenia
+      setTimeout(() => {
+        window.location.href = `/dashboard/events/${eventId}`;
+      }, 1500); // Krótkie opóźnienie aby użytkownik zobaczył komunikat sukcesu
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Nie udało się zapisać składów drużyn";
       setError(errorMessage);

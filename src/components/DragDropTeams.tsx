@@ -3,11 +3,18 @@
 import React, { useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { TouchBackend } from "react-dnd-touch-backend";
 import { AlertTriangleIcon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TeamColumn } from "./TeamColumn";
 import type { TeamViewModel, ManualTeamAssignmentEntry, UserRole } from "@/types";
+
+// Wykryj czy urządzenie obsługuje touch
+const isTouchDevice = () => {
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+};
 
 interface DragDropTeamsProps {
   teams: TeamViewModel[];
@@ -70,16 +77,19 @@ export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved 
     );
   }
 
+  // Wybierz odpowiedni backend w zależności od typu urządzenia
+  const backendForDND = isTouchDevice() ? TouchBackend : HTML5Backend;
+
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={backendForDND}>
       <div className="space-y-4">
         {/* Ostrzeżenie o braku balansu */}
         {!balanceAchieved && (
           <Alert>
             <AlertTriangleIcon className="h-4 w-4" />
             <AlertDescription>
-              Różnica średniego skill rate między drużynami przekracza 7%. Przenieś graczy między drużynami, aby
-              osiągnąć balans.
+              Różnica średniego skill rate między drużynami przekracza 7%. Możesz przenieść graczy między drużynami, aby
+              poprawić balans.
             </AlertDescription>
           </Alert>
         )}
@@ -96,7 +106,7 @@ export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved 
               team={team}
               userRole={userRole}
               onDrop={handleDrop}
-              canDrop={!balanceAchieved} // Zablokuj upuszczanie jeśli balans osiągnięty
+              canDrop={true} // Zawsze pozwalaj na przenoszenie graczy
             />
           ))}
         </div>

@@ -237,6 +237,26 @@ export function TeamAssignmentsView({ eventId, userRole }: TeamAssignmentsViewPr
                     ))}
                   </div>
                 </div>
+
+                {/* Rozkład pozycji */}
+                {Object.keys(team.positions).length > 0 && (
+                  <div className="pt-3 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      Rozkład pozycji
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(team.positions).map(([position, count]) => (
+                        <Badge
+                          key={position}
+                          variant="outline"
+                          className="text-xs px-2 py-0.5"
+                        >
+                          {translatePosition(position)}: {count}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
