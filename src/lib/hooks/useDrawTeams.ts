@@ -33,7 +33,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
   const transformAssignmentsToTeams = useCallback((assignments: TeamAssignmentsListResponseDTO): TeamViewModel[] => {
     const teamsMap = new Map<
       number,
-      { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number> }
+      { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number>; teamColor?: string }
     >();
 
     assignments.data.forEach((assignment) => {
@@ -44,6 +44,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
           players: [],
           avgSkillRate: 0,
           positions: {},
+          teamColor: assignment.team_color,
         });
       }
 
@@ -65,6 +66,11 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
       };
 
       team.players.push(player);
+      
+      // Zachowaj team_color z pierwszego przypisania w drużynie
+      if (!team.teamColor) {
+        team.teamColor = assignment.team_color;
+      }
     });
 
     const teams: TeamViewModel[] = [];
@@ -81,6 +87,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
       teams.push({
         teamNumber,
+        teamColor: teamData.teamColor || "black", // Fallback do czarnego
         players,
         avgSkillRate,
         positions,
@@ -134,8 +141,9 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
   /**
    * Uruchomienie automatycznego algorytmu losowania drużyn
+   * @param teamCount - Docelowa liczba drużyn (opcjonalna, domyślnie z wydarzenia)
    */
-  const runDraw = useCallback(async () => {
+  const runDraw = useCallback(async (teamCount?: number) => {
     // Walidacja roli użytkownika
     if (userRole !== "admin" && userRole !== "organizer") {
       const errorMessage = "Brak uprawnień do uruchamiania losowania drużyn";
@@ -144,15 +152,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
       return;
     }
 
-    // Walidacja minimalnej liczby graczy
-    const totalPlayers = teams.reduce((sum, team) => sum + team.players.length, 0);
-    if (totalPlayers < 4) {
-      const errorMessage = "Minimalna liczba graczy do losowania drużyn to 4";
-      setError(errorMessage);
-      toast.error("Błąd", { description: errorMessage });
-      return;
-    }
-
+    // Backend waliduje minimalną liczbę graczy na podstawie potwierdzonych zapisów
     setIsLoading(true);
     setError(null);
 
@@ -160,6 +160,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
       const command: RunTeamDrawCommand = {
         iterations: 20,
         balance_threshold: 0.07, // 7%
+        team_count: teamCount, // Opcjonalnie z interfejsu
       };
 
       const response = await fetch(`/api/events/${eventId}/teams/draw`, {
@@ -179,6 +180,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
         // Transformuj wynik na TeamViewModel i ustaw w stanie
         const teamsData: TeamViewModel[] = result.teams.map((team) => ({
           teamNumber: team.team_number,
+          teamColor: team.team_color,
           players: team.players.map((player) => ({
             signupId: player.signup_id ?? player.player_id,
             playerId: player.player_id,
@@ -210,7 +212,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
     } finally {
       setIsLoading(false);
     }
-  }, [eventId, userRole, teams, toast]);
+  }, [eventId, userRole, toast]);
 
   /**
    * Potwierdzenie i zapisanie wylosowanych składów do bazy
@@ -243,6 +245,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
           assignments.push({
             signup_id: player.signupId,
             team_number: team.teamNumber,
+            team_color: team.teamColor,
           });
         });
       });
@@ -297,30 +300,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
         return;
       }
 
-      // Sprawdź balans drużyn przed zapisem (tylko dla admina)
-      if (userRole === "admin") {
-        // Oblicz balans na podstawie aktualnych drużyn
-        const currentTeams = [...teams];
-        const totalPlayers = currentTeams.reduce((sum, team) => sum + team.players.length, 0);
-
-        if (totalPlayers > 0) {
-          const avgSkillRates = currentTeams.filter((team) => team.players.length > 0).map((team) => team.avgSkillRate);
-
-          if (avgSkillRates.length > 1) {
-            const maxAvg = Math.max(...avgSkillRates);
-            const minAvg = Math.min(...avgSkillRates);
-            const balanceThreshold = 7; // 7%
-
-            if (((maxAvg - minAvg) / maxAvg) * 100 > balanceThreshold) {
-              const errorMessage =
-                "Nie można zapisać przypisań - różnica średniego skill rate przekracza 7%. Dostosuj skład drużyn.";
-              setError(errorMessage);
-              toast.error("Błąd", { description: errorMessage });
-              return;
-            }
-          }
-        }
-      }
+      // Manualne korekty są zawsze dozwolone, niezależnie od balansu
 
       setIsLoading(true);
       setError(null);

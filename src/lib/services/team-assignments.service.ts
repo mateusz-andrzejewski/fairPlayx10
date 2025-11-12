@@ -84,12 +84,13 @@ export class TeamAssignmentsService {
     const assignmentsToInsert = command.assignments.map((assignment) => ({
       signup_id: assignment.signup_id,
       team_number: assignment.team_number,
+      team_color: assignment.team_color,
     }));
 
     const { data: insertedAssignments, error: insertError } = await this.supabase
       .from("team_assignments")
       .insert(assignmentsToInsert)
-      .select("id, signup_id, team_number, assignment_timestamp");
+      .select("id, signup_id, team_number, team_color, assignment_timestamp");
 
     if (insertError) {
       throw new Error(`Błąd podczas tworzenia nowych przypisań: ${insertError.message}`);
@@ -147,6 +148,7 @@ export class TeamAssignmentsService {
         id,
         signup_id,
         team_number,
+        team_color,
         assignment_timestamp,
         event_signups!inner (
           id,
@@ -168,6 +170,9 @@ export class TeamAssignmentsService {
       throw new Error(`Błąd podczas pobierania przypisań drużyn: ${error.message}`);
     }
 
+    // Określ czy użytkownik może widzieć skill_rate poszczególnych graczy
+    const canViewIndividualSkillRate = isAdmin(actor.role);
+
     const assignments: TeamAssignmentDTO[] =
       data?.map((assignment: any) => {
         const signup = assignment.event_signups;
@@ -177,6 +182,7 @@ export class TeamAssignmentsService {
           id: assignment.id,
           signup_id: assignment.signup_id,
           team_number: assignment.team_number,
+          team_color: assignment.team_color,
           assignment_timestamp: assignment.assignment_timestamp,
           player_id: signup?.player_id ?? null,
           player: player
@@ -185,7 +191,8 @@ export class TeamAssignmentsService {
                 first_name: player.first_name,
                 last_name: player.last_name,
                 position: player.position,
-                skill_rate: player.skill_rate,
+                // Ukryj skill_rate dla non-admin użytkowników
+                skill_rate: canViewIndividualSkillRate ? player.skill_rate : null,
               }
             : null,
         };
@@ -220,7 +227,7 @@ export class TeamAssignmentsService {
     }
 
     // Sprawdź czy wydarzenie istnieje i jest w odpowiednim statusie
-    await this.validateEventForDraw(eventId);
+    const eventData = await this.validateEventForDraw(eventId);
 
     // Pobierz potwierdzone zapisy z danymi graczy
     const confirmedSignups = await this.getConfirmedSignupsWithPlayers(eventId);
@@ -230,8 +237,15 @@ export class TeamAssignmentsService {
       throw new Error("Minimalna liczba graczy do losowania drużyn to 4");
     }
 
+    // Użyj team_count z komendy lub preferred_team_count z wydarzenia
+    const finalCommand: RunTeamDrawCommand = {
+      iterations: command.iterations ?? 20,
+      balance_threshold: command.balance_threshold ?? 0.07,
+      team_count: command.team_count ?? eventData.preferred_team_count ?? 2,
+    };
+
     // Uruchom algorytm balansowania drużyn
-    const drawResult = await this.computeBalancedTeams(confirmedSignups, command);
+    const drawResult = await this.computeBalancedTeams(confirmedSignups, finalCommand);
 
     // Zamień wynik algorytmu na przypisania drużyn
     const teamAssignments = this.convertDrawResultToAssignments(drawResult, confirmedSignups);
@@ -402,12 +416,18 @@ export class TeamAssignmentsService {
 
   /**
    * Sprawdza czy wydarzenie istnieje i jest w statusie pozwalającym na losowanie drużyn.
+   * Zwraca dane wydarzenia włącznie z preferred_team_count.
    *
    * @param eventId - ID wydarzenia do sprawdzenia
+   * @returns Dane wydarzenia z preferred_team_count
    * @throws Error jeśli wydarzenie nie istnieje lub nie pozwala na losowanie
    */
-  private async validateEventForDraw(eventId: number): Promise<void> {
-    const { data, error } = await this.supabase.from("events").select("id, status").eq("id", eventId).single();
+  private async validateEventForDraw(eventId: number): Promise<{ id: number; status: string; preferred_team_count: number | null }> {
+    const { data, error } = await this.supabase
+      .from("events")
+      .select("id, status, preferred_team_count")
+      .eq("id", eventId)
+      .single();
 
     if (error) {
       throw new Error(`Błąd podczas sprawdzania wydarzenia: ${error.message}`);
@@ -421,6 +441,8 @@ export class TeamAssignmentsService {
     if (!["active", "completed"].includes(data.status)) {
       throw new Error("Losowanie drużyn możliwe tylko dla wydarzeń aktywnych lub zakończonych");
     }
+
+    return data;
   }
 
   /**
@@ -500,6 +522,7 @@ export class TeamAssignmentsService {
         assignments.push({
           signup_id: signupId,
           team_number: team.team_number,
+          team_color: team.team_color,
         });
       }
     }

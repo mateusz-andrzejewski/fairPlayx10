@@ -4,6 +4,7 @@ import type {
   TeamDrawTeamDTO,
   TeamDrawPlayerDTO,
   TeamDrawStatsDTO,
+  TeamColor,
 } from "../../types";
 
 /**
@@ -51,8 +52,13 @@ export class TeamDrawEngine {
         throw new Error("Minimalna liczba graczy do losowania drużyn to 4");
       }
 
-      // Oblicz optymalną liczbę drużyn
-      const teamCount = this.calculateOptimalTeamCount(players.length);
+      // Użyj preferowanej liczby drużyn z komendy
+      const teamCount = command.team_count;
+
+      // Sprawdź czy liczba graczy jest wystarczająca dla podanej liczby drużyn
+      if (players.length < teamCount * 2) {
+        throw new Error(`Zbyt mało graczy (${players.length}) dla ${teamCount} drużyn. Minimalna liczba graczy to ${teamCount * 2}.`);
+      }
 
       // Uruchom algorytm wielokrotnych iteracji
       const bestTeams = this.runBalancingAlgorithm(players, teamCount, command);
@@ -222,8 +228,13 @@ export class TeamDrawEngine {
    * @returns Drużyny w formacie TeamDrawTeamDTO
    */
   private static convertToTeamDrawTeams(teams: DrawTeam[]): TeamDrawTeamDTO[] {
-    return teams.map((team) => ({
+    // Dostępne kolory koszulek
+    const availableColors: TeamColor[] = ["black", "white", "red", "blue"];
+
+    return teams.map((team, index) => ({
       team_number: team.team_number,
+      // Przypisz kolor cyklicznie na podstawie numeru drużyny
+      team_color: availableColors[(team.team_number - 1) % availableColors.length],
       players: team.players.map((player) => ({
         signup_id: player.signup_id,
         player_id: player.player_id,

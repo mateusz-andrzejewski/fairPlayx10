@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeftIcon, AlertCircleIcon } from "lucide-react";
+import { ArrowLeftIcon, AlertCircleIcon, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useDrawTeams } from "@/lib/hooks/useDrawTeams";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { TeamStats } from "./TeamStats";
@@ -32,6 +34,9 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
   const [eventLoading, setEventLoading] = useState(true);
   const [eventError, setEventError] = useState<string | null>(null);
 
+  // Stan lokalny dla liczby drużyn (inicjalizowany z preferred_team_count wydarzenia)
+  const [teamCount, setTeamCount] = useState<number>(2);
+
   // Pobieranie informacji o wydarzeniu
   useEffect(() => {
     const fetchEvent = async () => {
@@ -48,6 +53,10 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
 
         const eventData: EventDTO = await response.json();
         setEvent(eventData);
+        // Inicjalizuj licznik drużyn z preferred_team_count wydarzenia
+        if (eventData.preferred_team_count) {
+          setTeamCount(eventData.preferred_team_count);
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Wystąpił błąd";
         setEventError(errorMessage);
@@ -214,10 +223,31 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
           Akcje losowania drużyn
         </h2>
         
+        {/* Kontrolka liczby drużyn */}
+        <div className="max-w-xs mx-auto mb-6">
+          <Label htmlFor="team-count" className="text-sm font-medium flex items-center gap-2 mb-2">
+            <UsersRound className="h-4 w-4" />
+            Liczba drużyn do wylosowania
+          </Label>
+          <Input
+            id="team-count"
+            type="number"
+            min="2"
+            max="10"
+            value={teamCount}
+            onChange={(e) => setTeamCount(Math.max(2, Math.min(10, parseInt(e.target.value) || 2)))}
+            disabled={state.isLoading || isConfirmed}
+            className="text-center"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Wartość 2-10. Domyślnie: {event.preferred_team_count || 2}
+          </p>
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
           {/* Przycisk losowania */}
           <DrawButton
-            onDraw={actions.runDraw}
+            onDraw={() => actions.runDraw(teamCount)}
             isLoading={state.isLoading}
             disabled={event.current_signups_count < 4 || isConfirmed}
             minPlayersRequired={4}

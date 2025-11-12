@@ -38,15 +38,20 @@ export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved 
       teams.forEach((team) => {
         team.players.forEach((player) => {
           let teamNumber = team.teamNumber;
+          let teamColor = team.teamColor;
 
           // Jeśli to gracz, którego przenosimy, przypisz do nowej drużyny
           if (player.signupId === playerSignupId) {
             teamNumber = targetTeamNumber;
+            // Znajdź kolor docelowej drużyny
+            const targetTeam = teams.find((t) => t.teamNumber === targetTeamNumber);
+            teamColor = targetTeam?.teamColor || team.teamColor;
           }
 
           assignments.push({
             signup_id: player.signupId,
             team_number: teamNumber,
+            team_color: teamColor,
           });
         });
       });

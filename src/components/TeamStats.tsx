@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { UsersIcon } from "lucide-react";
+import { UsersIcon, ShirtIcon } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { TeamViewModel, UserRole } from "@/types";
+import type { TeamViewModel, UserRole, TeamColor } from "@/types";
 
 interface TeamStatsProps {
   teams: TeamViewModel[];
@@ -19,6 +19,28 @@ interface TeamStatsProps {
 export function TeamStats({ teams, userRole }: TeamStatsProps) {
   // Czy użytkownik może zobaczyć skill rate (tylko admin)
   const canViewSkillRate = userRole === "admin";
+
+  // Helper do tłumaczenia kolorów
+  const translateColor = (color: TeamColor) => {
+    const translations: Record<TeamColor, string> = {
+      black: "Czarny",
+      white: "Biały",
+      red: "Czerwony",
+      blue: "Niebieski",
+    };
+    return translations[color];
+  };
+
+  // Helper do stylów kolorów
+  const getColorStyles = (color: TeamColor) => {
+    const colorMap = {
+      black: "bg-gray-900 text-white",
+      white: "bg-white text-gray-900 border border-gray-300",
+      red: "bg-red-600 text-white",
+      blue: "bg-blue-600 text-white",
+    };
+    return colorMap[color];
+  };
 
   if (teams.length === 0) {
     return (
@@ -38,9 +60,15 @@ export function TeamStats({ teams, userRole }: TeamStatsProps) {
       {teams.map((team) => (
         <Card key={team.teamNumber} className="relative" role="listitem">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UsersIcon className="w-5 h-5" aria-hidden="true" />
-              Drużyna {team.teamNumber}
+            <CardTitle className="text-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UsersIcon className="w-5 h-5" aria-hidden="true" />
+                Drużyna {team.teamNumber}
+              </div>
+              <Badge className={getColorStyles(team.teamColor)}>
+                <ShirtIcon className="w-3 h-3 mr-1" />
+                {translateColor(team.teamColor)}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

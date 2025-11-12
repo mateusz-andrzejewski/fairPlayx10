@@ -35,6 +35,12 @@ export const createEventBodySchema = z.object({
     .min(1, "Maksymalna liczba miejsc musi być większa od 0"),
 
   optional_fee: z.number().min(0, "Opcjonalna opłata nie może być ujemna").nullable().optional(),
+
+  preferred_team_count: z
+    .number()
+    .int("Preferowana liczba drużyn musi być liczbą całkowitą")
+    .min(2, "Minimalna liczba drużyn to 2")
+    .max(10, "Maksymalna liczba drużyn to 10"),
 });
 
 /**

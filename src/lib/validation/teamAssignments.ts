@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Schemat Zod do walidacji pojedynczego elementu przypisania drużyny.
- * Waliduje signup_id i team_number jako dodatnie liczby całkowite.
+ * Waliduje signup_id, team_number i team_color.
  */
 export const manualTeamAssignmentEntrySchema = z.object({
   signup_id: z
@@ -13,6 +13,9 @@ export const manualTeamAssignmentEntrySchema = z.object({
     .number()
     .int("Numer drużyny musi być liczbą całkowitą")
     .positive("Numer drużyny musi być dodatnią liczbą całkowitą"),
+  team_color: z.enum(["black", "white", "red", "blue"], {
+    message: "Kolor drużyny musi być jednym z: black, white, red, blue",
+  }),
 });
 
 /**
@@ -65,7 +68,7 @@ export type EventIdValidatedParams = z.infer<typeof eventIdParamSchema>;
 
 /**
  * Schemat Zod do walidacji komendy uruchomienia losowania drużyn.
- * Waliduje parametry algorytmu: iterations i balance_threshold z domyślnymi wartościami i zakresami.
+ * Waliduje parametry algorytmu: iterations, balance_threshold i team_count z domyślnymi wartościami i zakresami.
  */
 export const teamDrawCommandSchema = z.object({
   iterations: z
@@ -80,6 +83,12 @@ export const teamDrawCommandSchema = z.object({
     .min(0, "Próg balansu musi być większy lub równy 0")
     .max(1, "Próg balansu musi być mniejszy lub równy 1")
     .default(0.07)
+    .optional(),
+  team_count: z
+    .number()
+    .int("Liczba drużyn musi być liczbą całkowitą")
+    .min(2, "Minimalna liczba drużyn to 2")
+    .max(10, "Maksymalna liczba drużyn to 10")
     .optional(),
 });
 

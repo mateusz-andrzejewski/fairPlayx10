@@ -24,6 +24,7 @@ export type UserStatus = Enums<"user_status">;
 export type PlayerPosition = Enums<"player_position">;
 export type SignupStatus = Enums<"signup_status">;
 export type EventStatus = Enums<"event_status">;
+export type TeamColor = Enums<"team_color">;
 
 /**
  * Shared pagination envelope used by multiple list endpoints.
@@ -166,6 +167,8 @@ export type EventDTO = Pick<
   | "created_at"
   | "updated_at"
   | "deleted_at"
+  | "teams_drawn_at"
+  | "preferred_team_count"
 >;
 
 export interface EventSignupExtendedDTO extends EventSignupDTO {
@@ -190,11 +193,11 @@ export type EventsListResponseDTO = PaginatedDataDTO<EventDTO>;
 
 export type CreateEventCommand = Pick<
   EventInsert,
-  "name" | "location" | "event_datetime" | "max_places" | "optional_fee"
+  "name" | "location" | "event_datetime" | "max_places" | "optional_fee" | "preferred_team_count"
 >;
 
 export type UpdateEventCommand = Partial<
-  Pick<EventUpdate, "name" | "location" | "event_datetime" | "max_places" | "optional_fee" | "status" | "deleted_at">
+  Pick<EventUpdate, "name" | "location" | "event_datetime" | "max_places" | "optional_fee" | "status" | "deleted_at" | "preferred_team_count">
 >;
 
 /**
@@ -224,6 +227,7 @@ export interface TeamAssignmentDTO {
   id: TeamAssignmentRow["id"];
   signup_id: TeamAssignmentRow["signup_id"];
   team_number: TeamAssignmentRow["team_number"];
+  team_color: TeamColor;
   assignment_timestamp: TeamAssignmentRow["assignment_timestamp"];
   player_id: PlayerRow["id"] | null;
   player: {
@@ -231,7 +235,7 @@ export interface TeamAssignmentDTO {
     first_name: PlayerRow["first_name"];
     last_name: PlayerRow["last_name"];
     position: PlayerRow["position"];
-    skill_rate: PlayerRow["skill_rate"];
+    skill_rate: PlayerRow["skill_rate"] | null; // Can be null for non-admin viewers
   } | null;
 }
 
@@ -239,15 +243,20 @@ export interface TeamAssignmentsListResponseDTO {
   data: TeamAssignmentDTO[];
 }
 
-export type ManualTeamAssignmentEntry = Pick<TeamAssignmentRow, "signup_id" | "team_number">;
+export type ManualTeamAssignmentEntry = {
+  signup_id: TeamAssignmentRow["signup_id"];
+  team_number: TeamAssignmentRow["team_number"];
+  team_color: TeamColor;
+};
 
 export interface CreateTeamAssignmentsCommand {
   assignments: ManualTeamAssignmentEntry[];
 }
 
 export interface RunTeamDrawCommand {
-  iterations: number;
-  balance_threshold: number;
+  iterations?: number;
+  balance_threshold?: number;
+  team_count?: number; // Docelowa liczba drużyn do utworzenia (opcjonalna, domyślnie z wydarzenia)
 }
 
 /**
@@ -269,6 +278,7 @@ export interface TeamDrawStatsDTO {
 
 export interface TeamDrawTeamDTO {
   team_number: TeamAssignmentRow["team_number"];
+  team_color: TeamColor;
   players: TeamDrawPlayerDTO[];
   stats: TeamDrawStatsDTO;
 }
@@ -480,6 +490,7 @@ export interface DrawTeamsViewModel {
 // Model drużyny w widoku losowania
 export interface TeamViewModel {
   teamNumber: number;
+  teamColor: TeamColor;
   players: PlayerViewModel[];
   avgSkillRate: number; // średnia ocena umiejętności
   positions: Record<string, number>; // obiekt z kluczami pozycji (np. "forward": 5)
@@ -491,5 +502,5 @@ export interface PlayerViewModel {
   playerId: number | null;
   name: string;
   position: string;
-  skillRate: number; // widoczny tylko dla admina
+  skillRate: number | null; // widoczny tylko dla admina (null dla innych)
 }

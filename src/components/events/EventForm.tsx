@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Clock, MapPin, Users, Banknote, Loader2, AlertCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Banknote, Loader2, AlertCircle, UsersRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
         ? new Date(event.event_datetime).toISOString().slice(0, 16) // Format dla input datetime-local
         : "",
       max_places: event?.max_places || 10,
+      preferred_team_count: event?.preferred_team_count || 2,
       optional_fee: event?.optional_fee || undefined,
     },
   });
@@ -177,6 +178,31 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                 </p>
               )}
               <p className="text-xs text-muted-foreground">Liczba miejsc musi być między 1 a 100</p>
+            </div>
+
+            {/* Preferowana liczba drużyn */}
+            <div className="space-y-2">
+              <Label htmlFor="preferred_team_count" className="text-sm font-medium flex items-center gap-1">
+                <UsersRound className="h-4 w-4" />
+                Preferowana liczba drużyn *
+              </Label>
+              <Input
+                id="preferred_team_count"
+                type="number"
+                min="2"
+                max="10"
+                placeholder="2"
+                {...register("preferred_team_count", { valueAsNumber: true })}
+                disabled={isSubmitting}
+                className={errors.preferred_team_count ? "border-destructive" : ""}
+              />
+              {errors.preferred_team_count && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {getErrorMessage("preferred_team_count")}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Liczba drużyn musi być między 2 a 10. Będzie używana przy losowaniu składów.</p>
             </div>
 
             {/* Opcjonalna opłata */}

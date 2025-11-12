@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEventDetails } from "../../lib/hooks/useEventDetails";
 import { AddPlayerModal } from "../event-signups/AddPlayerModal";
+import { TeamAssignmentsView } from "./TeamAssignmentsView";
 import type { AvailablePlayerDTO, AddPlayerFormData } from "@/types/eventSignupsView";
 import type { PlayersListResponseDTO } from "../../types";
 import type { UserRole } from "../../types";
@@ -384,6 +385,15 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
           )}
         </CardContent>
       </Card>
+
+      {/* Składy drużyn - widoczne tylko gdy teams_drawn_at jest ustawione */}
+      {event.teams_drawn_at && (
+        <Card>
+          <CardContent className="pt-6">
+            <TeamAssignmentsView eventId={eventId} userRole={userRole} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sekcja akcji */}
       <Card>
