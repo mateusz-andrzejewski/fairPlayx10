@@ -172,7 +172,8 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
  * GET /api/events/{eventId}/teams
  *
  * Zwraca listę przypisań drużyn dla wskazanego wydarzenia.
- * Dostępne tylko dla organizatorów danego wydarzenia oraz administratorów.
+ * Dostępne dla graczy zapisanych na wydarzenie, organizatorów oraz administratorów.
+ * RLS w bazie danych kontroluje dostęp - gracze widzą tylko składy wydarzeń w których uczestniczą.
  */
 export const GET: APIRoute = async ({ params, request, locals }) => {
   try {
@@ -194,7 +195,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    const actor = requireActor(locals);
+    const actor = requireActor(locals); // Wszyscy zalogowani użytkownicy mogą próbować pobrać składy (RLS kontroluje dostęp)
 
     // 2. Wywołaj logikę biznesową
     const teamAssignmentsService = createTeamAssignmentsService(locals.supabase);

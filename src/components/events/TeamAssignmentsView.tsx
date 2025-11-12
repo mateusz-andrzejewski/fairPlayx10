@@ -11,6 +11,7 @@ import type { TeamViewModel, TeamColor, UserRole } from "@/types";
 interface TeamAssignmentsViewProps {
   eventId: number;
   userRole: UserRole;
+  currentPlayerId?: number;
 }
 
 /**
@@ -18,10 +19,11 @@ interface TeamAssignmentsViewProps {
  * Widoczny dla wszystkich ról - gracze widzą z kim grają i jaki kolor koszulki.
  * Admini dodatkowo widzią skill_rate poszczególnych graczy.
  */
-export function TeamAssignmentsView({ eventId, userRole }: TeamAssignmentsViewProps) {
+export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: TeamAssignmentsViewProps) {
   const [teams, setTeams] = useState<TeamViewModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [playerTeam, setPlayerTeam] = useState<{ teamNumber: number; teamColor: TeamColor } | null>(null);
 
   useEffect(() => {
     const fetchTeamAssignments = async () => {
@@ -84,6 +86,17 @@ export function TeamAssignmentsView({ eventId, userRole }: TeamAssignmentsViewPr
         teamsArray.sort((a, b) => a.teamNumber - b.teamNumber);
         
         setTeams(teamsArray);
+
+        // Znajdź drużynę gracza jeśli currentPlayerId jest podane
+        if (currentPlayerId) {
+          for (const team of teamsArray) {
+            const playerInTeam = team.players.find((p) => p.playerId === currentPlayerId);
+            if (playerInTeam) {
+              setPlayerTeam({ teamNumber: team.teamNumber, teamColor: team.teamColor });
+              break;
+            }
+          }
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nie udało się pobrać składów drużyn";
         setError(errorMessage);
@@ -93,7 +106,7 @@ export function TeamAssignmentsView({ eventId, userRole }: TeamAssignmentsViewPr
     };
 
     fetchTeamAssignments();
-  }, [eventId]);
+  }, [eventId, currentPlayerId]);
 
   // Helper do mapowania kolorów na wartości CSS
   const getColorStyles = (color: TeamColor) => {
@@ -172,6 +185,23 @@ export function TeamAssignmentsView({ eventId, userRole }: TeamAssignmentsViewPr
 
   return (
     <div className="space-y-6">
+      {/* Banner z informacją dla gracza */}
+      {playerTeam && (
+        <Alert className={`border-2 ${getColorStyles(playerTeam.teamColor).border}`}>
+          <ShirtIcon className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <AlertDescription className="flex-1">
+              <span className="font-semibold">Jesteś w Drużynie {playerTeam.teamNumber}</span>
+              <span className="ml-2 text-muted-foreground">•</span>
+              <span className="ml-2">Kolor koszulki: <strong>{translateColor(playerTeam.teamColor)}</strong></span>
+            </AlertDescription>
+            <Badge className={`${getColorStyles(playerTeam.teamColor).badge} shrink-0`}>
+              {translateColor(playerTeam.teamColor)}
+            </Badge>
+          </div>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Users className="w-5 h-5" />

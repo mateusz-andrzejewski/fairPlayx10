@@ -390,7 +390,7 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
       {event.teams_drawn_at && (
         <Card>
           <CardContent className="pt-6">
-            <TeamAssignmentsView eventId={eventId} userRole={userRole} />
+            <TeamAssignmentsView eventId={eventId} userRole={userRole} currentPlayerId={currentPlayerId} />
           </CardContent>
         </Card>
       )}

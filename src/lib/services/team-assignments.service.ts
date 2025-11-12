@@ -118,8 +118,8 @@ export class TeamAssignmentsService {
 
   /**
    * Pobiera listę przypisań drużyn dla wskazanego wydarzenia.
-   * Sprawdza istnienie wydarzenia i uprawnienia użytkownika (admin lub organizer),
-   * następnie pobiera wszystkie przypisania drużynowe dla tego wydarzenia.
+   * Gracze mogą zobaczyć składy dla wydarzeń w których uczestniczą (RLS kontroluje dostęp).
+   * Admini i organizatorzy widzą wszystkie przypisania.
    *
    * @param eventId - ID wydarzenia dla którego pobierane są przypisania
    * @param actor - Kontekst użytkownika wykonującego operację (userId, role)
@@ -127,18 +127,17 @@ export class TeamAssignmentsService {
    * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
    */
   async listAssignments(eventId: number, actor: Omit<TeamAssignmentActor, "ipAddress">): Promise<TeamAssignmentDTO[]> {
-    // Sprawdź podstawowe uprawnienia do wykonania operacji
-    if (!this.canManageTeamAssignments(actor.role)) {
-      throw new Error("Brak uprawnień do przeglądania przypisań drużyn");
-    }
-
-    // Sprawdź czy użytkownik jest organizatorem tego wydarzenia (jeśli nie jest adminem)
-    if (!isAdmin(actor.role)) {
-      const isEventOrganizer = await this.checkEventOrganizer(eventId, actor.userId);
-      if (!isEventOrganizer) {
-        throw new Error("Tylko organizator wydarzenia lub administrator może przeglądać przypisania drużyn");
+    // Dla adminów i organizatorów - sprawdź uprawnienia do zarządzania
+    if (this.canManageTeamAssignments(actor.role)) {
+      // Sprawdź czy użytkownik jest organizatorem tego wydarzenia (jeśli nie jest adminem)
+      if (!isAdmin(actor.role)) {
+        const isEventOrganizer = await this.checkEventOrganizer(eventId, actor.userId);
+        if (!isEventOrganizer) {
+          throw new Error("Tylko organizator wydarzenia lub administrator może przeglądać wszystkie przypisania drużyn");
+        }
       }
     }
+    // Dla graczy - RLS w bazie danych kontroluje dostęp (mogą zobaczyć składy dla swoich wydarzeń)
 
     // Pobierz przypisania drużynowe dla wskazanego wydarzenia
     const { data, error } = await this.supabase
