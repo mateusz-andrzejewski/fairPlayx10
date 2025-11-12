@@ -1,14 +1,18 @@
 import type { APIRoute } from "astro";
 
 import { createUsersService } from "../../../lib/services/users.service";
-import { userIdParamSchema, updateUserStatusSchema, approveUserSchema, updateUserRoleSchema } from "../../../lib/validation/users";
+import { userIdParamSchema, approveUserSchema, updateUserRoleSchema } from "../../../lib/validation/users";
 import { requireAdmin } from "../../../lib/auth/request-actor";
 
 /**
  * PATCH /api/users/{id}
  *
- * Zatwierdza użytkownika zmieniając status z 'pending' na 'approved'.
- * Admin musi podać rolę i opcjonalnie powiązać użytkownika z profilem gracza.
+ * Dwa tryby działania:
+ * 1. Zatwierdzanie użytkownika - zmiana statusu z 'pending' na 'approved'.
+ *    Admin musi podać: role (wymagane) oraz opcjonalnie player_id lub create_player.
+ * 2. Aktualizacja roli zatwierdzonego użytkownika - zmiana roli istniejącego użytkownika.
+ *    Admin musi podać: role (wymagane).
+ * 
  * Operacja wymaga roli admin.
  * Zgodnie z PRD US-003: Zatwierdzanie rejestracji przez Admina
  */
@@ -131,43 +135,8 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
         throw error; // Rzuć dalej inne błędy
       }
     }
-    
-    // Przypadek 2: Backward compatibility - stare API (tylko status='approved')
-    if (bodyObj.status === "approved" && !bodyObj.role && bodyObj.player_id === undefined) {
-      const result = await usersService.approveUser(adminActor.userId, validatedIdParams.id, {
-        role: "player", // domyślna rola
-        create_player: true, // utwórz gracza
-      });
 
-      if (result.approved) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: "Użytkownik został zatwierdzony",
-            userId: result.userId,
-            previousStatus: result.previousStatus,
-            newStatus: result.newStatus,
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      } else {
-        return new Response(
-          JSON.stringify({
-            error: "not_found",
-            message: "Użytkownik nie został znaleziony",
-          }),
-          {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
-    }
-
-    // Przypadek 3: Nowe API - zatwierdzenie użytkownika z pełnymi danymi (role + player_id/create_player)
+    // Przypadek 2: Nowe API - zatwierdzenie użytkownika z pełnymi danymi (role + player_id/create_player)
     let validatedApprovalParams;
     try {
       validatedApprovalParams = approveUserSchema.parse(body);
