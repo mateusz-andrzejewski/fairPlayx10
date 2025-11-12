@@ -1,14 +1,11 @@
 import React from "react";
-import { useAuth } from "../../lib/hooks/useAuth";
-import { Button } from "../ui/button";
 import { LogOut } from "lucide-react";
+import { useAuth } from "../../lib/hooks/useAuth";
 import type { UserDTO } from "../../types";
+import { Button } from "../ui/button";
 
-/**
- * Komponent Header - wyświetla informacje o zalogowanym użytkowniku i przycisk wylogowania.
- */
 interface HeaderProps {
-  currentUser: UserDTO;
+  currentUser?: UserDTO | null;
 }
 
 export function Header({ currentUser }: HeaderProps) {
@@ -23,15 +20,15 @@ export function Header({ currentUser }: HeaderProps) {
     }
   };
 
+  const displayName = currentUser ? `${currentUser.first_name} ${currentUser.last_name}`.trim() : "Gość";
+
   return (
     <header className="border-b bg-card">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Dashboard FairPlay</h1>
-            <p className="text-muted-foreground">
-              Witaj, {currentUser.first_name} {currentUser.last_name}
-            </p>
+            <p className="text-muted-foreground">Witaj, {displayName || "Gość"}</p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="gap-2">
             <LogOut className="h-4 w-4" />

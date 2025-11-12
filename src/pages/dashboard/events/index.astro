@@ -1,17 +1,10 @@
 ---
-// Lista wydarzeń - będzie zaimplementowana w późniejszym kroku
+import Layout from "../../../layouts/Layout.astro";
+import { EventsDashboardPage } from "../../../components/events/EventsDashboardPage.tsx";
+import { ToastProvider } from "../../../components/ToastProvider.tsx";
 ---
 
-<html lang="pl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wydarzenia - FairPlay</title>
-  </head>
-  <body>
-    <main>
-      <h1>Wydarzenia</h1>
-      <!-- Placeholder - implementacja w kolejnych krokach -->
-    </main>
-  </body>
-</html>
+<Layout title="Wydarzenia - FairPlay">
+  <EventsDashboardPage client:load />
+  <ToastProvider client:load />
+</Layout>

@@ -22,14 +22,14 @@ export function UpcomingEventsList({ events, onLoadMore }: UpcomingEventsListPro
     return {
       ...event,
       isFull: event.current_signups_count >= event.max_places,
-      canSignup: event.current_signups_count < event.max_places && event.status === 'open_for_signups',
-      daysUntilEvent,
-      formattedDate: eventDate.toLocaleDateString('pl-PL', {
+      canSignup: event.current_signups_count < event.max_places && event.status === "active" && eventDate > now,
+      daysUntilEvent: Math.max(daysUntilEvent, 0),
+      formattedDate: eventDate.toLocaleDateString("pl-PL", {
         day: 'numeric',
         month: 'short',
         year: 'numeric'
       }),
-      formattedTime: eventDate.toLocaleTimeString('pl-PL', {
+      formattedTime: eventDate.toLocaleTimeString("pl-PL", {
         hour: '2-digit',
         minute: '2-digit'
       })

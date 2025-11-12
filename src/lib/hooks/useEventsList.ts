@@ -147,6 +147,13 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
    */
   const signupForEvent = useCallback(
     async (eventId: number) => {
+      if (!currentUserId) {
+        toast.error("Brak powiązanego profilu gracza", {
+          description: "Połącz konto z profilem gracza, aby zapisywać się na wydarzenia.",
+        });
+        return;
+      }
+
       setIsSubmittingSignup(true);
       try {
         const response = await fetch(`/api/events/${eventId}/signups`, {

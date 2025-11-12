@@ -15,11 +15,6 @@ export function SearchAndFilters({ filters, onFiltersChange, isLoading }: Search
    * Obsługa zmiany tekstu wyszukiwania
    */
   const handleSearchChange = (value: string) => {
-    // Walidacja: min 2 znaki dla optymalizacji
-    if (value.length > 0 && value.length < 2) {
-      return; // Nie aktualizuj jeśli mniej niż 2 znaki
-    }
-
     onFiltersChange({
       ...filters,
       search: value,

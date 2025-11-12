@@ -1,6 +1,8 @@
 import type { APIRoute } from "astro";
 
 import { createDashboardService } from "../../lib/services/dashboard/dashboard.service";
+import { ensureDevDashboardData } from "../../lib/dev/ensureDevDashboardData";
+import { isDashboardAuthDisabled } from "../../lib/utils/featureFlags";
 
 /**
  * GET /api/dashboard
@@ -11,9 +13,17 @@ import { createDashboardService } from "../../lib/services/dashboard/dashboard.s
  */
 export const GET: APIRoute = async ({ locals }) => {
   try {
+    const authDisabled = locals.isDashboardAuthDisabled ?? isDashboardAuthDisabled();
+
+    let user = locals.user;
+
+    if (authDisabled) {
+      user = await ensureDevDashboardData(locals.supabase);
+      locals.user = user;
+    }
+
     // Odczytujemy dane użytkownika z kontekstu (auth zostanie dodane później)
     // TODO: Implement authentication middleware
-    const user = locals.user;
     if (!user) {
       return new Response(
         JSON.stringify({
@@ -57,7 +67,11 @@ export const GET: APIRoute = async ({ locals }) => {
 
     // Wykonaj logikę biznesową - pobierz dane dashboardu
     const dashboardService = createDashboardService(locals.supabase);
-    const dashboardData = await dashboardService.getDashboardData(user.id, user.role, user.player_id);
+    const dashboardData = await dashboardService.getDashboardData(
+      user.id,
+      user.role,
+      user.player_id ?? undefined
+    );
 
     // Zwróć pomyślną odpowiedź z danymi dashboardu
     return new Response(JSON.stringify(dashboardData), {

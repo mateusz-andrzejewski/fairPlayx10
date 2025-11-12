@@ -18,14 +18,19 @@ export class DashboardService {
    * @param playerId - Opcjonalne ID gracza powiązanego z użytkownikiem
    * @returns Promise rozwiązujący się do danych pulpitu
    */
-  async getDashboardData(userId: string, userRole: string, playerId?: string): Promise<DashboardDTO> {
+  async getDashboardData(userId: number, userRole: string, playerId?: number): Promise<DashboardDTO> {
     // Równoległe pobranie wszystkich danych dla optymalizacji
     const [userProfile, upcomingEvents, mySignups, organizedEvents, pendingUsersCount] = await Promise.all([
       this.loadUserProfile(userId),
       this.loadUpcomingEvents(),
       playerId ? this.loadMySignups(playerId) : Promise.resolve([]),
       this.shouldLoadOrganizedEvents(userRole) ? this.loadOrganizedEvents(userId) : Promise.resolve([]),
-      this.shouldLoadPendingUsers(userRole) ? this.loadPendingUsersCount() : Promise.resolve(undefined),
+      this.shouldLoadPendingUsers(userRole)
+        ? this.loadPendingUsersCount().catch((error) => {
+            console.warn("[dashboard] Nie udało się pobrać liczby oczekujących użytkowników", error);
+            return 0;
+          })
+        : Promise.resolve(undefined),
     ]);
 
     return {
@@ -44,15 +49,42 @@ export class DashboardService {
    * @returns Promise rozwiązujący się do profilu użytkownika
    * @throws Error gdy profil nie istnieje
    */
-  private async loadUserProfile(userId: string): Promise<UserDTO> {
-    const { data, error } = await this.supabase
+  private async loadUserProfile(userId: number): Promise<UserDTO> {
+    const baseSelect =
+      "id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at";
+
+    const query = this.supabase
       .from("users")
-      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at")
+      .select(baseSelect)
       .eq("id", userId)
-      .is("deleted_at", null)
-      .single();
+      .is("deleted_at", null);
+
+    const { data, error } = await query.single();
 
     if (error) {
+      if (error.message.includes("deleted_at")) {
+        const fallbackQuery = this.supabase
+          .from("users")
+          .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at")
+          .eq("id", userId)
+          .single();
+
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+
+        if (fallbackError) {
+          throw new Error(`Failed to load user profile: ${fallbackError.message}`);
+        }
+
+        if (!fallbackData) {
+          throw new Error("User profile not found");
+        }
+
+        return {
+          ...fallbackData,
+          deleted_at: null,
+        } as UserDTO;
+      }
+
       throw new Error(`Failed to load user profile: ${error.message}`);
     }
 
@@ -60,7 +92,10 @@ export class DashboardService {
       throw new Error("User profile not found");
     }
 
-    return data;
+    return {
+      ...data,
+      deleted_at: (data as Partial<UserDTO>).deleted_at ?? null,
+    } as UserDTO;
   }
 
   /**
@@ -89,7 +124,7 @@ export class DashboardService {
       )
       .gte("event_datetime", new Date().toISOString())
       .is("deleted_at", null)
-      .in("status", ["published", "open_for_signups"])
+      .in("status", ["active"])
       .order("event_datetime", { ascending: true })
       .limit(5);
 
@@ -106,7 +141,7 @@ export class DashboardService {
    * @param playerId - ID gracza
    * @returns Promise rozwiązujący się do listy zapisów gracza
    */
-  private async loadMySignups(playerId: string): Promise<EventSignupDTO[]> {
+  private async loadMySignups(playerId: number): Promise<EventSignupDTO[]> {
     const { data, error } = await this.supabase
       .from("event_signups")
       .select(
@@ -120,7 +155,7 @@ export class DashboardService {
       `
       )
       .eq("player_id", playerId)
-      .neq("status", "resigned")
+      .neq("status", "withdrawn")
       .order("signup_timestamp", { ascending: false });
 
     if (error) {
@@ -136,7 +171,7 @@ export class DashboardService {
    * @param userId - ID użytkownika-organizatora
    * @returns Promise rozwiązujący się do listy organizowanych wydarzeń
    */
-  private async loadOrganizedEvents(userId: string): Promise<EventDTO[]> {
+  private async loadOrganizedEvents(userId: number): Promise<EventDTO[]> {
     const { data, error } = await this.supabase
       .from("events")
       .select(
@@ -172,13 +207,28 @@ export class DashboardService {
    * @returns Promise rozwiązujący się do liczby oczekujących użytkowników
    */
   private async loadPendingUsersCount(): Promise<number> {
-    const { count, error } = await this.supabase
+    const baseQuery = this.supabase
       .from("users")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending")
       .is("deleted_at", null);
 
+    const { count, error } = await baseQuery;
+
     if (error) {
+      if (error.message.includes("deleted_at")) {
+        const fallbackQuery = await this.supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        if (fallbackQuery.error) {
+          throw new Error(`Failed to load pending users count: ${fallbackQuery.error.message}`);
+        }
+
+        return fallbackQuery.count || 0;
+      }
+
       throw new Error(`Failed to load pending users count: ${error.message}`);
     }
 

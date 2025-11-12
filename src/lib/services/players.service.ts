@@ -55,25 +55,10 @@ export class PlayersService {
       throw new Error(`Nie udało się pobrać graczy: ${error.message}`);
     }
 
-    //TODO: Remove mock players
-    const mockPlayers = [
-      {
-        id: 1,
-        first_name: "Jan",
-        last_name: "Kowalski",
-        position: "forward",
-        skill_rate: 8,
-        date_of_birth: "1990-01-01",
-        created_at: "2025-01-01",
-        updated_at: "2025-01-01",
-      },
-    ];
-    //TODO: Remove mock players
-
-    if (!rawPlayers || !count) {
+    if (!rawPlayers || count === null || count === undefined) {
       // Zwróć pusty wynik gdy brak danych
       return {
-        data: mockPlayers as PlayerDTO[],
+        data: [],
         pagination: {
           page: params.page,
           limit: params.limit,

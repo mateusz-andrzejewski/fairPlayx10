@@ -1,13 +1,11 @@
 import React from "react";
-import { Button } from "../ui/button";
-import { Users, Calendar, Trophy, Settings } from "lucide-react";
-import type { UserRole } from "../../types";
+import { Calendar, Settings, Trophy, Users } from "lucide-react";
 
-/**
- * Komponent Navigation - responsywna nawigacja z linkami do sekcji dashboardu.
- */
+import type { UserRole } from "../../types";
+import { Button } from "../ui/button";
+
 interface NavigationProps {
-  userRole: UserRole;
+  userRole?: UserRole | null;
 }
 
 interface NavigationItem {
@@ -19,6 +17,8 @@ interface NavigationItem {
 }
 
 export function Navigation({ userRole }: NavigationProps) {
+  const effectiveRole: UserRole = userRole ?? "player";
+
   const navigationItems: NavigationItem[] = [
     {
       title: "Gracze",
@@ -50,31 +50,26 @@ export function Navigation({ userRole }: NavigationProps) {
     },
   ];
 
-  // Filtrowanie elementów nawigacji na podstawie roli użytkownika
-  const availableItems = navigationItems.filter((item) =>
-    item.roles.includes(userRole)
-  );
+  const availableItems = navigationItems.filter((item) => item.roles.includes(effectiveRole));
 
   return (
     <nav className="border-b bg-card">
       <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {availableItems.map((item) => {
             const Icon = item.icon;
             return (
               <Button
                 key={item.href}
                 variant="outline"
-                className="h-auto p-4 flex flex-col items-start gap-2 hover:bg-accent transition-colors"
+                className="flex h-auto flex-col items-start gap-2 p-4 transition-colors hover:bg-accent"
                 onClick={() => (window.location.href = item.href)}
               >
-                <div className="flex items-center gap-2 w-full">
+                <div className="flex w-full items-center gap-2">
                   <Icon className="h-5 w-5" />
                   <span className="font-medium">{item.title}</span>
                 </div>
-                <p className="text-sm text-muted-foreground text-left">
-                  {item.description}
-                </p>
+                <p className="text-left text-sm text-muted-foreground">{item.description}</p>
               </Button>
             );
           })}

@@ -1,12 +1,13 @@
+import { AlertCircle } from "lucide-react";
 import React, { useEffect } from "react";
+import { toast } from "sonner";
+
 import { useDashboardData } from "../lib/hooks/useDashboardData";
 import { Header } from "./dashboard/Header";
-import { Navigation } from "./dashboard/Navigation";
 import { MainContent } from "./dashboard/MainContent";
+import { Navigation } from "./dashboard/Navigation";
 import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 
 /**
  * Główny komponent widoku Dashboard.
@@ -15,48 +16,62 @@ import { toast } from "sonner";
 function Dashboard() {
   const { loading, error, dashboardData } = useDashboardData();
 
-  // Obsługa błędów autoryzacji - przekieruj na login jeśli użytkownik nie ma dostępu
+  // Obsługa błędów autoryzacji - przekieruj na login jeśli użytkownik nie ma dostępu (poza trybem dev)
   useEffect(() => {
     if (error) {
       const authErrors = [
-        'User not authenticated',
-        'User account is not active',
-        'Failed to load user profile'
+        "User not authenticated",
+        "User account is not active",
+        "Failed to load user profile",
+        "Brak sesji użytkownika",
       ];
 
-      if (authErrors.some(authError => error.includes(authError))) {
-        toast.error('Brak dostępu do dashboardu', {
-          description: 'Zaloguj się ponownie lub skontaktuj się z administratorem.'
+      if (authErrors.some((authError) => error.includes(authError))) {
+        toast.error("Brak dostępu do dashboardu", {
+          description: "Zaloguj się ponownie lub skontaktuj się z administratorem.",
         });
-        // Przekieruj na login po krótkim opóźnieniu
-        setTimeout(() => {
-          window.location.href = '/login';
+
+        const timeout = setTimeout(() => {
+          window.location.href = "/login";
         }, 2000);
+
+        return () => clearTimeout(timeout);
       }
     }
   }, [error]);
+
+  const loadingUser = {
+    id: 0,
+    email: "",
+    first_name: "Ładowanie...",
+    last_name: "",
+    role: "player" as const,
+    status: "approved" as const,
+    player_id: null,
+    created_at: "",
+    updated_at: "",
+    deleted_at: null,
+  };
+
+  const errorUser = {
+    ...loadingUser,
+    first_name: "Błąd",
+  };
 
   // Stan ładowania
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header currentUser={{
-          id: 0,
-          email: "",
-          first_name: "Ładowanie...",
-          last_name: "",
-          role: "player",
-          status: "active"
-        }} />
+        <Header currentUser={loadingUser} />
 
-        <Navigation userRole="player" />
+        <Navigation userRole={loadingUser.role} />
 
-        <main className="container mx-auto px-4 py-8 space-y-8">
+        <main className="container mx-auto space-y-8 px-4 py-8">
           {/* Loading skeleton dla WelcomeSection */}
           <Card className="bg-gradient-to-r from-primary/5 to-primary/10">
             <CardContent className="p-6">
-              <Skeleton className="h-8 w-64 mb-4" />
-              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="mb-4 h-8 w-64" />
+              <Skeleton className="mb-2 h-6 w-48" />
               <Skeleton className="h-4 w-32" />
             </CardContent>
           </Card>
@@ -64,12 +79,12 @@ function Dashboard() {
           {/* Loading skeleton dla UpcomingEventsList */}
           <div className="space-y-4">
             <Skeleton className="h-8 w-48" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
                   <CardContent className="p-6">
-                    <Skeleton className="h-6 w-full mb-4" />
-                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="mb-4 h-6 w-full" />
+                    <Skeleton className="mb-2 h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
                   </CardContent>
                 </Card>
@@ -85,14 +100,7 @@ function Dashboard() {
   if (error) {
     return (
       <div className="min-h-screen bg-background">
-        <Header currentUser={{
-          id: 0,
-          email: "",
-          first_name: "Błąd",
-          last_name: "",
-          role: "player",
-          status: "active"
-        }} />
+        <Header currentUser={errorUser} />
 
         <main className="container mx-auto px-4 py-8">
           <Card className="border-red-200 bg-red-50/50">
@@ -101,7 +109,7 @@ function Dashboard() {
                 <AlertCircle className="h-5 w-5" />
                 <div>
                   <h3 className="font-semibold">Błąd ładowania danych</h3>
-                  <p className="text-sm text-red-600 mt-1">{error}</p>
+                  <p className="mt-1 text-sm text-red-600">{error}</p>
                 </div>
               </div>
             </CardContent>
@@ -130,7 +138,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Header currentUser={dashboardData.currentUser} />
-      <Navigation userRole={dashboardData.currentUser.role} />
+      <Navigation userRole={dashboardData.currentUser?.role} />
       <MainContent dashboardData={dashboardData} />
     </div>
   );

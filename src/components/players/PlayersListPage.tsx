@@ -1,22 +1,19 @@
 import React from "react";
-import { Plus, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SearchAndFilters } from "./SearchAndFilters";
-import { PlayersTable } from "./PlayersTable";
-import { PlayerForm } from "./PlayerForm";
-import { PlayerDetailsModal } from "./PlayerDetailsModal";
-import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
-import { usePlayersManagement } from "../../lib/hooks/usePlayersManagement";
+import { ArrowLeft, Plus } from "lucide-react";
+
 import { useAuth } from "../../lib/hooks/useAuth";
+import { usePlayersManagement } from "../../lib/hooks/usePlayersManagement";
 import type { PlayerFormData } from "../../lib/validation/playerForm";
+import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { PlayerDetailsModal } from "./PlayerDetailsModal";
+import { PlayerForm } from "./PlayerForm";
+import { PlayersTable } from "./PlayersTable";
+import { SearchAndFilters } from "./SearchAndFilters";
 
 export default function PlayersListPage() {
-  // Hook autoryzacji do pobrania roli użytkownika
-  const { user } = useAuth();
-
-  // TODO: Pobrać prawdziwą rolę użytkownika z locals lub API
-  // Na razie używamy mock roli dla testowania
-  const userRole: "admin" | "organizer" | "player" = "admin";
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const userRole: "admin" | "organizer" | "player" = (user?.role ?? "player") as "admin" | "organizer" | "player";
 
   // Hook zarządzania graczami
   const { players, pagination, loading, error, filters, modalStates, isSubmitting, permissions, actions } =
@@ -29,9 +26,6 @@ export default function PlayersListPage() {
     await actions.createPlayer(data);
   };
 
-  /**
-   * Obsługa edycji gracza
-   */
   const handleEditPlayer = async (data: PlayerFormData) => {
     const player = modalStates.selectedPlayer;
     if (player) {
@@ -49,14 +43,19 @@ export default function PlayersListPage() {
     }
   };
 
-  // Sprawdzenie uprawnień dostępu do strony
-  // TODO: Zaimplementować prawdziwe sprawdzenie dostępu po naprawieniu useAuth
-  // Na razie używamy mock roli dla testowania
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Ładowanie danych użytkownika...</p>
+      </div>
+    );
+  }
+
   if (userRole !== "admin" && userRole !== "organizer") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Brak dostępu</h1>
+          <h1 className="mb-2 text-2xl font-bold text-destructive">Brak dostępu</h1>
           <p className="text-muted-foreground">Nie masz uprawnień do przeglądania tej strony.</p>
         </div>
       </div>
