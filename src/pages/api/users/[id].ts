@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createUsersService } from "../../../lib/services/users.service";
 import { userIdParamSchema } from "../../../lib/validation/users";
+import { requireAdmin } from "../../../lib/auth/request-actor";
 
 /**
  * DELETE /api/users/{id}
@@ -12,6 +13,9 @@ import { userIdParamSchema } from "../../../lib/validation/users";
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
+    // Sprawdź uprawnienia - tylko administratorzy mogą usuwać użytkowników
+    const adminActor = requireAdmin(locals);
+
     // Parsuj i zwaliduj parametr ścieżki
     const rawId = params.id;
     if (!rawId) {
@@ -44,18 +48,9 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // TODO: Implementacja autoryzacji zostanie dodana później
-    // - Pobranie tokena z nagłówka Authorization
-    // - Weryfikacja użytkownika przez auth.getUser()
-    // - Sprawdzenie roli admin
-    // - Blokada usunięcia własnego konta
-
-    // Na potrzeby MVP przyjmujemy, że użytkownik jest autoryzowany jako admin
-    // W rzeczywistości należy pobrać actorId z kontekstu autoryzacji
-    const actorId = 1; // TODO: Pobrać z kontekstu autoryzacji
 
     // Sprawdź czy użytkownik próbuje usunąć samego siebie
-    if (actorId === validatedParams.id) {
+    if (adminActor.userId === validatedParams.id) {
       return new Response(
         JSON.stringify({
           error: "conflict",
@@ -70,7 +65,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
 
     // Wykonaj soft delete
     const usersService = createUsersService(locals.supabase);
-    const result = await usersService.softDeleteUser(actorId, validatedParams.id);
+    const result = await usersService.softDeleteUser(adminActor.userId, validatedParams.id);
 
     // Zwróć odpowiedź w zależności od wyniku
     if (result.deleted) {

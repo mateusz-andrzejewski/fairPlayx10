@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { supabaseClient } from "../../db/supabase.client";
-import { isDashboardAuthDisabled } from "../utils/featureFlags";
 import type { DashboardDTO, DashboardViewModel, NotificationDTO, PlayerDTO, UserDTO } from "../../types";
 
 interface DashboardApiError {
@@ -10,11 +9,7 @@ interface DashboardApiError {
   message: string;
 }
 
-const DEV_DASHBOARD_ERROR =
-  "Nie udało się załadować danych dashboardu w trybie developerskim. Upewnij się, że baza została zasilona.";
-
 export function useDashboardData() {
-  const authDisabled = useMemo(() => isDashboardAuthDisabled(), []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -136,9 +131,9 @@ export function useDashboardData() {
         setRetryCount(0);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nie udało się załadować danych dashboardu";
-        setError(authDisabled ? DEV_DASHBOARD_ERROR : errorMessage);
+        setError(errorMessage);
 
-        if (retryCount < 2 && !authDisabled) {
+        if (retryCount < 2) {
           toast.error("Błąd podczas ładowania danych dashboardu", {
             description: `${errorMessage}. Spróbuj ponownie.`,
             action: {
@@ -146,16 +141,12 @@ export function useDashboardData() {
               onClick: () => loadDashboardData(true),
             },
           });
-        } else {
-          toast.error("Błąd podczas ładowania danych dashboardu", {
-            description: authDisabled ? DEV_DASHBOARD_ERROR : errorMessage,
-          });
         }
       } finally {
         setLoading(false);
       }
     },
-    [authDisabled, retryCount, transformDashboardData]
+    [retryCount, transformDashboardData]
   );
 
   const refetch = useCallback(() => {

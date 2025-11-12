@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createEventService } from "../../../lib/services/event.service";
 import { validateListEventsParams } from "../../../lib/validation/event";
+import { requireActor } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/events
@@ -11,8 +12,8 @@ import { validateListEventsParams } from "../../../lib/validation/event";
  */
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    // TODO: Dodać kompleksową autoryzację JWT i sprawdzenie roli
-    // Tymczasowo pomijamy autoryzację dla testowania
+    // Sprawdź uprawnienia - wszyscy zalogowani użytkownicy mogą przeglądać wydarzenia
+    requireActor(locals);
 
     // Parsuj i zwaliduj parametry zapytania
     const url = new URL(request.url);

@@ -11,6 +11,9 @@ import { requireActor, UnauthorizedError } from "../../../lib/auth/request-actor
  */
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
+    // Sprawdź uprawnienia - wszyscy zalogowani użytkownicy mogą przeglądać szczegóły wydarzeń
+    requireActor(locals);
+
     // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
@@ -29,7 +32,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // 2. Wywołaj logikę biznesową (pomiń autoryzację na razie)
+    // 2. Wywołaj logikę biznesową
     const eventService = createEventService(locals.supabase);
     const eventDetail = await eventService.getEventById(validatedParams.id);
 
@@ -232,6 +235,9 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
+    // Sprawdź uprawnienia - tylko administratorzy mogą usuwać wydarzenia
+    requireAdmin(locals);
+
     // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
@@ -250,7 +256,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // 2. Wywołaj logikę biznesową (pomiń autoryzację na razie)
+    // 2. Wywołaj logikę biznesową
     const eventService = createEventService(locals.supabase);
     const result = await eventService.softDeleteEvent(validatedParams.id);
 

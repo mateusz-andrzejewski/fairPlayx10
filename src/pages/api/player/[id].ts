@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createPlayersService } from "../../../lib/services/players.service";
 import { validatePlayerIdParam, updatePlayerSchema } from "../../../lib/validation/players";
+import { requireOrganizer, requireAdmin } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/player/{id}
@@ -10,6 +11,9 @@ import { validatePlayerIdParam, updatePlayerSchema } from "../../../lib/validati
  */
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
+    // Sprawdź uprawnienia - administratorzy i organizatorzy mogą przeglądać szczegóły graczy
+    const organizerActor = requireOrganizer(locals);
+
     // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
@@ -30,7 +34,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     // 2. Wywołaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const player = await playersService.getPlayerById(validatedParams.id, true);
+    const player = await playersService.getPlayerById(validatedParams.id, organizerActor.role === "admin");
 
     // 3. Zwróć odpowiedź w zależności od wyniku
     if (!player) {
@@ -77,6 +81,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
  */
 export const PATCH: APIRoute = async ({ params, request, locals }) => {
   try {
+    // Sprawdź uprawnienia - administratorzy i organizatorzy mogą edytować graczy
+    const organizerActor = requireOrganizer(locals);
+
     // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
@@ -132,7 +139,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 
     // 3. Wywołaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const updatedPlayer = await playersService.updatePlayer(validatedParams.id, validatedBody, true); // TODO: Implement proper auth check
+    const updatedPlayer = await playersService.updatePlayer(validatedParams.id, validatedBody, organizerActor.role === "admin");
 
     // 4. Zwróć odpowiedź w zależności od wyniku
     if (!updatedPlayer) {
@@ -194,6 +201,9 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
+    // Sprawdź uprawnienia - tylko administratorzy mogą usuwać graczy
+    requireAdmin(locals);
+
     // 1. Parsuj i zwaliduj parametr id z ścieżki
     let validatedParams;
     try {
@@ -212,22 +222,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // TODO: 2. Sprawdź autoryzację - tylko administratorzy mogą usuwać graczy
-    // const isAdmin = checkUserRole(locals.user, 'admin');
-    // if (!isAdmin) {
-    //   return new Response(
-    //     JSON.stringify({
-    //       error: "forbidden",
-    //       message: "Brak uprawnień do wykonania tej operacji",
-    //     }),
-    //     {
-    //       status: 403,
-    //       headers: { "Content-Type": "application/json" },
-    //     }
-    //   );
-    // }
-
-    // 3. Wywołaj logikę biznesową - miękkie usunięcie gracza
+    // 2. Wywołaj logikę biznesową - miękkie usunięcie gracza
     const playersService = createPlayersService(locals.supabase);
     const deletedPlayerId = await playersService.softDeletePlayer(validatedParams.id);
 

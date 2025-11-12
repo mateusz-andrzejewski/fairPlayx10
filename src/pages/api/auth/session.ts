@@ -1,20 +1,9 @@
 import type { APIRoute } from "astro";
 
-import { ensureDevDashboardData } from "../../../lib/dev/ensureDevDashboardData";
-import { isDashboardAuthDisabled } from "../../../lib/utils/featureFlags";
 import { toRequestActor } from "../../../lib/auth/request-actor";
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    if (!locals.user) {
-      const authDisabled = locals.isDashboardAuthDisabled ?? isDashboardAuthDisabled();
-      if (authDisabled) {
-        const devUser = await ensureDevDashboardData(locals.supabase);
-        locals.user = devUser;
-        locals.actor = toRequestActor(devUser, { isDevSession: true });
-      }
-    }
-
     if (!locals.user) {
       return new Response(
         JSON.stringify({
@@ -32,7 +21,7 @@ export const GET: APIRoute = async ({ locals }) => {
     return new Response(
       JSON.stringify({
         user: locals.user,
-        actor: locals.actor ?? null,
+        actor: locals.actor ?? toRequestActor(locals.user),
       }),
       {
         status: 200,

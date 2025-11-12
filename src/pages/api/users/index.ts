@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createUsersService } from "../../../lib/services/users.service";
 import { validateListUsersParams } from "../../../lib/validation/users";
+import { requireAdmin } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/users
@@ -11,6 +12,9 @@ import { validateListUsersParams } from "../../../lib/validation/users";
  */
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
+    // Sprawdź uprawnienia - tylko administratorzy mogą przeglądać użytkowników
+    requireAdmin(locals);
+
     // Parsuj i zwaliduj parametry zapytania z URL
     const url = new URL(request.url);
     const rawParams = Object.fromEntries(url.searchParams.entries());

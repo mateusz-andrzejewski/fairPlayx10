@@ -37,3 +37,27 @@ export function requireUser(locals: App.Locals): UserDTO {
   throw new UnauthorizedError("Brak danych użytkownika w kontekście");
 }
 
+export function requireAdmin(locals: App.Locals): RequestActor {
+  const actor = requireActor(locals);
+  if (actor.role !== "admin") {
+    throw new UnauthorizedError("Wymagana rola administratora");
+  }
+  return actor;
+}
+
+export function requireOrganizer(locals: App.Locals): RequestActor {
+  const actor = requireActor(locals);
+  if (actor.role !== "admin" && actor.role !== "organizer") {
+    throw new UnauthorizedError("Wymagana rola administratora lub organizatora");
+  }
+  return actor;
+}
+
+export function requirePlayer(locals: App.Locals): RequestActor {
+  const actor = requireActor(locals);
+  if (actor.role !== "player") {
+    throw new UnauthorizedError("Wymagana rola gracza");
+  }
+  return actor;
+}
+

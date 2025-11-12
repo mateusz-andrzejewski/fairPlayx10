@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, AuthClientError } from "../lib/hooks/useAuth";
 import { LoginForm } from "./LoginForm";
 import { ErrorToast } from "./ErrorToast";
 import type { LoginRequest, LoginViewModel } from "../types";
 
 function LoginView() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [viewModel, setViewModel] = useState<LoginViewModel>({
     email: "",
     password: "",
     isLoading: false,
     error: null,
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.location.assign("/dashboard");
+    }
+  }, [isAuthenticated]);
 
   const handleLoginSubmit = async (loginRequest: LoginRequest) => {
     setViewModel((prev) => ({
@@ -27,9 +33,9 @@ function LoginView() {
         ...prev,
         isLoading: false,
       }));
-
-      // Success - redirect to dashboard
-      window.location.href = "/dashboard";
+      window.setTimeout(() => {
+        window.location.assign("/dashboard");
+      }, 50);
     } catch (error) {
       let errorMessage = "Wystąpił błąd podczas logowania";
       let shouldRedirectToPending = false;

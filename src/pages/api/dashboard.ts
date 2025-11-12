@@ -1,8 +1,6 @@
 import type { APIRoute } from "astro";
 
 import { createDashboardService } from "../../lib/services/dashboard/dashboard.service";
-import { isDashboardAuthDisabled } from "../../lib/utils/featureFlags";
-import { ensureDevDashboardData } from "../../lib/dev/ensureDevDashboardData";
 import { toRequestActor } from "../../lib/auth/request-actor";
 
 /**
@@ -14,21 +12,7 @@ import { toRequestActor } from "../../lib/auth/request-actor";
  */
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    const authDisabled = locals.isDashboardAuthDisabled ?? isDashboardAuthDisabled();
-
-    let user = locals.user;
-
-    if (authDisabled) {
-      if (!user) {
-        user = await ensureDevDashboardData(locals.supabase);
-        locals.user = user;
-      }
-      locals.actor = locals.actor ?? toRequestActor(user, { isDevSession: true });
-    }
-
-    // Odczytujemy dane użytkownika z kontekstu (auth zostanie dodane później)
-    // TODO: Implement authentication middleware
-    if (!user) {
+    if (!locals.user) {
       return new Response(
         JSON.stringify({
           error: "unauthorized",
@@ -40,6 +24,9 @@ export const GET: APIRoute = async ({ locals }) => {
         }
       );
     }
+
+    const user = locals.user;
+    locals.actor = locals.actor ?? toRequestActor(user);
 
     // Walidacja statusu użytkownika - tylko aktywni użytkownicy mogą korzystać z dashboardu
     if (user.status === "pending") {
@@ -71,11 +58,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
     // Wykonaj logikę biznesową - pobierz dane dashboardu
     const dashboardService = createDashboardService(locals.supabase);
-    const dashboardData = await dashboardService.getDashboardData(
-      user.id,
-      user.role,
-      user.player_id ?? undefined
-    );
+    const dashboardData = await dashboardService.getDashboardData(user.id, user.role, user.player_id ?? undefined);
 
     // Zwróć pomyślną odpowiedź z danymi dashboardu
     return new Response(JSON.stringify(dashboardData), {

@@ -1,9 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 
 import { supabaseClient } from "../db/supabase.client.ts";
-import { ensureDevDashboardData } from "../lib/dev/ensureDevDashboardData";
-import { isDashboardAuthDisabled } from "../lib/utils/featureFlags";
-import { mockDashboardUser } from "../lib/mocks/dashboardMock";
 import { toRequestActor } from "../lib/auth/request-actor";
 
 const PUBLIC_PATHS = [
@@ -29,50 +26,37 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const authDisabled = isDashboardAuthDisabled();
   context.locals.supabase = supabaseClient;
-  context.locals.isDashboardAuthDisabled = authDisabled;
 
-  if (authDisabled) {
+  const accessToken = context.cookies.get("sb-access-token")?.value;
+
+  if (accessToken) {
     try {
-      const devUser = await ensureDevDashboardData(supabaseClient);
-      context.locals.user = devUser;
-      context.locals.actor = toRequestActor(devUser, { isDevSession: true });
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabaseClient.auth.getUser(accessToken);
+
+      if (!authError && authUser?.email) {
+        const { data: userProfile, error: profileError } = await supabaseClient
+          .from("users")
+          .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
+          .eq("email", authUser.email.toLowerCase())
+          .is("deleted_at", null)
+          .single();
+
+        if (!profileError && userProfile) {
+          context.locals.user = userProfile;
+          context.locals.actor = toRequestActor(userProfile);
+        }
+      }
     } catch (error) {
-      console.warn("[middleware] Failed to ensure dev dashboard data, falling back to mock user", error);
-      context.locals.user = mockDashboardUser;
-      context.locals.actor = toRequestActor(mockDashboardUser, { isDevSession: true });
+      console.error("[middleware] Failed to resolve user from access token", error);
     }
-    return next();
   }
 
   const pathname = context.url.pathname;
   const publicPath = isPublicPath(pathname);
-
-  try {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabaseClient.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      context.locals.user = undefined;
-    } else {
-      const { data: userProfile, error: profileError } = await supabaseClient
-        .from("users")
-        .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-        .eq("email", session.user.email ?? "")
-        .is("deleted_at", null)
-        .single();
-
-      if (!profileError && userProfile) {
-        context.locals.user = userProfile;
-        context.locals.actor = toRequestActor(userProfile);
-      }
-    }
-  } catch (error) {
-    console.error("[middleware] Auth guard error", error);
-  }
 
   const user = context.locals.user;
 

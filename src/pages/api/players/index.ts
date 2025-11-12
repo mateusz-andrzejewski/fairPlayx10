@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 import { createPlayersService } from "../../../lib/services/players.service";
 import { validateListPlayersParams } from "../../../lib/validation/players";
 import { createPlayerSchema } from "../../../lib/validation/players";
+import { requireOrganizer } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/players
@@ -11,6 +12,9 @@ import { createPlayerSchema } from "../../../lib/validation/players";
  */
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
+    // Sprawdź uprawnienia - administratorzy i organizatorzy mogą przeglądać graczy
+    const organizerActor = requireOrganizer(locals);
+
     // Parsuj i zwaliduj parametry zapytania
     const url = new URL(request.url);
     const rawParams = Object.fromEntries(url.searchParams.entries());
@@ -34,7 +38,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     // Wykonaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const result = await playersService.listPlayers(validatedParams);
+    const result = await playersService.listPlayers(validatedParams, organizerActor.role === "admin");
 
     // Zwróć pomyślną odpowiedź
     return new Response(JSON.stringify(result), {
@@ -67,6 +71,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    // Sprawdź uprawnienia - administratorzy i organizatorzy mogą tworzyć graczy
+    const organizerActor = requireOrganizer(locals);
+
     // Parsuj i zwaliduj ciało żądania
     let requestBody;
     try {
@@ -102,9 +109,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // Wykonaj logikę biznesową - TODO: Implement proper auth check
+    // Wykonaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const createdPlayer = await playersService.createPlayer(validatedBody, true); // TODO: Implement proper auth check
+    const createdPlayer = await playersService.createPlayer(validatedBody, organizerActor.role === "admin");
 
     // Zwróć pomyślną odpowiedź
     return new Response(JSON.stringify(createdPlayer), {
