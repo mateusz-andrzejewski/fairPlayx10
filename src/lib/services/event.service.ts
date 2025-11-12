@@ -21,8 +21,37 @@ export class EventService {
   constructor(private supabase: SupabaseClient) {}
 
   /**
+   * Automatycznie oznacza wydarzenia jako 'completed' jeśli ich data już minęła.
+   * Aktualizuje tylko wydarzenia w statusie 'active'.
+   * Wywołuje się automatycznie przed operacjami pobierania listy wydarzeń.
+   * 
+   * @returns Promise rozwiązujący się po zaktualizowaniu wydarzeń
+   * @throws Error jeśli aktualizacja się nie powiedzie
+   */
+  private async autoCompleteEvents(): Promise<void> {
+    const now = new Date().toISOString();
+    
+    // Zaktualizuj wszystkie aktywne wydarzenia które już się odbyły
+    const { error } = await this.supabase
+      .from("events")
+      .update({ 
+        status: "completed" as const,
+        updated_at: now
+      })
+      .eq("status", "active")
+      .lt("event_datetime", now)
+      .is("deleted_at", null);
+
+    if (error) {
+      // Logujemy błąd ale nie przerywamy operacji - to nie jest krytyczne
+      console.error("Błąd podczas automatycznego oznaczania wydarzeń jako completed:", error);
+    }
+  }
+
+  /**
    * Tworzy nowe wydarzenie z domyślnymi wartościami.
-   * Ustawia status na 'draft', current_signups_count na 0, deleted_at na null.
+   * Ustawia status na 'active', current_signups_count na 0, deleted_at na null.
+   * Wydarzenie jest od razu widoczne i dostępne do zapisów dla graczy.
    *
    * @param payload - Zwalidowane dane wydarzenia z żądania
    * @param organizerId - ID organizatora wydarzenia (ustalany przez serwer)
@@ -34,7 +63,7 @@ export class EventService {
     const eventData = {
       ...payload,
       organizer_id: organizerId,
-      status: "draft" as const,
+      status: "active" as const, // Wydarzenie od razu aktywne po utworzeniu
       current_signups_count: 0,
       deleted_at: null,
     };
@@ -70,12 +99,16 @@ export class EventService {
   /**
    * Pobiera szczegóły pojedynczego wydarzenia wraz z listą zapisów.
    * Filtruje usunięte wydarzenia (deleted_at IS NULL) i zwraca powiązane zapisy.
+   * Przed pobraniem automatycznie oznacza przeszłe wydarzenia jako 'completed'.
    *
    * @param id - ID wydarzenia do pobrania
    * @returns Promise rozwiązujący się do EventDetailDTO lub null jeśli wydarzenie nie istnieje
    * @throws Error jeśli wystąpi błąd podczas zapytania do bazy danych
    */
   async getEventById(id: number): Promise<EventDetailDTO | null> {
+    // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
+    await this.autoCompleteEvents();
+    
     // Wykonaj zapytanie z relacjami aby pobrać wydarzenie i powiązane zapisy
     const { data: eventData, error } = await this.supabase
       .from("events")
@@ -166,12 +199,16 @@ export class EventService {
 
   /**
    * Pobiera paginowaną listę aktywnych wydarzeń z opcjonalnym filtrowaniem.
+   * Przed pobraniem automatycznie oznacza przeszłe wydarzenia jako 'completed'.
    *
    * @param params - Zwalidowane parametry zapytania zawierające filtry i ustawienia paginacji
    * @returns Promise rozwiązujący się do paginowanej listy wydarzeń
    * @throws Error jeśli zapytanie do bazy danych nie powiedzie się
    */
   async listEvents(params: ListEventsValidatedParams): Promise<EventsListResponseDTO> {
+    // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
+    await this.autoCompleteEvents();
+    
     // Oblicz offset dla paginacji
     const from = (params.page - 1) * params.limit;
     const to = from + params.limit - 1;
@@ -336,10 +373,13 @@ export class EventService {
         throw new Error("Nie można zmienić statusu anulowanego wydarzenia");
       }
 
-      // Tylko admin może ustawiać status 'cancelled'
-      if (newStatus === "cancelled" && !isAdmin) {
-        throw new Error("Tylko administrator może anulować wydarzenie");
+      // Tylko draft i active można anulować
+      if (newStatus === "cancelled" && !["draft", "active"].includes(currentStatus)) {
+        throw new Error("Można anulować tylko wydarzenia w statusie draft lub active");
       }
+
+      // Organizator i admin mogą anulować wydarzenia
+      // (sprawdzenie uprawnień do edycji już zostało wykonane wcześniej)
     }
 
     // Przygotuj obiekt aktualizacji z updated_at

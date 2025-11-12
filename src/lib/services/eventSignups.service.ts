@@ -167,6 +167,15 @@ export class EventSignupsService {
 
     // Walidacja statusu wydarzenia - tylko aktywne wydarzenia akceptują zapisy
     if (eventData.status !== "active") {
+      if (eventData.status === "cancelled") {
+        throw new Error("Wydarzenie zostało anulowane - zapisy są niemożliwe");
+      }
+      if (eventData.status === "completed") {
+        throw new Error("Wydarzenie już się odbyło - zapisy są zamknięte");
+      }
+      if (eventData.status === "draft") {
+        throw new Error("Wydarzenie jest w trybie roboczym - zapisy nie są jeszcze dostępne");
+      }
       throw new Error("Wydarzenie nie jest aktywne - zapisy są niedostępne");
     }
 

@@ -295,7 +295,7 @@ export interface Database {
         | "signup_withdrawn"
         | "team_assigned"
         | "team_reassigned";
-      event_status: "draft" | "active" | "completed";
+      event_status: "draft" | "active" | "completed" | "cancelled";
       player_position: "forward" | "midfielder" | "defender" | "goalkeeper";
       signup_status: "pending" | "confirmed" | "withdrawn";
       user_role: "admin" | "organizer" | "player";
@@ -435,7 +435,7 @@ export const Constants = {
         "team_assigned",
         "team_reassigned",
       ],
-      event_status: ["draft", "active", "completed"],
+      event_status: ["draft", "active", "completed", "cancelled"],
       player_position: ["forward", "midfielder", "defender", "goalkeeper"],
       signup_status: ["pending", "confirmed", "withdrawn"],
       user_role: ["admin", "organizer", "player"],
