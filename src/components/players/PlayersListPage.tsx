@@ -76,7 +76,7 @@ export default function PlayersListPage() {
         <div className="mb-4">
           <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Powrót do dashboard
+            Powrót do Dashboard
           </Button>
         </div>
 
@@ -113,6 +113,7 @@ export default function PlayersListPage() {
             isLoading={loading}
             userRole={userRole}
             onPageChange={actions.goToPage}
+            onPageSizeChange={actions.changePageSize}
             onEdit={actions.openEditModal}
             onDelete={actions.openDeleteDialog}
             onViewDetails={actions.openDetailsModal}

@@ -117,7 +117,7 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Powrót do dashboardu
+              Powrót do Dashboard
             </Button>
             <div>
               <h1 className="text-2xl font-bold">Zarządzanie użytkownikami</h1>

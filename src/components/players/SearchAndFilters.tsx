@@ -51,17 +51,26 @@ export function SearchAndFilters({ filters, onFiltersChange, isLoading }: Search
   return (
     <div className="flex flex-col gap-4 p-6 bg-card rounded-lg border">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Szukaj graczy (min. 2 znaki)..."
-            value={filters.search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10"
-            disabled={isLoading}
-            aria-label="Wyszukaj graczy"
-          />
+        <div className="flex-1 space-y-2">
+          <label
+            htmlFor="search-input"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Imię lub nazwisko
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="search-input"
+              type="text"
+              placeholder="Szukaj graczy (min. 2 znaki)..."
+              value={filters.search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+              disabled={isLoading}
+              aria-label="Wyszukaj graczy"
+            />
+          </div>
         </div>
 
         <div className="w-48">

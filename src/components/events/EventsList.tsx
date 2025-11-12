@@ -145,6 +145,7 @@ export function EventsList({
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -163,7 +164,7 @@ export function EventsList({
         {showBackToDashboard && (
           <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Powrót do dashboard
+            Powrót do Dashboard
           </Button>
         )}
         

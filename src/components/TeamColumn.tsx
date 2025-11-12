@@ -43,6 +43,23 @@ export function TeamColumn({ team, userRole, onDrop, canDrop }: TeamColumnProps)
   // Czy użytkownik może zobaczyć skill rate (tylko admin)
   const canViewSkillRate = userRole === "admin";
 
+  /**
+   * Tłumaczenie pozycji na polski
+   */
+  const getPositionLabel = (position: string) => {
+    const labels: Record<string, string> = {
+      forward: "Napastnik",
+      midfielder: "Pomocnik",
+      defender: "Obrońca",
+      goalkeeper: "Bramkarz",
+      Napastnik: "Napastnik",
+      Pomocnik: "Pomocnik",
+      Obrońca: "Obrońca",
+      Bramkarz: "Bramkarz",
+    };
+    return labels[position] || position;
+  };
+
   // Styl dla stanu przeciągania
   const columnClassName = `transition-colors duration-200 ${
     isOver && canDropHere
@@ -103,9 +120,9 @@ export function TeamColumn({ team, userRole, onDrop, canDrop }: TeamColumnProps)
                 variant="outline"
                 className="text-xs px-1.5 py-0.5"
                 role="listitem"
-                aria-label={`${count} ${position}${count === 1 ? "" : "ów"}`}
+                aria-label={`${count} ${getPositionLabel(position)}${count === 1 ? "" : "ów"}`}
               >
-                {position}: {count}
+                {getPositionLabel(position)}: {count}
               </Badge>
             ))}
           </div>

@@ -10,6 +10,7 @@ interface PlayersTableProps {
   isLoading: boolean;
   userRole: UserRole;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (limit: number) => void;
   onEdit: (player: PlayerDTO) => void;
   onDelete: (player: PlayerDTO) => void;
   onViewDetails: (player: PlayerDTO) => void;
@@ -21,6 +22,7 @@ export function PlayersTable({
   isLoading,
   userRole,
   onPageChange,
+  onPageSizeChange,
   onEdit,
   onDelete,
   onViewDetails,
@@ -186,10 +188,7 @@ export function PlayersTable({
             {/* Wybór liczby elementów na stronie */}
             <Select
               value={pagination.limit.toString()}
-              onValueChange={() => {
-                // Ta funkcjonalność będzie dodana przez props
-                // onPageSizeChange(parseInt(value));
-              }}
+              onValueChange={(value) => onPageSizeChange(parseInt(value))}
               disabled={isLoading}
             >
               <SelectTrigger className="w-20">

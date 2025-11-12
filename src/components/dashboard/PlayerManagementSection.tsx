@@ -13,6 +13,20 @@ interface PlayerManagementSectionProps {
 }
 
 export function PlayerManagementSection({ players }: PlayerManagementSectionProps) {
+  /**
+   * Tłumaczenie pozycji na polski
+   */
+  const getPositionLabel = (position: string) => {
+    const labels: Record<string, string> = {
+      forward: "Napastnik",
+      midfielder: "Pomocnik",
+      defender: "Obrońca",
+      goalkeeper: "Bramkarz",
+      unknown: "Nieznana",
+    };
+    return labels[position] || position;
+  };
+
   // Oblicz statystyki
   const totalPlayers = players.length;
   const avgSkillRate =
@@ -66,7 +80,7 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
               {Object.entries(positionStats).map(([position, count]) => (
                 <div key={position} className="text-center p-3 border rounded-lg">
                   <div className="text-xl font-bold">{count}</div>
-                  <p className="text-sm text-muted-foreground capitalize">{position}</p>
+                  <p className="text-sm text-muted-foreground">{getPositionLabel(position)}</p>
                 </div>
               ))}
             </div>
@@ -92,7 +106,7 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
                         <p className="font-medium">
                           {player.first_name} {player.last_name}
                         </p>
-                        <p className="text-sm text-muted-foreground capitalize">{player.position}</p>
+                        <p className="text-sm text-muted-foreground">{getPositionLabel(player.position)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
