@@ -47,6 +47,7 @@ Tabela przechowująca konta użytkowników z autentyfikacją i rolami.
 | player_id       | INTEGER      | FOREIGN KEY REFERENCES players(id) ON DELETE SET NULL | Powiązany gracz (opcjonalne) |
 | created_at      | TIMESTAMPTZ  | NOT NULL DEFAULT NOW()                                | Data utworzenia              |
 | updated_at      | TIMESTAMPTZ  | NOT NULL DEFAULT NOW()                                | Data ostatniej aktualizacji  |
+| deleted_at      | TIMESTAMPTZ  |                                                       | Soft delete (NULL = aktywne) |
 
 ### players
 

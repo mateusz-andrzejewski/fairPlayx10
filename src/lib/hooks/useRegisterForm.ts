@@ -130,45 +130,69 @@ export function useRegisterForm() {
     });
 
     try {
-      const command: CreateUserCommand = {
-        email: formData.email.trim().toLowerCase(), // Normalizuj email
-        password: formData.password,
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
-        position: formData.position as PlayerPosition,
-        consent_date: new Date(),
-        consent_version: "1.0",
-      };
-
-      // MOCK API CALL - TODO: Replace with real API endpoint
-      console.log("Registering user:", command);
-
-      // Symulacja opóźnienia API z możliwością timeout
-      await Promise.race([
-        new Promise((resolve) => setTimeout(resolve, Math.random() * 3000 + 1000)), // 1-4 sekundy
+      // Wywołanie prawdziwego API endpoint
+      const response = await Promise.race([
+        fetch("/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email.trim().toLowerCase(), // Normalizuj email
+            password: formData.password,
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            position: formData.position as PlayerPosition,
+            consent: formData.consent,
+          }),
+        }),
         timeoutPromise,
       ]);
 
-      // Symulacja różnych scenariuszy błędów (można zmienić dla testowania)
-      const random = Math.random();
-      if (random < 0.1) {
-        // Symulacja błędu sieciowego
-        throw new Error("Brak połączenia z serwerem");
-      } else if (random < 0.4) {
-        // Symulacja błędu walidacji z backendu
-        throw new Error("Adres email jest już zajęty");
-      } else if (random < 0.6) {
-        // Symulacja błędu serwera
-        throw new Error("Wystąpił błąd serwera. Spróbuj ponownie później.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Obsługa błędów z API
+        if (result.error === "VALIDATION_ERROR" && result.details) {
+          // Mapuj błędy walidacji na pola formularza
+          const newErrors: RegisterFormErrors = {
+            email: [],
+            password: [],
+            first_name: [],
+            last_name: [],
+            position: [],
+            consent: [],
+          };
+
+          Object.entries(result.details).forEach(([field, messages]) => {
+            if (field in newErrors && Array.isArray(messages)) {
+              newErrors[field as keyof RegisterFormErrors] = messages;
+            }
+          });
+
+          setErrors(newErrors);
+          return;
+        } else if (result.error === "EMAIL_TAKEN") {
+          setErrors((prev) => ({
+            ...prev,
+            email: [result.message],
+          }));
+          return;
+        } else {
+          throw new Error(result.message || "Wystąpił błąd podczas rejestracji");
+        }
       }
-      // 40% sukces
 
-      toast.success("Rejestracja zakończona sukcesem!", {
-        description: "Twoje konto oczekuje na zatwierdzenie przez administratora.",
-        duration: 5000,
-      });
+      if (result.success) {
+        toast.success("Rejestracja zakończona sukcesem!", {
+          description: "Sprawdź swoją skrzynkę email i potwierdź konto, aby móc się zalogować.",
+          duration: 8000,
+        });
 
-      setIsSuccess(true);
+        setIsSuccess(true);
+      } else {
+        throw new Error(result.message || "Wystąpił błąd podczas rejestracji");
+      }
     } catch (error) {
       console.error("Registration error:", error);
 

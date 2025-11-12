@@ -8,10 +8,15 @@ export function SuccessMessage() {
       </div>
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-foreground">Rejestracja zakończona sukcesem!</h3>
-        <p className="text-sm text-muted-foreground">
-          Twoje konto zostało utworzone i oczekuje na zatwierdzenie przez administratora. Otrzymasz powiadomienie na
-          adres email po zatwierdzeniu konta. Zazwyczaj trwa to mniej niż 24&nbsp;godziny.
-        </p>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            Wysłaliśmy link potwierdzający na Twój adres email. Kliknij w link, aby aktywować konto.
+          </p>
+          <p>
+            Po potwierdzeniu email Twoje konto będzie oczekiwać na zatwierdzenie przez administratora.
+            Zazwyczaj trwa to mniej niż 24&nbsp;godziny.
+          </p>
+        </div>
       </div>
       <div className="flex flex-col items-center gap-2 pt-1">
         <a href="/login" className="text-sm font-medium text-primary hover:underline">

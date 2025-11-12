@@ -1,8 +1,8 @@
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 import type { SupabaseClient } from "../../../db/supabase.client";
-import type { LoginSchemaOutput } from "../../validation/auth";
-import type { UserDTO, AuthErrorCode, LoginSuccessResponse } from "../../../types";
+import type { LoginSchemaOutput, RegisterSchemaOutput } from "../../validation/auth";
+import type { UserDTO, AuthErrorCode, LoginSuccessResponse, RegisterResponse } from "../../../types";
 
 interface SupabaseSessionLike {
   access_token: string;
@@ -62,6 +62,97 @@ export class AuthService {
         expires_in: data.session.expires_in ?? 3600,
         expires_at: data.session.expires_at ?? undefined,
         token_type: data.session.token_type,
+      },
+    };
+  }
+
+  async register(data: RegisterSchemaOutput): Promise<RegisterResponse> {
+    const { email, password, first_name, last_name, position, consent } = data;
+
+    console.log("Starting registration for email:", email);
+
+    // Sprawdź czy email już istnieje
+    const { data: existingUser, error: checkError } = await this.supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Check existing user error:", checkError);
+      throw new AuthServiceError("Nie udało się sprawdzić dostępności adresu email", "INTERNAL_ERROR", 500);
+    }
+
+    if (existingUser) {
+      console.log("Email already exists:", email);
+      throw new AuthServiceError("Adres email jest już zajęty", "EMAIL_TAKEN", 400);
+    }
+
+    // Rejestracja w Supabase Auth
+    console.log("Registering in Supabase Auth...");
+    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name,
+          last_name,
+          position,
+        },
+        emailRedirectTo: `${import.meta.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/login`,
+      },
+    });
+
+    if (authError) {
+      console.error("Supabase Auth error:", authError);
+      if (authError.message.includes('User already registered')) {
+        throw new AuthServiceError("Adres email jest już zajęty", "EMAIL_TAKEN", 400);
+      }
+      throw new AuthServiceError("Nie udało się utworzyć konta", "INTERNAL_ERROR", 500);
+    }
+
+    if (!authData.user) {
+      console.error("No auth user returned");
+      throw new AuthServiceError("Nie udało się utworzyć konta", "INTERNAL_ERROR", 500);
+    }
+
+    console.log("Supabase Auth user created:", authData.user.id);
+
+    // Utworzenie profilu użytkownika w public.users
+    console.log("Creating user profile in database...");
+    const { data: userProfile, error: profileError } = await this.supabase
+      .from("users")
+      .insert({
+        email,
+        password_hash: "supabase-auth-managed", // Placeholder dla istniejącej kolumny NOT NULL
+        first_name,
+        last_name,
+        role: "player",
+        status: "pending",
+        consent_date: new Date().toISOString(),
+        consent_version: "1.0",
+        player_id: null, // Nie tworzymy automatycznie profilu gracza
+        deleted_at: null,
+      })
+      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
+      .single();
+
+    if (profileError || !userProfile) {
+      console.error("Profile creation error:", profileError);
+      // W środowisku deweloperskim nie mamy dostępu do admin API Supabase
+      // W produkcji należałoby usunąć użytkownika z Auth jeśli profil się nie utworzył
+      throw new AuthServiceError("Nie udało się utworzyć profilu użytkownika", "INTERNAL_ERROR", 500);
+    }
+
+    console.log("User profile created successfully:", userProfile.id);
+
+    return {
+      success: true,
+      message: "Rejestracja zakończona sukcesem. Sprawdź swoją skrzynkę email i potwierdź konto.",
+      user: {
+        id: userProfile.id,
+        email: userProfile.email,
+        status: userProfile.status,
       },
     };
   }
