@@ -139,7 +139,11 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 
     // 3. Wywołaj logikę biznesową
     const playersService = createPlayersService(locals.supabase);
-    const updatedPlayer = await playersService.updatePlayer(validatedParams.id, validatedBody, organizerActor.role === "admin");
+    const updatedPlayer = await playersService.updatePlayer(
+      validatedParams.id,
+      validatedBody,
+      organizerActor.role === "admin"
+    );
 
     // 4. Zwróć odpowiedź w zależności od wyniku
     if (!updatedPlayer) {

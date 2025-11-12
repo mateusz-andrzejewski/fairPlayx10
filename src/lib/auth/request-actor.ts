@@ -60,4 +60,3 @@ export function requirePlayer(locals: App.Locals): RequestActor {
   }
   return actor;
 }
-

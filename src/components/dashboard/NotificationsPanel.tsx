@@ -18,7 +18,7 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
 
   const handleDismiss = (notificationId: number) => {
     // TODO: Implement dismiss logic
-    console.log('Dismiss notification:', notificationId);
+    console.log("Dismiss notification:", notificationId);
   };
 
   if (notifications.length === 0) {
@@ -40,9 +40,7 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
             className="flex items-start justify-between p-3 bg-white border border-orange-200 rounded-lg"
           >
             <div className="flex-1">
-              <p className="text-sm font-medium text-orange-900">
-                {notification.message}
-              </p>
+              <p className="text-sm font-medium text-orange-900">{notification.message}</p>
             </div>
             <div className="flex items-center gap-2 ml-4">
               <Button

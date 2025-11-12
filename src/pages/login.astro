@@ -14,7 +14,7 @@ import { ToastProvider } from "../components/ToastProvider.tsx";
           <p class="text-sm text-muted-foreground">Uzyskaj dostęp do panelu zarządzania rozgrywkami i wydarzeniami.</p>
         </header>
         <div class="px-6 pb-6 pt-4">
-          <LoginView client:load />
+          <LoginView client:only="react" />
         </div>
       </section>
       <p class="text-center text-xs text-muted-foreground">

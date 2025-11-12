@@ -19,69 +19,117 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    // Sprawdź czy jesteśmy po stronie klienta
+    if (typeof window === "undefined") {
+      console.log("[useAuth] Not in browser environment");
+      setIsLoading(false);
+      return;
+    }
+
+    console.log("[useAuth] Initializing auth check");
     let cancelled = false;
 
-    const checkSession = async () => {
+    // Safety timeout - jeśli po 5 sekundach nadal ładujemy, wymuś zakończenie
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[useAuth] Timeout reached - forcing isLoading to false");
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    const initializeAuth = async () => {
+      console.log("[useAuth] Starting initializeAuth");
       try {
-        const {
-          data: { session },
-        } = await supabaseClient.auth.getSession();
+        console.log("[useAuth] Fetching session from /api/auth/session...");
+        const response = await fetch("/api/auth/session", {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          credentials: "include",
+        });
 
-        if (session?.user) {
-          setIsAuthenticated(true);
-          const profile = await supabaseClient
-            .from("users")
-            .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-            .eq("email", session.user.email ?? "")
-            .is("deleted_at", null)
-            .single();
+        console.log("[useAuth] Session API response status:", response.status);
 
-          if (profile.data) {
-            setUser(profile.data as UserDTO);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[useAuth] Session data received:", data.user ? "user found" : "no user");
+          
+          if (data.user) {
+            console.log("[useAuth] User authenticated:", data.user.email, "role:", data.user.role);
+            setIsAuthenticated(true);
+            setUser(data.user as UserDTO);
           } else {
+            console.log("[useAuth] No user in session");
+            setIsAuthenticated(false);
             setUser(null);
           }
+        } else if (response.status === 401) {
+          console.log("[useAuth] Unauthorized - no session");
+          setIsAuthenticated(false);
+          setUser(null);
         } else {
+          console.error("[useAuth] Session API error:", response.status);
           setIsAuthenticated(false);
           setUser(null);
         }
       } catch (error) {
-        console.error("Error checking session:", error);
+        console.error("[useAuth] Error in initializeAuth:", error);
         setIsAuthenticated(false);
         setUser(null);
       } finally {
         if (!cancelled) {
+          console.log("[useAuth] initializeAuth complete, setting isLoading to false");
+          clearTimeout(timeoutId);
           setIsLoading(false);
         }
       }
     };
 
-    checkSession();
+    // Uruchom inicjalizację
+    initializeAuth();
 
+    // Ustaw listener zmian auth
+    console.log("[useAuth] Setting up onAuthStateChange listener");
     const { data } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      console.log("[useAuth] Auth state changed:", event, session ? "session exists" : "no session");
+      
       if (event === "SIGNED_IN" && session?.user) {
-        setIsAuthenticated(true);
-        const profile = await supabaseClient
-          .from("users")
-          .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-          .eq("email", session.user.email ?? "")
-          .is("deleted_at", null)
-          .single();
+        console.log("[useAuth] onAuthStateChange: User signed in, refreshing session from API");
+        
+        // Odśwież sesję przez API zamiast bezpośrednio z bazy
+        try {
+          const response = await fetch("/api/auth/session", {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            credentials: "include",
+          });
 
-        setUser(profile.data ?? null);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              console.log("[useAuth] onAuthStateChange: Profile refreshed:", data.user.role);
+              setIsAuthenticated(true);
+              setUser(data.user as UserDTO);
+            }
+          }
+        } catch (error) {
+          console.error("[useAuth] onAuthStateChange: Error refreshing session:", error);
+        }
       } else if (event === "SIGNED_OUT") {
+        console.log("[useAuth] onAuthStateChange: Signed out");
         setIsAuthenticated(false);
         setUser(null);
       }
-      setIsLoading(false);
+      
+      // Nie ustawiaj isLoading tutaj - to jest tylko dla zmian sesji, nie dla pierwszego ładowania
     });
 
-    unsubscribe = () => data.subscription.unsubscribe();
-
     return () => {
+      console.log("[useAuth] Cleanup");
       cancelled = true;
-      unsubscribe?.();
+      clearTimeout(timeoutId);
+      data.subscription.unsubscribe();
     };
   }, []);
 

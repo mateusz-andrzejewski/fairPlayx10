@@ -50,14 +50,9 @@ export class DashboardService {
    * @throws Error gdy profil nie istnieje
    */
   private async loadUserProfile(userId: number): Promise<UserDTO> {
-    const baseSelect =
-      "id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at";
+    const baseSelect = "id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at";
 
-    const query = this.supabase
-      .from("users")
-      .select(baseSelect)
-      .eq("id", userId)
-      .is("deleted_at", null);
+    const query = this.supabase.from("users").select(baseSelect).eq("id", userId).is("deleted_at", null);
 
     const { data, error } = await query.single();
 

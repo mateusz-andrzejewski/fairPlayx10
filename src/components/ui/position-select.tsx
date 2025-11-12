@@ -50,5 +50,3 @@ export const PositionSelect = forwardRef<HTMLButtonElement, PositionSelectProps>
 );
 
 PositionSelect.displayName = "PositionSelect";
-
-

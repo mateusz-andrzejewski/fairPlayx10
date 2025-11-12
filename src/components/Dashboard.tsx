@@ -14,7 +14,7 @@ import { Skeleton } from "./ui/skeleton";
  * Ładuje dane i renderuje role-zależne sekcje zgodnie z planem implementacji.
  */
 function Dashboard() {
-  const { loading, error, dashboardData } = useDashboardData();
+  const { loading, error, dashboardData, refetch } = useDashboardData();
 
   // Obsługa błędów autoryzacji - przekieruj na login jeśli użytkownik nie ma dostępu (poza trybem dev)
   useEffect(() => {
@@ -139,7 +139,7 @@ function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header currentUser={dashboardData.currentUser} />
       <Navigation userRole={dashboardData.currentUser?.role} />
-      <MainContent dashboardData={dashboardData} />
+      <MainContent dashboardData={dashboardData} onRefetch={refetch} />
     </div>
   );
 }

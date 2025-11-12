@@ -1,0 +1,10 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import UsersManagementPage from "../../../components/users/UsersManagementPage.tsx";
+import { ToastProvider } from "../../../components/ToastProvider.tsx";
+---
+
+<Layout title="Zarządzanie użytkownikami">
+  <UsersManagementPage client:load />
+  <ToastProvider client:load />
+</Layout>

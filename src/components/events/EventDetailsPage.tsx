@@ -38,5 +38,3 @@ export function EventDetailsPage({ eventId }: EventDetailsPageProps) {
     </div>
   );
 }
-
-

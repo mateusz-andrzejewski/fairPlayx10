@@ -10,29 +10,26 @@ import type { UserRole, UserDTO, EventDTO, PlayerDTO } from "../../types";
  */
 interface ManagementSectionsProps {
   userRole: UserRole;
-  managementData: { users: UserDTO[], events: EventDTO[], players: PlayerDTO[] } | null;
+  managementData: { users: UserDTO[]; events: EventDTO[]; players: PlayerDTO[] } | null;
+  onRefetch?: () => void;
 }
 
-export function ManagementSections({ userRole, managementData }: ManagementSectionsProps) {
+export function ManagementSections({ userRole, managementData, onRefetch }: ManagementSectionsProps) {
   // Nie renderuj nic jeśli użytkownik nie ma uprawnień do zarządzania
-  if (userRole === 'player' || !managementData) {
+  if (userRole === "player" || !managementData) {
     return null;
   }
 
   return (
     <div className="space-y-8">
       {/* Sekcja zarządzania użytkownikami (tylko admin) */}
-      {userRole === 'admin' && (
-        <UserManagementSection users={managementData.users} />
-      )}
+      {userRole === "admin" && <UserManagementSection users={managementData.users} onRefetch={onRefetch} />}
 
       {/* Sekcja zarządzania wydarzeniami (admin/organizer) */}
-      {(userRole === 'admin' || userRole === 'organizer') && (
-        <EventManagementSection events={managementData.events} />
-      )}
+      {(userRole === "admin" || userRole === "organizer") && <EventManagementSection events={managementData.events} />}
 
       {/* Sekcja zarządzania graczami (admin/organizer) */}
-      {(userRole === 'admin' || userRole === 'organizer') && (
+      {(userRole === "admin" || userRole === "organizer") && (
         <PlayerManagementSection players={managementData.players} />
       )}
     </div>

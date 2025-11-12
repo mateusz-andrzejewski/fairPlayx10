@@ -15,16 +15,20 @@ interface PlayerManagementSectionProps {
 export function PlayerManagementSection({ players }: PlayerManagementSectionProps) {
   // Oblicz statystyki
   const totalPlayers = players.length;
-  const avgSkillRate = players.length > 0
-    ? Math.round(players.reduce((sum, player) => sum + (player.skill_rate || 0), 0) / players.length)
-    : 0;
+  const avgSkillRate =
+    players.length > 0
+      ? Math.round(players.reduce((sum, player) => sum + (player.skill_rate || 0), 0) / players.length)
+      : 0;
 
   // Grupuj graczy według pozycji
-  const positionStats = players.reduce((acc, player) => {
-    const position = player.position || 'unknown';
-    acc[position] = (acc[position] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const positionStats = players.reduce(
+    (acc, player) => {
+      const position = player.position || "unknown";
+      acc[position] = (acc[position] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   return (
     <Card>
@@ -49,9 +53,7 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
             <p className="text-sm text-muted-foreground">Średnia ocena</p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">
-              {Object.keys(positionStats).length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{Object.keys(positionStats).length}</div>
             <p className="text-sm text-muted-foreground">Pozycji</p>
           </div>
         </div>
@@ -77,14 +79,11 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
             <h4 className="font-semibold">Najlepsi gracze</h4>
             <div className="space-y-2">
               {players
-                .filter(player => player.skill_rate && player.skill_rate > 0)
+                .filter((player) => player.skill_rate && player.skill_rate > 0)
                 .sort((a, b) => (b.skill_rate || 0) - (a.skill_rate || 0))
                 .slice(0, 5)
                 .map((player, index) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
+                  <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
                         <span className="text-sm font-bold text-primary">#{index + 1}</span>
@@ -93,9 +92,7 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
                         <p className="font-medium">
                           {player.first_name} {player.last_name}
                         </p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {player.position}
-                        </p>
+                        <p className="text-sm text-muted-foreground capitalize">{player.position}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -112,10 +109,7 @@ export function PlayerManagementSection({ players }: PlayerManagementSectionProp
 
         {/* Przycisk do pełnej listy */}
         <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            onClick={() => window.location.href = '/dashboard/players'}
-          >
+          <Button variant="outline" onClick={() => (window.location.href = "/dashboard/players")}>
             Zarządzaj wszystkimi graczami
           </Button>
         </div>

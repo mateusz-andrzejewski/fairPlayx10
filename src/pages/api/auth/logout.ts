@@ -13,5 +13,3 @@ export const POST: APIRoute = async ({ cookies }) => {
 };
 
 export const prerender = false;
-
-

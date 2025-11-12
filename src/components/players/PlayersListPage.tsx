@@ -51,12 +51,19 @@ export default function PlayersListPage() {
     );
   }
 
-  if (userRole !== "admin" && userRole !== "organizer") {
+  if (!user || (userRole !== "admin" && userRole !== "organizer")) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="mb-2 text-2xl font-bold text-destructive">Brak dostępu</h1>
-          <p className="text-muted-foreground">Nie masz uprawnień do przeglądania tej strony.</p>
+          <p className="text-muted-foreground">
+            {!user ? "Musisz być zalogowany, aby przeglądać tę stronę." : "Nie masz uprawnień do przeglądania tej strony."}
+          </p>
+          {!user && (
+            <Button onClick={() => (window.location.href = "/login")} className="mt-4">
+              Przejdź do logowania
+            </Button>
+          )}
         </div>
       </div>
     );

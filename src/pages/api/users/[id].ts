@@ -1,8 +1,178 @@
 import type { APIRoute } from "astro";
 
 import { createUsersService } from "../../../lib/services/users.service";
-import { userIdParamSchema } from "../../../lib/validation/users";
+import { userIdParamSchema, updateUserStatusSchema, approveUserSchema } from "../../../lib/validation/users";
 import { requireAdmin } from "../../../lib/auth/request-actor";
+
+/**
+ * PATCH /api/users/{id}
+ *
+ * Zatwierdza użytkownika zmieniając status z 'pending' na 'approved'.
+ * Admin musi podać rolę i opcjonalnie powiązać użytkownika z profilem gracza.
+ * Operacja wymaga roli admin.
+ * Zgodnie z PRD US-003: Zatwierdzanie rejestracji przez Admina
+ */
+
+export const PATCH: APIRoute = async ({ params, request, locals }) => {
+  try {
+    // Sprawdź uprawnienia - tylko administratorzy mogą aktualizować użytkowników
+    const adminActor = requireAdmin(locals);
+
+    // Parsuj i zwaliduj parametr ścieżki
+    const rawId = params.id;
+    if (!rawId) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Brak wymaganego parametru id",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    let validatedIdParams;
+    try {
+      validatedIdParams = userIdParamSchema.parse({ id: rawId });
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format parametru id",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Parsuj ciało żądania
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowy format JSON w ciele żądania",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Sprawdź czy to stare API (tylko status) czy nowe API (role + player_id)
+    const bodyObj = body as Record<string, unknown>;
+    
+    // Backward compatibility: jeśli tylko status='approved', używamy domyślnych wartości
+    if (bodyObj.status === "approved" && !bodyObj.role && bodyObj.player_id === undefined) {
+      // Stare API - użyj domyślnych wartości
+      const usersService = createUsersService(locals.supabase);
+      const result = await usersService.approveUser(adminActor.userId, validatedIdParams.id, {
+        role: "player", // domyślna rola
+        create_player: true, // utwórz gracza
+      });
+
+      if (result.approved) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Użytkownik został zatwierdzony",
+            userId: result.userId,
+            previousStatus: result.previousStatus,
+            newStatus: result.newStatus,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: "not_found",
+            message: "Użytkownik nie został znaleziony",
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    // Nowe API - waliduj dane zatwierdzenia
+    let validatedApprovalParams;
+    try {
+      validatedApprovalParams = approveUserSchema.parse(body);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: "Nieprawidłowe dane zatwierdzenia",
+          details: validationError instanceof Error ? validationError.message : "Walidacja nie powiodła się",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Wykonaj zatwierdzenie użytkownika z nowymi danymi
+    const usersService = createUsersService(locals.supabase);
+    const result = await usersService.approveUser(adminActor.userId, validatedIdParams.id, validatedApprovalParams);
+
+    // Zwróć odpowiedź w zależności od wyniku
+    if (result.approved) {
+      // Pomyślne zatwierdzenie
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Użytkownik został zatwierdzony",
+          userId: result.userId,
+          previousStatus: result.previousStatus,
+          newStatus: result.newStatus,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } else {
+      // Użytkownik nie istnieje
+      return new Response(
+        JSON.stringify({
+          error: "not_found",
+          message: "Użytkownik nie został znaleziony",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Nieoczekiwany błąd w PATCH /api/users/[id]:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message: error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
 
 /**
  * DELETE /api/users/{id}
@@ -47,7 +217,6 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
         }
       );
     }
-
 
     // Sprawdź czy użytkownik próbuje usunąć samego siebie
     if (adminActor.userId === validatedParams.id) {

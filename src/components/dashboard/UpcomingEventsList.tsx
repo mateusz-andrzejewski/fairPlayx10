@@ -25,14 +25,14 @@ export function UpcomingEventsList({ events, onLoadMore }: UpcomingEventsListPro
       canSignup: event.current_signups_count < event.max_places && event.status === "active" && eventDate > now,
       daysUntilEvent: Math.max(daysUntilEvent, 0),
       formattedDate: eventDate.toLocaleDateString("pl-PL", {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
+        day: "numeric",
+        month: "short",
+        year: "numeric",
       }),
       formattedTime: eventDate.toLocaleTimeString("pl-PL", {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -42,7 +42,7 @@ export function UpcomingEventsList({ events, onLoadMore }: UpcomingEventsListPro
 
   const handleSignup = async (eventId: number) => {
     // TODO: Implement signup logic
-    console.log('Signup for event:', eventId);
+    console.log("Signup for event:", eventId);
   };
 
   if (events.length === 0) {
@@ -52,9 +52,7 @@ export function UpcomingEventsList({ events, onLoadMore }: UpcomingEventsListPro
           <CardTitle>Nadchodzące wydarzenia</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            Brak nadchodzących wydarzeń.
-          </p>
+          <p className="text-muted-foreground">Brak nadchodzących wydarzeń.</p>
         </CardContent>
       </Card>
     );

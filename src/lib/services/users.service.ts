@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "../../db/supabase.client";
 
-import type { ListUsersValidatedParams, UserIdValidatedParams } from "../validation/users";
-import type { UserDTO, UsersListResponseDTO, PaginationMetaDTO, SoftDeleteUserResult } from "../../types";
+import type {
+  ListUsersValidatedParams,
+  UserIdValidatedParams,
+  UpdateUserStatusValidatedParams,
+} from "../validation/users";
+import type {
+  UserDTO,
+  UsersListResponseDTO,
+  PaginationMetaDTO,
+  SoftDeleteUserResult,
+  ApproveUserResult,
+} from "../../types";
 
 /**
  * Serwis do zarządzania logiką biznesową związaną z użytkownikami.
@@ -198,6 +208,158 @@ export class UsersService {
     }
 
     return { deleted: true, userId: targetId };
+  }
+
+  /**
+   * Zatwierdza użytkownika poprzez zmianę jego statusu z 'pending' na 'approved'.
+   * Operacja jest idempotentna - zatwierdzenie już zatwierdzonego użytkownika zwróci sukces.
+   * Dodaje wpis do dziennika audytu z informacją o zmianie statusu.
+   * Zgodnie z PRD US-003: Zatwierdzanie rejestracji przez Admina
+   *
+   * @param actorId - ID użytkownika wykonującego operację (musi mieć rolę admin)
+   * @param targetId - ID użytkownika do zatwierdzenia
+   * @param approvalData - Dane zatwierdzenia: rola, opcjonalne powiązanie z graczem
+   * @returns Promise rozwiązujący się do ApproveUserResult
+   * @throws Error jeśli użytkownik nie istnieje lub wystąpi błąd bazy danych
+   */
+  async approveUser(
+    actorId: number,
+    targetId: number,
+    approvalData: { role: string; player_id?: number | null; create_player?: boolean }
+  ): Promise<ApproveUserResult> {
+    // Pobierz dane użytkownika przed zatwierdzeniem
+    const { data: existingUser, error: fetchError } = await this.supabase
+      .from("users")
+      .select("id, email, first_name, last_name, status, role, player_id")
+      .eq("id", targetId)
+      .is("deleted_at", null) // tylko aktywni użytkownicy
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === "PGRST116") {
+        // Użytkownik nie istnieje
+        return { approved: false, userId: targetId, previousStatus: "pending", newStatus: "pending" };
+      }
+      throw new Error(`Błąd podczas pobierania danych użytkownika: ${fetchError.message}`);
+    }
+
+    if (!existingUser) {
+      return { approved: false, userId: targetId, previousStatus: "pending", newStatus: "pending" };
+    }
+
+    // Jeśli użytkownik już jest zatwierdzony, zwróć sukces (idempotentność)
+    if (existingUser.status === "approved") {
+      return {
+        approved: true,
+        userId: targetId,
+        previousStatus: "approved",
+        newStatus: "approved",
+      };
+    }
+
+    // Jeśli użytkownik nie ma statusu 'pending', nie pozwalamy na zatwierdzenie
+    if (existingUser.status !== "pending") {
+      throw new Error(
+        `Nie można zatwierdzić użytkownika ze statusem '${existingUser.status}'. Tylko użytkownicy z statusem 'pending' mogą być zatwierdzani.`
+      );
+    }
+
+    // Obsłuż powiązanie z graczem
+    let finalPlayerId = approvalData.player_id;
+
+    // Jeśli create_player=true i brak player_id, utwórz nowy profil gracza
+    if (approvalData.create_player && !approvalData.player_id) {
+      const { data: newPlayer, error: createPlayerError } = await this.supabase
+        .from("players")
+        .insert({
+          first_name: existingUser.first_name || "Nowy",
+          last_name: existingUser.last_name || "Zawodnik",
+          position: "midfielder", // domyślna pozycja
+          skill_rate: 5, // domyślny skill rate
+          date_of_birth: null,
+          deleted_at: null,
+        })
+        .select("id")
+        .single();
+
+      if (createPlayerError || !newPlayer) {
+        throw new Error(`Błąd podczas tworzenia profilu gracza: ${createPlayerError?.message}`);
+      }
+
+      finalPlayerId = newPlayer.id;
+    }
+
+    // Jeśli podano player_id, zweryfikuj czy gracz istnieje
+    if (finalPlayerId) {
+      const { data: player, error: playerError } = await this.supabase
+        .from("players")
+        .select("id")
+        .eq("id", finalPlayerId)
+        .is("deleted_at", null)
+        .single();
+
+      if (playerError || !player) {
+        throw new Error(`Gracz o ID ${finalPlayerId} nie istnieje lub został usunięty`);
+      }
+    }
+
+    // Przygotuj dane dla audytu
+    const auditChanges = {
+      previous_status: existingUser.status,
+      new_status: "approved",
+      previous_role: existingUser.role,
+      new_role: approvalData.role,
+      previous_player_id: existingUser.player_id,
+      new_player_id: finalPlayerId,
+    };
+
+    // Wykonaj zatwierdzenie - zmień status na 'approved', ustaw rolę i player_id
+    const updatedAt = new Date().toISOString();
+    const { error: updateError } = await this.supabase
+      .from("users")
+      .update({
+        status: "approved",
+        role: approvalData.role,
+        player_id: finalPlayerId ?? null,
+        updated_at: updatedAt,
+      })
+      .eq("id", targetId)
+      .eq("status", "pending"); // warunek idempotentności - tylko jeśli nadal pending
+
+    if (updateError) {
+      throw new Error(`Błąd podczas zatwierdzania użytkownika: ${updateError.message}`);
+    }
+
+    // Dodaj wpis do dziennika audytu
+    const { error: auditError } = await this.supabase.from("audit_logs").insert({
+      action_type: "user_approved",
+      actor_id: actorId,
+      target_table: "users",
+      target_id: targetId,
+      changes: auditChanges,
+    });
+
+    if (auditError) {
+      // Próba wycofania zmian w przypadku błędu audytu
+      await this.supabase
+        .from("users")
+        .update({
+          status: existingUser.status,
+          role: existingUser.role,
+          player_id: existingUser.player_id,
+          updated_at: existingUser.updated_at || new Date().toISOString(),
+        })
+        .eq("id", targetId);
+
+      throw new Error(`Błąd podczas tworzenia wpisu audytu: ${auditError.message}`);
+    }
+
+    return {
+      approved: true,
+      userId: targetId,
+      previousStatus: "pending",
+      newStatus: "approved",
+    };
   }
 }
 

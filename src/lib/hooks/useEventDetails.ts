@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import type {
-  EventDetailsViewModel,
-  EventDetailDTO,
-  EventSignupWithNameViewModel,
-  UserRole,
-} from "../../types";
+import type { EventDetailsViewModel, EventDetailDTO, EventSignupWithNameViewModel, UserRole } from "../../types";
 
 /**
  * Akcje dostępne w hooku zarządzania szczegółami wydarzenia
@@ -61,7 +56,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
         : `Gracz #${signup.player_id}`;
 
       const position = signup.player?.position;
-      const skillRate = canManageSignups ? signup.player?.skill_rate ?? undefined : undefined;
+      const skillRate = canManageSignups ? (signup.player?.skill_rate ?? undefined) : undefined;
 
       return {
         id: signup.id,

@@ -48,4 +48,3 @@ export const GET: APIRoute = async ({ locals }) => {
 };
 
 export const prerender = false;
-

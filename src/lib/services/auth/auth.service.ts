@@ -46,7 +46,7 @@ export class AuthService {
       throw new AuthServiceError("Wystąpił błąd podczas logowania", "INTERNAL_ERROR", 500);
     }
 
-    const profile = await this.ensureUserProfile(data.user, email);
+    const profile = await this.getUserProfile(data.user, email);
 
     if (profile.status === "pending") {
       throw new AuthServiceError("Twoje konto oczekuje na zatwierdzenie przez administratora", "PENDING_APPROVAL", 403);
@@ -99,13 +99,13 @@ export class AuthService {
           last_name,
           position,
         },
-        emailRedirectTo: `${import.meta.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/login`,
+        emailRedirectTo: `${import.meta.env.PUBLIC_BASE_URL || "http://localhost:3000"}/login`,
       },
     });
 
     if (authError) {
       console.error("Supabase Auth error:", authError);
-      if (authError.message.includes('User already registered')) {
+      if (authError.message.includes("User already registered")) {
         throw new AuthServiceError("Adres email jest już zajęty", "EMAIL_TAKEN", 400);
       }
       throw new AuthServiceError("Nie udało się utworzyć konta", "INTERNAL_ERROR", 500);
@@ -157,14 +157,17 @@ export class AuthService {
     };
   }
 
-  private async ensureUserProfile(authUser: SupabaseAuthUser, rawEmail: string): Promise<UserDTO> {
+  /**
+   * Pobiera profil użytkownika bez automatycznego tworzenia gracza.
+   * Zgodnie z PRD US-003: Zatwierdzanie rejestracji przez Admina,
+   * profil gracza jest tworzony podczas zatwierdzania przez admina, nie przy logowaniu.
+   */
+  private async getUserProfile(authUser: SupabaseAuthUser, rawEmail: string): Promise<UserDTO> {
     const normalizedEmail = rawEmail.trim().toLowerCase();
 
     const { data: existingProfile, error: fetchError } = await this.supabase
       .from("users")
-      .select(
-        "id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at"
-      )
+      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
       .eq("email", normalizedEmail)
       .maybeSingle();
 
@@ -181,9 +184,10 @@ export class AuthService {
     }
 
     if (existingProfile) {
-      return this.ensurePlayerLinked(existingProfile as UserDTO);
+      return existingProfile as UserDTO;
     }
 
+    // Jeśli profil nie istnieje, utwórz go (może się zdarzyć w przypadku OAuth)
     const { firstName, lastName } = this.resolveNames(authUser);
 
     const { data: insertedProfile, error: insertError } = await this.supabase
@@ -194,22 +198,20 @@ export class AuthService {
         first_name: firstName,
         last_name: lastName,
         role: "player",
-        status: "approved",
+        status: "pending", // Nowi użytkownicy wymagają zatwierdzenia przez admina
         consent_date: new Date().toISOString(),
         consent_version: "1.0",
-        player_id: null,
+        player_id: null, // Nie tworzymy automatycznie profilu gracza
         deleted_at: null,
       })
-      .select(
-        "id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at"
-      )
+      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
       .single();
 
     if (insertError || !insertedProfile) {
       throw new AuthServiceError("Nie udało się utworzyć profilu użytkownika", "INTERNAL_ERROR", 500);
     }
 
-    return this.ensurePlayerLinked(insertedProfile as UserDTO);
+    return insertedProfile as UserDTO;
   }
 
   private resolveNames(authUser: SupabaseAuthUser): { firstName: string; lastName: string } {
@@ -266,49 +268,6 @@ export class AuthService {
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join(" ");
-  }
-
-  private async ensurePlayerLinked(user: UserDTO): Promise<UserDTO> {
-    if (user.player_id) {
-      return user;
-    }
-
-    const { data: player, error: createPlayerError } = await this.supabase
-      .from("players")
-      .insert({
-        first_name: user.first_name || "Nowy",
-        last_name: user.last_name || "Zawodnik",
-        position: "midfielder",
-        skill_rate: 5,
-        date_of_birth: null,
-        deleted_at: null,
-      })
-      .select("id")
-      .single();
-
-    if (createPlayerError || !player) {
-      throw new AuthServiceError("Nie udało się utworzyć profilu gracza dla użytkownika", "INTERNAL_ERROR", 500);
-    }
-
-    const { data: updatedUser, error: updateUserError } = await this.supabase
-      .from("users")
-      .update({
-        player_id: player.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id)
-      .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-      .single();
-
-    if (updateUserError || !updatedUser) {
-      throw new AuthServiceError(
-        "Nie udało się powiązać użytkownika z profilem gracza",
-        "INTERNAL_ERROR",
-        500
-      );
-    }
-
-    return updatedUser as UserDTO;
   }
 }
 

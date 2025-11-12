@@ -13,8 +13,8 @@ interface EventManagementSectionProps {
 }
 
 export function EventManagementSection({ events }: EventManagementSectionProps) {
-  const upcomingEvents = events.filter(event => new Date(event.event_datetime) > new Date());
-  const pastEvents = events.filter(event => new Date(event.event_datetime) <= new Date());
+  const upcomingEvents = events.filter((event) => new Date(event.event_datetime) > new Date());
+  const pastEvents = events.filter((event) => new Date(event.event_datetime) <= new Date());
 
   return (
     <Card>
@@ -48,19 +48,16 @@ export function EventManagementSection({ events }: EventManagementSectionProps) 
             <div className="space-y-2">
               {upcomingEvents.slice(0, 5).map((event) => {
                 const eventDate = new Date(event.event_datetime);
-                const formattedDate = eventDate.toLocaleDateString('pl-PL', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+                const formattedDate = eventDate.toLocaleDateString("pl-PL", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 });
 
                 return (
-                  <div
-                    key={event.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
+                  <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">{event.name}</p>
                       <p className="text-sm text-muted-foreground">
@@ -77,7 +74,7 @@ export function EventManagementSection({ events }: EventManagementSectionProps) 
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.location.href = `/dashboard/events/${event.id}`}
+                        onClick={() => (window.location.href = `/dashboard/events/${event.id}`)}
                         className="gap-1"
                       >
                         <Edit className="h-3 w-3" />
@@ -93,10 +90,7 @@ export function EventManagementSection({ events }: EventManagementSectionProps) 
 
         {/* Przyciski akcji */}
         <div className="flex gap-2 justify-center pt-4">
-          <Button
-            onClick={() => window.location.href = '/dashboard/events'}
-            variant="outline"
-          >
+          <Button onClick={() => (window.location.href = "/dashboard/events")} variant="outline">
             Wszystkie wydarzenia
           </Button>
           <Button className="gap-2">

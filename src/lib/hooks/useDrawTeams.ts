@@ -27,85 +27,82 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
    * Transformacja surowych danych przypisań na TeamViewModel
    * Grupuje graczy wg drużyn i oblicza statystyki
    */
-  const transformAssignmentsToTeams = useCallback(
-    (assignments: TeamAssignmentsListResponseDTO): TeamViewModel[] => {
-      const teamsMap = new Map<
-        number,
-        { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number> }
-      >();
+  const transformAssignmentsToTeams = useCallback((assignments: TeamAssignmentsListResponseDTO): TeamViewModel[] => {
+    const teamsMap = new Map<
+      number,
+      { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number> }
+    >();
 
-      assignments.data.forEach((assignment) => {
-        const teamNumber = assignment.team_number;
+    assignments.data.forEach((assignment) => {
+      const teamNumber = assignment.team_number;
 
-        if (!teamsMap.has(teamNumber)) {
-          teamsMap.set(teamNumber, {
-            players: [],
-            avgSkillRate: 0,
-            positions: {},
-          });
-        }
-
-        const team = teamsMap.get(teamNumber)!;
-        const playerInfo = assignment.player;
-
-        const playerName = playerInfo
-          ? `${playerInfo.first_name} ${playerInfo.last_name}`.trim()
-          : `Gracz #${assignment.signup_id}`;
-        const position = playerInfo?.position ?? "nieznana";
-        const skillRate = typeof playerInfo?.skill_rate === "number" ? playerInfo.skill_rate : 0;
-
-        const player: PlayerViewModel = {
-          signupId: assignment.signup_id,
-          playerId: assignment.player_id ?? playerInfo?.id ?? null,
-          name: playerName,
-          position,
-          skillRate,
-        };
-
-        team.players.push(player);
-      });
-
-      const teams: TeamViewModel[] = [];
-      teamsMap.forEach((teamData, teamNumber) => {
-        const players = teamData.players;
-
-        const avgSkillRate =
-          players.length > 0 ? players.reduce((sum, player) => sum + player.skillRate, 0) / players.length : 0;
-
-        const positions: Record<string, number> = {};
-        players.forEach((player) => {
-          positions[player.position] = (positions[player.position] || 0) + 1;
+      if (!teamsMap.has(teamNumber)) {
+        teamsMap.set(teamNumber, {
+          players: [],
+          avgSkillRate: 0,
+          positions: {},
         });
-
-        teams.push({
-          teamNumber,
-          players,
-          avgSkillRate,
-          positions,
-        });
-      });
-
-      if (teams.length === 0) {
-        setBalanceAchieved(false);
-        return teams;
       }
 
-      const avgSkillRates = teams.map((team) => team.avgSkillRate);
-      const maxAvg = Math.max(...avgSkillRates);
-      const minAvg = Math.min(...avgSkillRates);
-      const balanceThreshold = 7; // 7% jak w planie
+      const team = teamsMap.get(teamNumber)!;
+      const playerInfo = assignment.player;
 
-      const achieved =
-        avgSkillRates.every((rate) => rate === 0) || maxAvg === 0
-          ? false
-          : ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
+      const playerName = playerInfo
+        ? `${playerInfo.first_name} ${playerInfo.last_name}`.trim()
+        : `Gracz #${assignment.signup_id}`;
+      const position = playerInfo?.position ?? "nieznana";
+      const skillRate = typeof playerInfo?.skill_rate === "number" ? playerInfo.skill_rate : 0;
 
-      setBalanceAchieved(achieved);
+      const player: PlayerViewModel = {
+        signupId: assignment.signup_id,
+        playerId: assignment.player_id ?? playerInfo?.id ?? null,
+        name: playerName,
+        position,
+        skillRate,
+      };
 
+      team.players.push(player);
+    });
+
+    const teams: TeamViewModel[] = [];
+    teamsMap.forEach((teamData, teamNumber) => {
+      const players = teamData.players;
+
+      const avgSkillRate =
+        players.length > 0 ? players.reduce((sum, player) => sum + player.skillRate, 0) / players.length : 0;
+
+      const positions: Record<string, number> = {};
+      players.forEach((player) => {
+        positions[player.position] = (positions[player.position] || 0) + 1;
+      });
+
+      teams.push({
+        teamNumber,
+        players,
+        avgSkillRate,
+        positions,
+      });
+    });
+
+    if (teams.length === 0) {
+      setBalanceAchieved(false);
       return teams;
-    },
-    []
-  );
+    }
+
+    const avgSkillRates = teams.map((team) => team.avgSkillRate);
+    const maxAvg = Math.max(...avgSkillRates);
+    const minAvg = Math.min(...avgSkillRates);
+    const balanceThreshold = 7; // 7% jak w planie
+
+    const achieved =
+      avgSkillRates.every((rate) => rate === 0) || maxAvg === 0
+        ? false
+        : ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
+
+    setBalanceAchieved(achieved);
+
+    return teams;
+  }, []);
 
   /**
    * Pobieranie aktualnych przypisań drużyn dla wydarzenia

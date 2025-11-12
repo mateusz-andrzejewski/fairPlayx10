@@ -16,9 +16,8 @@ export function ForgotPasswordSuccess({ email, onRetry }: ForgotPasswordSuccessP
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-foreground">Instrukcje resetu zostały wysłane</h3>
         <p className="text-sm text-muted-foreground">
-          Wysłaliśmy wiadomość pod adres{" "}
-          <span className="font-medium text-foreground break-all">{email}</span>. Postępuj zgodnie z instrukcjami w
-          wiadomości, aby ustawić nowe hasło.
+          Wysłaliśmy wiadomość pod adres <span className="font-medium text-foreground break-all">{email}</span>.
+          Postępuj zgodnie z instrukcjami w wiadomości, aby ustawić nowe hasło.
         </p>
       </div>
       <div className="flex flex-col items-center gap-2 pt-1 sm:flex-row sm:justify-center">
@@ -42,4 +41,3 @@ export function ForgotPasswordSuccess({ email, onRetry }: ForgotPasswordSuccessP
     </div>
   );
 }
-

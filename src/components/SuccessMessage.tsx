@@ -9,12 +9,10 @@ export function SuccessMessage() {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-foreground">Rejestracja zakończona sukcesem!</h3>
         <div className="space-y-2 text-sm text-muted-foreground">
+          <p>Twoje konto zostało utworzone i oczekuje na zatwierdzenie przez administratora.</p>
           <p>
-            Wysłaliśmy link potwierdzający na Twój adres email. Kliknij w link, aby aktywować konto.
-          </p>
-          <p>
-            Po potwierdzeniu email Twoje konto będzie oczekiwać na zatwierdzenie przez administratora.
-            Zazwyczaj trwa to mniej niż 24&nbsp;godziny.
+            Po zatwierdzeniu będziesz mógł się zalogować i korzystać z pełnej funkcjonalności aplikacji. Zazwyczaj
+            proces zatwierdzania trwa mniej niż 24&nbsp;godziny.
           </p>
         </div>
       </div>
@@ -29,5 +27,3 @@ export function SuccessMessage() {
     </div>
   );
 }
-
-

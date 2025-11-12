@@ -144,4 +144,3 @@ export function EventEditPage({ eventId }: EventEditPageProps) {
     </div>
   );
 }
-

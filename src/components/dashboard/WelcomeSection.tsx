@@ -19,22 +19,20 @@ export function WelcomeSection({ nearestEvent }: WelcomeSectionProps) {
           <CardTitle className="text-2xl">Witaj w FairPlay!</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            Obecnie nie ma zaplanowanych wydarzeń. Sprawdź później!
-          </p>
+          <p className="text-muted-foreground">Obecnie nie ma zaplanowanych wydarzeń. Sprawdź później!</p>
         </CardContent>
       </Card>
     );
   }
 
   const eventDate = new Date(nearestEvent.event_datetime);
-  const formattedDate = eventDate.toLocaleDateString('pl-PL', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  const formattedDate = eventDate.toLocaleDateString("pl-PL", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   return (
@@ -64,15 +62,11 @@ export function WelcomeSection({ nearestEvent }: WelcomeSectionProps) {
         </div>
 
         <div className="flex gap-2 pt-4">
-          <Button
-            onClick={() => window.location.href = `/dashboard/events/${nearestEvent.id}`}
-          >
+          <Button onClick={() => (window.location.href = `/dashboard/events/${nearestEvent.id}`)}>
             Zobacz szczegóły
           </Button>
           {nearestEvent.optional_fee && (
-            <div className="text-sm text-muted-foreground self-center">
-              Koszt: {nearestEvent.optional_fee} zł
-            </div>
+            <div className="text-sm text-muted-foreground self-center">Koszt: {nearestEvent.optional_fee} zł</div>
           )}
         </div>
       </CardContent>

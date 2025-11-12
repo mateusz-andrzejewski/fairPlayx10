@@ -12,12 +12,22 @@ import { requireAdmin } from "../../../lib/auth/request-actor";
  */
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
+    // Dodaj rozbudowane logowanie do debugowania
+    console.log("\n=== [DEBUG] /api/users Request ===");
+    console.log("URL:", request.url);
+    console.log("Method:", request.method);
+    console.log("Headers:", Object.fromEntries(request.headers.entries()));
+    console.log("Referrer:", request.referrer);
+    console.log("User:", locals.user ? `${locals.user.email} (${locals.user.role})` : "anonymous");
+    console.log("Actor:", locals.actor);
+    
     // Sprawdź uprawnienia - tylko administratorzy mogą przeglądać użytkowników
     requireAdmin(locals);
 
     // Parsuj i zwaliduj parametry zapytania z URL
     const url = new URL(request.url);
     const rawParams = Object.fromEntries(url.searchParams.entries());
+    console.log("[API] /api/users params:", rawParams);
 
     let validatedParams;
     try {

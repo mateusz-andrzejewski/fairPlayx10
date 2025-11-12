@@ -72,13 +72,26 @@ export interface SoftDeleteUserResult {
   userId: number;
 }
 
+export interface ApproveUserResult {
+  approved: boolean;
+  userId: number;
+  previousStatus: UserStatus;
+  newStatus: UserStatus;
+}
+
 export interface ApproveUserCommand {
   role: UserRole;
   /**
-   * Optional player linkage. We keep the database nullability
-   * but treat the property itself as optional for body ergonomics.
+   * Optional player linkage:
+   * - If provided (number): link to existing player
+   * - If null/undefined with create_player: create new player
+   * - If null/undefined without create_player: user without player profile
    */
-  player_id?: UserInsert["player_id"];
+  player_id?: number | null;
+  /**
+   * If true and no player_id provided, create a new player profile
+   */
+  create_player?: boolean;
 }
 
 export interface CreateUserCommand {
@@ -347,6 +360,16 @@ export interface LoginViewModel {
   password: string;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  user: {
+    id: number;
+    email: string;
+    status: UserStatus;
+  };
 }
 
 /**

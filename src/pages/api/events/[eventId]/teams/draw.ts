@@ -14,7 +14,8 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         JSON.stringify({
           error: "validation_error",
           message: "Nieprawidłowy identyfikator wydarzenia",
-          details: validationError instanceof Error ? validationError.message : "Walidacja parametru eventId nie powiodła się",
+          details:
+            validationError instanceof Error ? validationError.message : "Walidacja parametru eventId nie powiodła się",
         }),
         {
           status: 400,
@@ -48,7 +49,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         JSON.stringify({
           error: "validation_error",
           message: "Nieprawidłowe parametry losowania drużyn",
-          details: validationError instanceof Error ? validationError.message : "Walidacja danych wejściowych nie powiodła się",
+          details:
+            validationError instanceof Error
+              ? validationError.message
+              : "Walidacja danych wejściowych nie powiodła się",
         }),
         {
           status: 400,
@@ -135,4 +139,3 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const prerender = false;
-

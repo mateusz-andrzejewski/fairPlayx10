@@ -11,9 +11,10 @@ import type { DashboardViewModel, UserRole } from "../../types";
  */
 interface MainContentProps {
   dashboardData: DashboardViewModel;
+  onRefetch?: () => void;
 }
 
-export function MainContent({ dashboardData }: MainContentProps) {
+export function MainContent({ dashboardData, onRefetch }: MainContentProps) {
   const { currentUser, nearestEvent, upcomingEvents, notifications, managementData } = dashboardData;
 
   return (
@@ -25,10 +26,7 @@ export function MainContent({ dashboardData }: MainContentProps) {
       <UpcomingEventsList events={upcomingEvents} />
 
       {/* Sekcje zarządzania (rola-zależne) */}
-      <ManagementSections
-        userRole={currentUser.role}
-        managementData={managementData}
-      />
+      <ManagementSections userRole={currentUser.role} managementData={managementData} onRefetch={onRefetch} />
 
       {/* Panel powiadomień */}
       <NotificationsPanel notifications={notifications} />

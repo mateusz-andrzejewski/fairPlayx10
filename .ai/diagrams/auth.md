@@ -157,6 +157,7 @@ sequenceDiagram
 ## Opis przepływów autentykacji
 
 ### 1. **Rejestracja nowego użytkownika (US-001)**
+
 - Użytkownik wypełnia formularz rejestracji w przeglądarce.
 - Frontend waliduje dane lokalnie (React + Zod).
 - Żądanie trafia do `/api/auth/register` i przechodzi walidację Zod.
@@ -164,27 +165,32 @@ sequenceDiagram
 - Użytkownik dostaje komunikat o oczekiwaniu na zatwierdzenie.
 
 ### 2. **Logowanie użytkownika (US-002)**
+
 - Formularz logowania waliduje dane lokalnie.
 - Backend sprawdza credentiale przez Supabase Auth.
 - Profil z `public.users` determinuje status konta.
 - `approved` → przekierowanie do dashboardu; `pending` → redirect do `pending-approval`.
 
 ### 3. **Middleware - ochrona stron**
+
 - Middleware wymusza sesję dla wszystkich zasobów poza whitelist.
 - Tryb dev korzysta z `ensureDevDashboardData`.
 - Produkcja weryfikuje sesję oraz status w bazie.
 - Ustawia `locals.user` i `locals.actor` dla dalszej obsługi.
 
 ### 4. **Hook useAuth - zarządzanie stanem**
+
 - Hook inicjalizuje się i sprawdza, czy auth jest wyłączone.
 - W produkcji pobiera sesję Supabase i profil użytkownika.
 - Subskrybuje `onAuthStateChange`, aktualizując stan klienta.
 
 ### 5. **Wylogowanie (US-016)**
+
 - `logout()` wywołuje Supabase `signOut()` (prod) lub czyści stan (dev).
 - Sesja i dane użytkownika są usuwane, następuje redirect do `/login`.
 
 ### 6. **Obsługa statusów użytkowników**
+
 - `pending`: użytkownik widzi ekran oczekiwania.
 - `approved`: pełen dostęp zgodnie z rolą.
 - `deleted_at`: middleware traktuje konto jako nieaktywne.
@@ -192,27 +198,32 @@ sequenceDiagram
 ## Kluczowe komponenty systemu
 
 ### Frontend (React)
+
 - `LoginForm.tsx` i `useLoginForm.ts` do walidacji klienta.
 - `useAuth.ts` zarządza sesją i subskrypcją Supabase.
 - `RegisterForm.tsx` realizuje rejestrację użytkownika.
 
 ### Backend (Astro)
+
 - `middleware/index.ts` zabezpiecza SSR i API.
 - `/api/auth/session.ts` obsługuje zapytania o bieżącą sesję.
 - Zaplanowane endpointy `login`, `register`, `logout` spajają Supabase z frontendem.
 
 ### Baza danych (Supabase)
+
 - `auth.users` przechowuje dane logowania.
 - `public.users` mapuje status i role kont.
 - `public.players` zawiera profile graczy niezależne od kont.
 
 ## Bezpieczeństwo
+
 - Tokeny w HttpOnly cookies, flaga `SameSite=Strict`.
 - Włączone RLS dla tabel domenowych.
 - Supabase zapewnia rate limiting i automatyczny refresh tokenów.
 - Soft delete (`deleted_at`) ukrywa dezaktywowane konta.
 
 ## Tryb deweloperski
+
 - `PUBLIC_DISABLE_DASHBOARD_AUTH=true` omija weryfikację.
 - `ensureDevDashboardData` generuje testowe konto.
 - `/api/auth/session` zwraca dane dev, middleware przepuszcza ruch.

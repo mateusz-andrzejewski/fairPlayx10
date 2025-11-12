@@ -13,8 +13,9 @@ function LoginView() {
     error: null,
   });
 
+  // Dodaj sprawdzenie czy jesteśmy po stronie klienta
   useEffect(() => {
-    if (isAuthenticated) {
+    if (typeof window !== "undefined" && isAuthenticated) {
       window.location.assign("/dashboard");
     }
   }, [isAuthenticated]);
@@ -38,14 +39,9 @@ function LoginView() {
       }, 50);
     } catch (error) {
       let errorMessage = "Wystąpił błąd podczas logowania";
-      let shouldRedirectToPending = false;
 
       if (error instanceof AuthClientError) {
         errorMessage = error.message;
-
-        if (error.code === "PENDING_APPROVAL") {
-          shouldRedirectToPending = true;
-        }
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -55,10 +51,6 @@ function LoginView() {
         isLoading: false,
         error: errorMessage,
       }));
-
-      if (shouldRedirectToPending) {
-        window.location.href = "/pending-approval";
-      }
     }
   };
 
