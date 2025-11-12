@@ -281,59 +281,105 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
               <p>Brak zapisanych uczestników</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {event.signupsWithNames.map((signup) => (
-                <div key={signup.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-primary">
-                        {signup.playerName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium">{signup.playerName}</p>
-                      {signup.position && <p className="text-sm text-muted-foreground">{signup.position}</p>}
-                    </div>
-                  </div>
+            <div className="space-y-6">
+              {/* Potwierdzeni gracze */}
+              {event.signupsWithNames.filter((s) => s.status === "confirmed").length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    Potwierdzeni gracze ({event.signupsWithNames.filter((s) => s.status === "confirmed").length})
+                  </h4>
+                  <div className="space-y-3">
+                    {event.signupsWithNames
+                      .filter((s) => s.status === "confirmed")
+                      .map((signup) => (
+                        <div key={signup.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-primary">
+                                {signup.playerName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{signup.playerName}</p>
+                              {signup.position && <p className="text-sm text-muted-foreground capitalize">{signup.position}</p>}
+                            </div>
+                          </div>
 
-                  <div className="flex items-center gap-2">
-                    {typeof signup.skillRate === "number" && (
-                      <Badge variant="outline" className="text-xs">
-                        Skill {signup.skillRate}
-                      </Badge>
-                    )}
+                          <div className="flex items-center gap-2">
+                            {typeof signup.skillRate === "number" && (
+                              <Badge variant="outline" className="text-xs">
+                                Skill {signup.skillRate}
+                              </Badge>
+                            )}
 
-                    <Badge
-                      variant={
-                        signup.status === "confirmed"
-                          ? "default"
-                          : signup.status === "pending"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
-                      {signup.status === "confirmed"
-                        ? "Potwierdzony"
-                        : signup.status === "pending"
-                          ? "Oczekujący"
-                          : "Anulowany"}
-                    </Badge>
-
-                    {/* Przyciski akcji dla organizatora/admina */}
-                    {event.canManageSignups && signup.status === "confirmed" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => actions.resignFromEvent(signup.id)}
-                        disabled={isSubmitting}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <UserMinus className="h-4 w-4" />
-                      </Button>
-                    )}
+                            {event.canManageSignups && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => actions.resignFromEvent(signup.id)}
+                                disabled={isSubmitting}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Lista rezerwowa */}
+              {event.signupsWithNames.filter((s) => s.status === "pending").length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    Lista rezerwowa ({event.signupsWithNames.filter((s) => s.status === "pending").length})
+                  </h4>
+                  <div className="space-y-3">
+                    {event.signupsWithNames
+                      .filter((s) => s.status === "pending")
+                      .map((signup) => (
+                        <div
+                          key={signup.id}
+                          className="flex items-center justify-between p-3 border border-dashed rounded-lg bg-muted/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {signup.playerName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-muted-foreground">{signup.playerName}</p>
+                              {signup.position && <p className="text-xs text-muted-foreground capitalize">{signup.position}</p>}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {typeof signup.skillRate === "number" && (
+                              <Badge variant="outline" className="text-xs">
+                                Skill {signup.skillRate}
+                              </Badge>
+                            )}
+
+                            {event.canManageSignups && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => actions.confirmSignup(signup.id)}
+                                disabled={isSubmitting}
+                                className="text-xs px-3"
+                              >
+                                Potwierdź
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

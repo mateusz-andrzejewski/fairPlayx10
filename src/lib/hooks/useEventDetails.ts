@@ -10,6 +10,7 @@ interface EventDetailsActions {
   signupForEvent: () => Promise<void>;
   resignFromEvent: (signupId: number) => Promise<void>;
   addPlayerToEvent: (playerId: number) => Promise<boolean>;
+  confirmSignup: (signupId: number) => Promise<void>; // Promowanie z listy rezerwowej
 
   // Zarządzanie wydarzeniem
   editEvent: () => void; // callback do otwarcia formularza edycji
@@ -227,6 +228,43 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
   );
 
   /**
+   * Potwierdzenie zapisu (przeskok z listy rezerwowej na potwierdzonego)
+   */
+  const confirmSignup = useCallback(
+    async (signupId: number) => {
+      if (!eventVM?.canManageSignups) {
+        toast.error("Brak uprawnień", { description: "Nie masz uprawnień do potwierdzania zapisów" });
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/events/${eventId}/signups/${signupId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "confirmed" }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Nie udało się potwierdzić zapisu");
+        }
+
+        toast.success("Sukces", { description: "Zapis został potwierdzony" });
+
+        // Odśwież dane
+        await fetchEventDetails(eventId);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Nie udało się potwierdzić zapisu";
+        toast.error("Błąd", { description: errorMessage });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [eventVM?.canManageSignups, eventId, fetchEventDetails, toast]
+  );
+
+  /**
    * Edycja wydarzenia (placeholder - callback do komponentu nadrzędnego)
    */
   const editEvent = useCallback(() => {
@@ -292,6 +330,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
     signupForEvent,
     resignFromEvent,
     addPlayerToEvent,
+    confirmSignup,
     editEvent,
     drawTeams,
     goBack,

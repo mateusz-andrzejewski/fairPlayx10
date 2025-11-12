@@ -27,6 +27,86 @@ export class EventSignupsService {
   constructor(private supabase: SupabaseClient) {}
 
   /**
+   * Automatycznie przesuwa pierwszego gracza z listy rezerwowej (pending) na potwierdzonego (confirmed).
+   * Wywoływane automatycznie gdy zwolni się miejsce na wydarzeniu.
+   * 
+   * @param eventId - ID wydarzenia
+   * @returns Promise<boolean> - true jeśli ktoś został przesunięty, false jeśli lista rezerwowa była pusta
+   * @private
+   */
+  private async promoteFromWaitingList(eventId: number): Promise<boolean> {
+    // Pobierz pierwszy zapis z listy rezerwowej (najstarszy timestamp)
+    const { data: waitingSignup, error: fetchError } = await this.supabase
+      .from("event_signups")
+      .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+      .eq("event_id", eventId)
+      .eq("status", "pending")
+      .order("signup_timestamp", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (fetchError) {
+      // PGRST116 = brak wyników (pusta lista rezerwowa) - to nie błąd
+      if (fetchError.code === "PGRST116") {
+        return false;
+      }
+      throw new Error(`Błąd podczas pobierania listy rezerwowej: ${fetchError.message}`);
+    }
+
+    if (!waitingSignup) {
+      return false;
+    }
+
+    // Zmień status na confirmed
+    const { error: updateError } = await this.supabase
+      .from("event_signups")
+      .update({ status: "confirmed" })
+      .eq("id", waitingSignup.id);
+
+    if (updateError) {
+      throw new Error(`Nie udało się awansować gracza z listy rezerwowej: ${updateError.message}`);
+    }
+
+    // Pobierz aktualny licznik i zwiększ go
+    const { data: eventData, error: eventFetchError } = await this.supabase
+      .from("events")
+      .select("current_signups_count")
+      .eq("id", eventId)
+      .single();
+
+    if (eventFetchError || !eventData) {
+      // Spróbuj cofnąć zmianę statusu
+      await this.supabase
+        .from("event_signups")
+        .update({ status: "pending" })
+        .eq("id", waitingSignup.id);
+      throw new Error(`Nie udało się pobrać danych wydarzenia po awansie`);
+    }
+
+    const { error: counterError } = await this.supabase
+      .from("events")
+      .update({
+        current_signups_count: eventData.current_signups_count + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", eventId);
+
+    if (counterError) {
+      // Spróbuj cofnąć zmianę statusu
+      await this.supabase
+        .from("event_signups")
+        .update({ status: "pending" })
+        .eq("id", waitingSignup.id);
+      throw new Error(`Nie udało się zaktualizować licznika po awansie: ${counterError.message}`);
+    }
+
+    // TODO: Wysłać powiadomienie do gracza, że dostał miejsce
+    // await notificationService.notifyPlayerPromoted(waitingSignup.player_id, eventId);
+
+    return true;
+  }
+
+  /**
    * Tworzy nowy zapis na wydarzenie zgodnie z regułami biznesowymi.
    * Sprawdza uprawnienia użytkownika, waliduje dane wydarzenia i gracza,
    * oraz wykonuje operację w transakcji aby zapewnić spójność danych.
@@ -95,10 +175,10 @@ export class EventSignupsService {
       throw new Error("Organizator może zarządzać zapisami tylko na własnych wydarzeniach");
     }
 
-    // Sprawdź czy wydarzenie nie jest już pełne
-    if (eventData.current_signups_count >= eventData.max_places) {
-      throw new Error("Wydarzenie jest już pełne - wszystkie miejsca zostały zajęte");
-    }
+    // Określ status zapisu na podstawie dostępnych miejsc
+    // Jeśli są wolne miejsca → confirmed, jeśli nie → pending (lista rezerwowa)
+    const hasAvailableSpots = eventData.current_signups_count < eventData.max_places;
+    const signupStatus = hasAvailableSpots ? "confirmed" : "pending";
 
     // Sprawdź czy gracz istnieje
     const { data: playerData, error: playerError } = await this.supabase
@@ -151,7 +231,7 @@ export class EventSignupsService {
       const { data: updatedSignup, error: updateError } = await this.supabase
         .from("event_signups")
         .update({
-          status: "pending",
+          status: signupStatus,
           signup_timestamp: new Date().toISOString(),
           resignation_timestamp: null,
         })
@@ -172,7 +252,7 @@ export class EventSignupsService {
           event_id: eventId,
           player_id: targetPlayerId,
           signup_timestamp: new Date().toISOString(),
-          status: "pending",
+          status: signupStatus,
         })
         .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
         .single();
@@ -188,19 +268,21 @@ export class EventSignupsService {
       throw new Error("Nie udało się utworzyć/reaktywować zapisu - brak danych zwrotnych");
     }
 
-    // Następnie zwiększ licznik zapisów w wydarzeniu
-    const { error: updateError } = await this.supabase
-      .from("events")
-      .update({
-        current_signups_count: eventData.current_signups_count + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", eventId);
+    // Zwiększ licznik zapisów TYLKO jeśli gracz dostał potwierdzone miejsce (nie lista rezerwowa)
+    if (signupStatus === "confirmed") {
+      const { error: updateError } = await this.supabase
+        .from("events")
+        .update({
+          current_signups_count: eventData.current_signups_count + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
 
-    if (updateError) {
-      // W przypadku błędu aktualizacji licznika, spróbuj usunąć utworzony zapis
-      await this.supabase.from("event_signups").delete().eq("id", signupResult.id);
-      throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
+      if (updateError) {
+        // W przypadku błędu aktualizacji licznika, spróbuj usunąć utworzony zapis
+        await this.supabase.from("event_signups").delete().eq("id", signupResult.id);
+        throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
+      }
     }
 
     // Zwróć EventSignupDTO
@@ -303,8 +385,8 @@ export class EventSignupsService {
       updateData.resignation_timestamp = new Date().toISOString();
     }
 
-    // Sprawdź czy trzeba aktualizować licznik zapisów
-    const shouldDecrementCounter = newStatus === "withdrawn" && currentStatus !== "withdrawn";
+    // Sprawdź czy trzeba aktualizować licznik zapisów (TYLKO dla confirmed - pending nie zajmował miejsca)
+    const shouldDecrementCounter = newStatus === "withdrawn" && currentStatus === "confirmed";
 
     if (shouldDecrementCounter) {
       // Wykonaj aktualizację w transakcji - najpierw zmniejsz licznik w events
@@ -345,6 +427,16 @@ export class EventSignupsService {
 
     if (!updatedSignup) {
       throw new Error("Nie udało się zaktualizować zapisu - brak danych zwrotnych");
+    }
+
+    // Jeśli zwalniamy potwierdzone miejsce, automatycznie przesuń pierwszego z listy rezerwowej
+    if (shouldDecrementCounter) {
+      try {
+        await this.promoteFromWaitingList(eventId);
+      } catch (error) {
+        // Loguj błąd, ale nie przerywaj operacji - główna aktualizacja się powiodła
+        console.error(`Błąd podczas automatycznego przesunięcia z listy rezerwowej:`, error);
+      }
     }
 
     // Zwróć EventSignupDTO
@@ -524,8 +616,8 @@ export class EventSignupsService {
       resignation_timestamp: new Date().toISOString(),
     };
 
-    // Sprawdź czy trzeba dekrementować licznik zapisów
-    const shouldDecrementCounter = signupData.status === "pending" || signupData.status === "confirmed";
+    // Sprawdź czy trzeba dekrementować licznik zapisów (TYLKO dla confirmed - pending nie zajmował miejsca)
+    const shouldDecrementCounter = signupData.status === "confirmed";
 
     if (shouldDecrementCounter) {
       // Wykonaj aktualizację w transakcji - najpierw zmniejsz licznik w events
@@ -557,6 +649,16 @@ export class EventSignupsService {
           .eq("id", eventId);
       }
       throw new Error(`Nie udało się wycofać zapisu: ${updateError.message}`);
+    }
+
+    // Jeśli zwalniamy potwierdzone miejsce, automatycznie przesuń pierwszego z listy rezerwowej
+    if (shouldDecrementCounter) {
+      try {
+        await this.promoteFromWaitingList(eventId);
+      } catch (error) {
+        // Loguj błąd, ale nie przerywaj operacji - główna rezygnacja się powiodła
+        console.error(`Błąd podczas automatycznego przesunięcia z listy rezerwowej:`, error);
+      }
     }
 
     // Operacja zakończona sukcesem - brak zwracanych danych (204 No Content)
