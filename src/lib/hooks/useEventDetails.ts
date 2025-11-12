@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import type { EventDetailsViewModel, EventDetailDTO, EventSignupWithNameViewModel, UserRole } from "../../types";
+import type {
+  EventDetailsViewModel,
+  EventDetailDTO,
+  EventSignupWithNameViewModel,
+  UserRole,
+} from "../../types";
 
 /**
  * Akcje dostępne w hooku zarządzania szczegółami wydarzenia
@@ -9,7 +14,7 @@ interface EventDetailsActions {
   // Zarządzanie zapisami
   signupForEvent: () => Promise<void>;
   resignFromEvent: (signupId: number) => Promise<void>;
-  addPlayerToEvent: (playerId: number) => Promise<void>;
+  addPlayerToEvent: (playerId: number) => Promise<boolean>;
 
   // Zarządzanie wydarzeniem
   editEvent: () => void; // callback do otwarcia formularza edycji
@@ -25,7 +30,7 @@ interface EventDetailsActions {
 /**
  * Główny hook do zarządzania stanem szczegółów pojedynczego wydarzenia.
  */
-export function useEventDetails(eventId: number, userRole: UserRole, currentUserId?: number) {
+export function useEventDetails(eventId: number, userRole: UserRole, userId: number, playerId?: number) {
   // Stan podstawowy
   const [event, setEvent] = useState<EventDetailDTO | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,24 +44,37 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
    * Transformacja surowych danych wydarzenia na ViewModel ze szczegółami
    */
   const eventVM: EventDetailsViewModel | null = useMemo(() => {
-    if (!event || !currentUserId) return null;
+    if (!event) {
+      return null;
+    }
 
-    const isOrganizer = event.organizer_id === currentUserId;
-    const userSignup = event.signups.find((signup) => {
-      // Tutaj trzeba będzie sprawdzić player_id powiązany z user
-      // Na razie zakładamy że currentUserId to player_id
-      return signup.player_id === currentUserId;
-    });
-    const isSignedUp = !!userSignup;
+    const isOrganizer = event.organizer_id === userId;
+    const userSignup = playerId
+      ? event.signups.find((signup) => signup.player_id === playerId && signup.status !== "withdrawn")
+      : null;
+    const isSignedUp = Boolean(userSignup);
     const canManageSignups = userRole === "admin" || isOrganizer;
 
-    // Transformacja zapisów z nazwami graczy
-    const signupsWithNames: EventSignupWithNameViewModel[] = event.signups.map((signup) => ({
-      ...signup,
-      playerName: `${signup.player_id}`, // TODO: Pobrać nazwę gracza z API
-      // position: signup.position, // TODO: Dodać do API
-      // skillRate: signup.skillRate, // TODO: Dodać do API (tylko dla organizatora/admina)
-    }));
+    const signupsWithNames: EventSignupWithNameViewModel[] = event.signups.map((signup) => {
+      const playerName = signup.player
+        ? `${signup.player.first_name} ${signup.player.last_name}`.trim()
+        : `Gracz #${signup.player_id}`;
+
+      const position = signup.player?.position;
+      const skillRate = canManageSignups ? signup.player?.skill_rate ?? undefined : undefined;
+
+      return {
+        id: signup.id,
+        event_id: signup.event_id,
+        player_id: signup.player_id,
+        signup_timestamp: signup.signup_timestamp,
+        status: signup.status,
+        resignation_timestamp: signup.resignation_timestamp,
+        playerName,
+        position,
+        skillRate,
+      };
+    });
 
     return {
       ...event,
@@ -65,7 +83,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
       canManageSignups,
       signupsWithNames,
     };
-  }, [event, currentUserId, userRole]);
+  }, [event, userId, playerId, userRole]);
 
   /**
    * Pobieranie szczegółów wydarzenia z API
@@ -76,7 +94,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
       setError(null);
 
       try {
-        const response = await fetch(`/api/events/${id}`);
+        const response = await fetch(`/api/event/${id}`);
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error("Wydarzenie nie zostało znalezione");
@@ -111,14 +129,20 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
    * Zapis na wydarzenie
    */
   const signupForEvent = useCallback(async () => {
-    if (!event || !currentUserId) return;
+    if (!event) return;
+    if (!playerId) {
+      toast.error("Brak powiązanego gracza", {
+        description: "Twoje konto nie ma przypisanego profilu gracza. Skontaktuj się z administratorem.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/events/${eventId}/signups`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: currentUserId }),
+        body: JSON.stringify({ player_id: playerId }),
       });
 
       if (!response.ok) {
@@ -136,7 +160,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
     } finally {
       setIsSubmitting(false);
     }
-  }, [event, currentUserId, eventId, fetchEventDetails, toast]);
+  }, [event, playerId, eventId, fetchEventDetails, toast]);
 
   /**
    * Rezygnacja z wydarzenia
@@ -172,10 +196,10 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
    * Dodanie gracza do wydarzenia (organizator)
    */
   const addPlayerToEvent = useCallback(
-    async (playerId: number) => {
+    async (playerId: number): Promise<boolean> => {
       if (!eventVM?.canManageSignups) {
         toast.error("Brak uprawnień", { description: "Nie masz uprawnień do dodawania graczy" });
-        return;
+        return false;
       }
 
       setIsSubmitting(true);
@@ -195,9 +219,11 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
 
         // Odśwież dane
         await fetchEventDetails(eventId);
+        return true;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nie udało się dodać gracza do wydarzenia";
         toast.error("Błąd", { description: errorMessage });
+        return false;
       } finally {
         setIsSubmitting(false);
       }
@@ -213,9 +239,8 @@ export function useEventDetails(eventId: number, userRole: UserRole, currentUser
       toast.error("Brak uprawnień", { description: "Nie masz uprawnień do edycji wydarzenia" });
       return;
     }
-    // TODO: Implementacja otworzenia modalu edycji
-    toast.info("Funkcja edycji", { description: "Edycja wydarzenia będzie dostępna wkrótce" });
-  }, [eventVM?.isOrganizer, userRole, toast]);
+    window.location.href = `/dashboard/events/${eventId}/edit`;
+  }, [eventVM?.isOrganizer, userRole, eventId]);
 
   /**
    * Losowanie drużyn

@@ -138,7 +138,15 @@ export class TeamAssignmentsService {
         team_number,
         assignment_timestamp,
         event_signups!inner (
-          event_id
+          id,
+          player_id,
+          players (
+            id,
+            first_name,
+            last_name,
+            position,
+            skill_rate
+          )
         )
       `
       )
@@ -149,7 +157,30 @@ export class TeamAssignmentsService {
       throw new Error(`Błąd podczas pobierania przypisań drużyn: ${error.message}`);
     }
 
-    return data || [];
+    const assignments: TeamAssignmentDTO[] =
+      data?.map((assignment: any) => {
+        const signup = assignment.event_signups;
+        const player = signup?.players ?? null;
+
+        return {
+          id: assignment.id,
+          signup_id: assignment.signup_id,
+          team_number: assignment.team_number,
+          assignment_timestamp: assignment.assignment_timestamp,
+          player_id: signup?.player_id ?? null,
+          player: player
+            ? {
+                id: player.id,
+                first_name: player.first_name,
+                last_name: player.last_name,
+                position: player.position,
+                skill_rate: player.skill_rate,
+              }
+            : null,
+        };
+      }) ?? [];
+
+    return assignments;
   }
 
   /**
@@ -192,7 +223,7 @@ export class TeamAssignmentsService {
     const drawResult = await this.computeBalancedTeams(confirmedSignups, command);
 
     // Zamień wynik algorytmu na przypisania drużyn
-    const teamAssignments = this.convertDrawResultToAssignments(eventId, drawResult);
+    const teamAssignments = this.convertDrawResultToAssignments(drawResult, confirmedSignups);
 
     // Zapisz przypisania w bazie danych (usuń istniejące, wstaw nowe)
     await this.saveTeamAssignments(eventId, teamAssignments, actor);
@@ -271,8 +302,15 @@ export class TeamAssignmentsService {
     }
 
     const assignmentsMap = new Map<number, TeamAssignmentDTO>();
-    (data || []).forEach((assignment) => {
-      assignmentsMap.set(assignment.signup_id, assignment);
+    (data || []).forEach((assignment: any) => {
+      assignmentsMap.set(assignment.signup_id, {
+        id: assignment.id,
+        signup_id: assignment.signup_id,
+        team_number: assignment.team_number,
+        assignment_timestamp: assignment.assignment_timestamp,
+        player_id: null,
+        player: null,
+      });
     });
 
     return assignmentsMap;
@@ -295,7 +333,16 @@ export class TeamAssignmentsService {
       throw new Error(`Błąd podczas pobierania zaktualizowanych przypisań: ${error.message}`);
     }
 
-    return data || [];
+    return (
+      data?.map((assignment: any) => ({
+        id: assignment.id,
+        signup_id: assignment.signup_id,
+        team_number: assignment.team_number,
+        assignment_timestamp: assignment.assignment_timestamp,
+        player_id: null,
+        player: null,
+      })) ?? []
+    );
   }
 
   /**
@@ -416,19 +463,31 @@ export class TeamAssignmentsService {
    * @param drawResult - Wynik algorytmu losowania
    * @returns Tablica przypisań drużyn
    */
-  private convertDrawResultToAssignments(eventId: number, drawResult: TeamDrawResultDTO) {
+  private convertDrawResultToAssignments(
+    drawResult: TeamDrawResultDTO,
+    confirmedSignups: Array<{ id: number; player_id: number }>
+  ) {
     const assignments: ManualTeamAssignmentEntry[] = [];
+    const playerToSignupMap = new Map<number, number>();
+
+    confirmedSignups.forEach((signup) => {
+      playerToSignupMap.set(signup.player_id, signup.id);
+    });
 
     // Iteruj przez wszystkie drużyny
     for (const team of drawResult.teams) {
       // Dla każdego gracza w drużynie znajdź odpowiadający signup_id
       for (const player of team.players) {
-        // Musimy znaleźć signup_id na podstawie player_id i eventId
-        // To będzie wymagało dodatkowego zapytania, ale na razie użyjemy założenia
-        // że player_id odpowiada signup_id (co nie jest prawdziwe)
-        // TODO: Poprawić mapowanie player_id -> signup_id
+        const signupId = player.signup_id ?? playerToSignupMap.get(player.player_id);
+
+        if (!signupId) {
+          throw new Error(
+            `Nie udało się odnaleźć zapisu dla gracza o ID ${player.player_id}. Losowanie wymaga pełnych danych zapisów.`
+          );
+        }
+
         assignments.push({
-          signup_id: player.player_id, // Tymczasowe - powinno być signup_id
+          signup_id: signupId,
           team_number: team.team_number,
         });
       }

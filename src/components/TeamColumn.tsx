@@ -88,7 +88,7 @@ export function TeamColumn({ team, userRole, onDrop, canDrop }: TeamColumnProps)
         ) : (
           <div role="list" aria-label={`Gracze drużyny ${team.teamNumber}`}>
             {team.players.map((player) => (
-              <PlayerCard key={player.id} player={player} userRole={userRole} />
+              <PlayerCard key={player.signupId} player={player} userRole={userRole} />
             ))}
           </div>
         )}

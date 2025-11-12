@@ -224,7 +224,8 @@ export class TeamDrawEngine {
   private static convertToTeamDrawTeams(teams: DrawTeam[]): TeamDrawTeamDTO[] {
     return teams.map((team) => ({
       team_number: team.team_number,
-      players: team.players.map((player) => ({
+        players: team.players.map((player) => ({
+          signup_id: player.signup_id,
         player_id: player.player_id,
         player_name: player.player_name,
         position: player.position as any, // Type assertion - zakładamy zgodność typów

@@ -15,7 +15,7 @@ interface PlayerCardProps {
 // Typ dla przeciąganych elementów
 interface DragItem {
   type: string;
-  playerId: number;
+  playerId: number; // reprezentuje signupId
 }
 
 /**
@@ -26,7 +26,7 @@ export function PlayerCard({ player, userRole }: PlayerCardProps) {
   // Hook useDrag dla obsługi przeciągania
   const [{ isDragging }, drag] = useDrag<DragItem, unknown, { isDragging: boolean }>({
     type: "player",
-    item: { type: "player", playerId: player.id },
+    item: { type: "player", playerId: player.signupId },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),

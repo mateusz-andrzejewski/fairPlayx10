@@ -41,3 +41,4 @@ export function isDashboardAuthDisabled(): boolean {
   // Domyślnie wyłączamy auth w środowisku development, chyba że flaga jawnie ustawiona na false.
   return parseBooleanFlag(rawFlag, true);
 }
+

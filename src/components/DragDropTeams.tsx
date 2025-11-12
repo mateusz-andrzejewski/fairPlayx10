@@ -23,9 +23,9 @@ interface DragDropTeamsProps {
 export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved }: DragDropTeamsProps) {
   // Obsługa upuszczenia gracza do drużyny
   const handleDrop = useCallback(
-    (playerId: number, targetTeamNumber: number) => {
+    (playerSignupId: number, targetTeamNumber: number) => {
       // Znajdź aktualną drużynę gracza
-      const currentTeam = teams.find((team) => team.players.some((player) => player.id === playerId));
+      const currentTeam = teams.find((team) => team.players.some((player) => player.signupId === playerSignupId));
 
       // Jeśli gracz jest już w docelowej drużynie, nie rób nic
       if (currentTeam?.teamNumber === targetTeamNumber) {
@@ -40,12 +40,12 @@ export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved 
           let teamNumber = team.teamNumber;
 
           // Jeśli to gracz, którego przenosimy, przypisz do nowej drużyny
-          if (player.id === playerId) {
+          if (player.signupId === playerSignupId) {
             teamNumber = targetTeamNumber;
           }
 
           assignments.push({
-            signup_id: player.id, // TODO: To powinno być signup_id, nie player_id
+            signup_id: player.signupId,
             team_number: teamNumber,
           });
         });

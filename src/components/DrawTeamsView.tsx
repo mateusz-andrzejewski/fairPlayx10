@@ -40,8 +40,8 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
         setEventError(null);
 
         // TODO: Zastąpić rzeczywistym API call gdy endpoint będzie dostępny
-        // Na razie mockup - w rzeczywistości trzeba będzie stworzyć endpoint GET /api/events/{eventId}
-        const response = await fetch(`/api/events/${eventId}`);
+        // Na razie mockup - w rzeczywistości trzeba będzie stworzyć endpoint GET /api/event/{eventId}
+        const response = await fetch(`/api/event/${eventId}`);
         if (!response.ok) {
           throw new Error("Nie udało się pobrać informacji o wydarzeniu");
         }

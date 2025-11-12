@@ -1,27 +1,50 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabaseClient } from "../../db/supabase.client";
 import type { AuthRequest, AuthResponse, UserDTO } from "../../types";
-import { mockDashboardUser } from "../mocks/dashboardMock";
 import { isDashboardAuthDisabled } from "../utils/featureFlags";
 
 export function useAuth() {
   const authDisabled = useMemo(() => isDashboardAuthDisabled(), []);
-  const [isAuthenticated, setIsAuthenticated] = useState(authDisabled);
-  const [user, setUser] = useState<UserDTO | null>(authDisabled ? mockDashboardUser : null);
-  const [isLoading, setIsLoading] = useState(!authDisabled);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<UserDTO | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchSession = async (): Promise<UserDTO | null> => {
+    try {
+      const response = await fetch("/api/auth/session", {
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as { user: UserDTO | null };
+      return payload.user ?? null;
+    } catch (error) {
+      console.error("Failed to resolve auth session:", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    if (authDisabled) {
-      // Tryb development bez wymagań auth - ustaw mock użytkownika
-      setIsAuthenticated(true);
-      setUser(mockDashboardUser);
-      setIsLoading(false);
-      return;
-    }
-
     let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
     const checkSession = async () => {
+      if (authDisabled) {
+        setIsLoading(true);
+        const sessionUser = await fetchSession();
+        if (!cancelled) {
+          setIsAuthenticated(Boolean(sessionUser));
+          setUser(sessionUser);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
         const {
           data: { session },
@@ -50,44 +73,53 @@ export function useAuth() {
         setIsAuthenticated(false);
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSession();
 
-    const { data } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        setIsAuthenticated(true);
-        const profile = await supabaseClient
-          .from("users")
-          .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
-          .eq("id", session.user.id)
-          .is("deleted_at", null)
-          .single();
+    if (!authDisabled) {
+      const { data } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          setIsAuthenticated(true);
+          const profile = await supabaseClient
+            .from("users")
+            .select("id, email, first_name, last_name, role, status, player_id, created_at, updated_at, deleted_at")
+            .eq("id", session.user.id)
+            .is("deleted_at", null)
+            .single();
 
-        setUser(profile.data ?? null);
-      } else if (event === "SIGNED_OUT") {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
+          setUser(profile.data ?? null);
+        } else if (event === "SIGNED_OUT") {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+        setIsLoading(false);
+      });
 
-    unsubscribe = () => data.subscription.unsubscribe();
+      unsubscribe = () => data.subscription.unsubscribe();
+    }
 
     return () => {
+      cancelled = true;
       unsubscribe?.();
     };
   }, [authDisabled]);
 
   const login = async (credentials: AuthRequest): Promise<AuthResponse> => {
     if (authDisabled) {
+      const sessionUser = await fetchSession();
+      if (!sessionUser) {
+        throw new Error("Brak sesji developmentowej");
+      }
       setIsAuthenticated(true);
-      setUser(mockDashboardUser);
+      setUser(sessionUser);
       return {
         token: "dev-mode-token",
-        user: mockDashboardUser,
+        user: sessionUser,
         expiresIn: 60 * 60,
       };
     }

@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createEventService } from "../../../lib/services/event.service";
 import { validateEventIdParam, updateEventBodySchema } from "../../../lib/validation/event";
+import { requireActor, UnauthorizedError } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/event/{id}
@@ -55,12 +56,13 @@ export const GET: APIRoute = async ({ params, locals }) => {
       },
     });
   } catch (error) {
-    console.error("Nieoczekiwany błąd w GET /api/event/[id]:", error);
+    const message =
+      error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania";
 
     return new Response(
       JSON.stringify({
         error: "internal_error",
-        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+        message,
       }),
       {
         status: 500,
@@ -99,7 +101,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     let requestBody;
     try {
       requestBody = await request.json();
-    } catch (parseError) {
+    } catch {
       return new Response(
         JSON.stringify({
           error: "validation_error",
@@ -132,11 +134,12 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 
     // 3. Wywołaj logikę biznesową
     const eventService = createEventService(locals.supabase);
+    const actor = requireActor(locals);
     const updatedEvent = await eventService.updateEvent(
       validatedParams.id,
       validatedBody,
-      1, // TODO: Pobierz ID aktualnego użytkownika z kontekstu autoryzacji
-      false // TODO: Sprawdź czy użytkownik jest administratorem
+      actor.userId,
+      actor.role === "admin"
     );
 
     // 4. Zwróć pomyślną odpowiedź
@@ -148,6 +151,19 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       },
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return new Response(
+        JSON.stringify({
+          error: "unauthorized",
+          message: error.message,
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Sprawdź czy to błąd biznesowy (np. brak uprawnień, nieprawidłowe dane)
     if (error instanceof Error) {
       if (error.message.includes("nie zostało znalezione") || error.message.includes("nie istnieje")) {
@@ -194,8 +210,6 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
         );
       }
     }
-
-    console.error("Nieoczekiwany błąd w PATCH /api/event/[id]:", error);
 
     return new Response(
       JSON.stringify({
@@ -262,12 +276,13 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       },
     });
   } catch (error) {
-    console.error("Nieoczekiwany błąd w DELETE /api/event/[id]:", error);
+    const message =
+      error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania";
 
     return new Response(
       JSON.stringify({
         error: "internal_error",
-        message: "Wystąpił nieoczekiwany błąd podczas przetwarzania żądania",
+        message,
       }),
       {
         status: 500,

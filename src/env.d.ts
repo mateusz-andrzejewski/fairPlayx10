@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./db/database.types.ts";
 import type { UserDTO } from "./types";
+import type { RequestActor } from "./lib/auth/request-actor";
 
 declare global {
   namespace App {
@@ -10,6 +11,7 @@ declare global {
       supabase: SupabaseClient<Database>;
       user?: UserDTO;
       isDashboardAuthDisabled?: boolean;
+      actor?: RequestActor;
     }
   }
 }

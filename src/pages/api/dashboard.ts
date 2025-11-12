@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
 
 import { createDashboardService } from "../../lib/services/dashboard/dashboard.service";
-import { ensureDevDashboardData } from "../../lib/dev/ensureDevDashboardData";
 import { isDashboardAuthDisabled } from "../../lib/utils/featureFlags";
+import { ensureDevDashboardData } from "../../lib/dev/ensureDevDashboardData";
+import { toRequestActor } from "../../lib/auth/request-actor";
 
 /**
  * GET /api/dashboard
@@ -18,8 +19,11 @@ export const GET: APIRoute = async ({ locals }) => {
     let user = locals.user;
 
     if (authDisabled) {
-      user = await ensureDevDashboardData(locals.supabase);
-      locals.user = user;
+      if (!user) {
+        user = await ensureDevDashboardData(locals.supabase);
+        locals.user = user;
+      }
+      locals.actor = locals.actor ?? toRequestActor(user, { isDevSession: true });
     }
 
     // Odczytujemy dane użytkownika z kontekstu (auth zostanie dodane później)

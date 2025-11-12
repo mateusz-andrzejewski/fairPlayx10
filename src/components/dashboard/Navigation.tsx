@@ -34,20 +34,6 @@ export function Navigation({ userRole }: NavigationProps) {
       href: "/dashboard/events",
       roles: ["admin", "organizer", "player"],
     },
-    {
-      title: "Turnieje",
-      description: "Organizuj i śledź turnieje",
-      icon: Trophy,
-      href: "/dashboard/tournaments",
-      roles: ["admin", "organizer"],
-    },
-    {
-      title: "Ustawienia",
-      description: "Zarządzaj ustawieniami konta",
-      icon: Settings,
-      href: "/dashboard/settings",
-      roles: ["admin", "organizer", "player"],
-    },
   ];
 
   const availableItems = navigationItems.filter((item) => item.roles.includes(effectiveRole));

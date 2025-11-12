@@ -1,7 +1,8 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import { EventDetailsPage } from "../../../components/events/EventDetailsPage.tsx";
+import { EventEditPage } from "../../../components/events/EventEditPage.tsx";
 import { ToastProvider } from "../../../components/ToastProvider.tsx";
+
 export const prerender = false;
 
 const rawId = Astro.params.id;
@@ -9,10 +10,10 @@ const eventId = rawId ? Number.parseInt(rawId, 10) : Number.NaN;
 const isValidEventId = Number.isInteger(eventId) && eventId > 0;
 ---
 
-<Layout title={`Wydarzenie ${rawId} - FairPlay`}>
+<Layout title={`Edycja wydarzenia ${rawId} - FairPlay`}>
   {isValidEventId ? (
     <>
-      <EventDetailsPage client:load eventId={eventId} />
+      <EventEditPage client:load eventId={eventId} />
       <ToastProvider client:load />
     </>
   ) : (
@@ -21,3 +22,4 @@ const isValidEventId = Number.isInteger(eventId) && eventId > 0;
     </div>
   )}
 </Layout>
+

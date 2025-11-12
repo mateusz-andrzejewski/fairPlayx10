@@ -174,7 +174,7 @@ export function useEventForm(event?: EventDTO, onSuccess?: (event: EventDTO) => 
 
       if (event) {
         // Edycja istniejącego wydarzenia
-        response = await fetch(`/api/events/${event.id}`, {
+        response = await fetch(`/api/event/${event.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(command),

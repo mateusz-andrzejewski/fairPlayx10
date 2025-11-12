@@ -6,6 +6,7 @@ import {
   eventIdParamSchema,
   listEventSignupsQuerySchema,
 } from "../../../../lib/validation/eventSignups";
+import { requireActor } from "../../../../lib/auth/request-actor";
 
 /**
  * GET /api/events/{eventId}/signups
@@ -53,16 +54,14 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
-    const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "admin" as const, // TODO: Pobierz z locals.session.user.role
-    };
+    const actor = requireActor(locals);
 
     // 3. Wywołaj logikę biznesową
     const eventSignupsService = createEventSignupsService(locals.supabase);
-    const signupsList = await eventSignupsService.listEventSignups(validatedParams.eventId, validatedQuery, actor);
+    const signupsList = await eventSignupsService.listEventSignups(validatedParams.eventId, validatedQuery, {
+      userId: actor.userId,
+      role: actor.role,
+    });
 
     // 4. Zwróć pomyślną odpowiedź z EventSignupsListResponseDTO
     return new Response(JSON.stringify(signupsList), {
@@ -194,13 +193,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
-    const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "player" as const, // TODO: Pobierz z locals.session.user.role
-      playerId: 1, // TODO: Pobierz z locals.session.user.player_id
-    };
+    const actor = requireActor(locals);
 
     // 3. Wywołaj logikę biznesową
     const eventSignupsService = createEventSignupsService(locals.supabase);

@@ -19,11 +19,11 @@ type EventUpdate = TablesUpdate<"events">;
 type EventSignupInsert = TablesInsert<"event_signups">;
 type EventSignupUpdate = TablesUpdate<"event_signups">;
 
-type UserRole = Enums<"user_role">;
-type UserStatus = Enums<"user_status">;
-type PlayerPosition = Enums<"player_position">;
-type SignupStatus = Enums<"signup_status">;
-type EventStatus = Enums<"event_status">;
+export type UserRole = Enums<"user_role">;
+export type UserStatus = Enums<"user_status">;
+export type PlayerPosition = Enums<"player_position">;
+export type SignupStatus = Enums<"signup_status">;
+export type EventStatus = Enums<"event_status">;
 
 /**
  * Shared pagination envelope used by multiple list endpoints.
@@ -155,8 +155,12 @@ export type EventDTO = Pick<
   | "deleted_at"
 >;
 
+export interface EventSignupExtendedDTO extends EventSignupDTO {
+  player?: Pick<PlayerDTO, "id" | "first_name" | "last_name" | "position" | "skill_rate"> | null;
+}
+
 export type EventDetailDTO = EventDTO & {
-  signups: EventSignupDTO[];
+  signups: EventSignupExtendedDTO[];
 };
 
 export interface ListEventsQueryParams {
@@ -203,7 +207,20 @@ export type UpdateEventSignupCommand = Pick<EventSignupUpdate, "status">;
 /**
  * TEAM ASSIGNMENTS & DRAWS
  */
-export type TeamAssignmentDTO = Pick<TeamAssignmentRow, "id" | "signup_id" | "team_number" | "assignment_timestamp">;
+export interface TeamAssignmentDTO {
+  id: TeamAssignmentRow["id"];
+  signup_id: TeamAssignmentRow["signup_id"];
+  team_number: TeamAssignmentRow["team_number"];
+  assignment_timestamp: TeamAssignmentRow["assignment_timestamp"];
+  player_id: PlayerRow["id"] | null;
+  player: {
+    id: PlayerRow["id"];
+    first_name: PlayerRow["first_name"];
+    last_name: PlayerRow["last_name"];
+    position: PlayerRow["position"];
+    skill_rate: PlayerRow["skill_rate"];
+  } | null;
+}
 
 export interface TeamAssignmentsListResponseDTO {
   data: TeamAssignmentDTO[];
@@ -225,6 +242,7 @@ export interface RunTeamDrawCommand {
  * from player entity fields at runtime, hence the standalone string.
  */
 export interface TeamDrawPlayerDTO {
+  signup_id?: EventSignupRow["id"];
   player_id: PlayerRow["id"];
   player_name: string;
   position: PlayerRow["position"];
@@ -420,7 +438,8 @@ export interface TeamViewModel {
 
 // Model gracza w widoku losowania drużyn
 export interface PlayerViewModel {
-  id: number;
+  signupId: number;
+  playerId: number | null;
   name: string;
   position: string;
   skillRate: number; // widoczny tylko dla admina

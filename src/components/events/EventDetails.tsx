@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -19,24 +19,112 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEventDetails } from "../../lib/hooks/useEventDetails";
+import { AddPlayerModal } from "../event-signups/AddPlayerModal";
+import type { AvailablePlayerDTO, AddPlayerFormData } from "@/types/eventSignupsView";
+import type { PlayersListResponseDTO } from "../../types";
 import type { UserRole } from "../../types";
+import { toast } from "sonner";
 
 interface EventDetailsProps {
   eventId: number;
   userRole: UserRole;
-  currentUserId?: number;
+  userId: number;
+  currentPlayerId?: number;
 }
 
 /**
  * Komponent wyświetlający pełne szczegóły pojedynczego wydarzenia wraz z listą zapisanych uczestników.
  * Centralny punkt dla interakcji z konkretnym wydarzeniem.
  */
-export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsProps) {
+export function EventDetails({ eventId, userRole, userId, currentPlayerId }: EventDetailsProps) {
   // Hook zarządzania szczegółami wydarzenia
-  const { event, loading, error, isSubmitting, actions } = useEventDetails(eventId, userRole, currentUserId);
+  const { event, loading, error, isSubmitting, actions } = useEventDetails(eventId, userRole, userId, currentPlayerId);
 
   // Stan lokalny dla modalnych akcji
-  const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false);
+  const [isAddPlayerDialogOpen, setIsAddPlayerDialogOpen] = useState(false);
+  const [availablePlayers, setAvailablePlayers] = useState<AvailablePlayerDTO[]>([]);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+
+  // Hooks muszą być wywołane przed warunkowymi return - Rules of Hooks
+  // Temporarily commented out to debug hooks issue
+  // const signedPlayerIds = useMemo(() => {
+  //   if (!event?.signupsWithNames) {
+  //     return new Set<number>();
+  //   }
+  //   const ids = new Set<number>();
+  //   event.signupsWithNames.forEach((signup) => {
+  //     if (typeof signup.player_id === "number") {
+  //       ids.add(signup.player_id);
+  //     }
+  //   }
+  //   return ids;
+  // }, [event?.signupsWithNames]);
+
+  useEffect(() => {
+    if (!isAddPlayerDialogOpen) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPlayers = async () => {
+      setIsLoadingPlayers(true);
+      try {
+        const response = await fetch("/api/players?page=1&limit=100");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data: PlayersListResponseDTO = await response.json();
+        if (cancelled) {
+          return;
+        }
+
+        const signedPlayerIds = new Set<number>();
+        if (event?.signupsWithNames) {
+          event.signupsWithNames.forEach((signup) => {
+            if (typeof signup.player_id === "number") {
+              signedPlayerIds.add(signup.player_id);
+            }
+          });
+        }
+
+        const filtered: AvailablePlayerDTO[] =
+          data.data
+            ?.filter((player) => !signedPlayerIds.has(player.id))
+            .map((player) => ({
+              id: player.id,
+              first_name: player.first_name,
+              last_name: player.last_name,
+              position: player.position,
+            })) ?? [];
+
+        setAvailablePlayers(filtered);
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Nie udało się pobrać listy dostępnych graczy";
+          toast.error("Błąd podczas pobierania graczy", { description: message });
+          setAvailablePlayers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPlayers(false);
+        }
+      }
+    };
+
+    loadPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAddPlayerDialogOpen, event?.signupsWithNames]);
+
+  useEffect(() => {
+    if (!isAddPlayerDialogOpen) {
+      setAvailablePlayers([]);
+    }
+  }, [isAddPlayerDialogOpen]);
 
   if (loading && !event) {
     return (
@@ -66,6 +154,23 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
       </Alert>
     );
   }
+
+  const handleOpenAddPlayerDialog = () => {
+    setIsAddPlayerDialogOpen(true);
+  };
+
+  const handleCloseAddPlayerDialog = () => {
+    if (!isSubmitting) {
+      setIsAddPlayerDialogOpen(false);
+    }
+  };
+
+  const handleAddPlayerSubmit = async (form: AddPlayerFormData) => {
+    const success = await actions.addPlayerToEvent(form.playerId);
+    if (success) {
+      setIsAddPlayerDialogOpen(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -161,7 +266,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Lista uczestników</CardTitle>
             {event.canManageSignups && (
-              <Button onClick={() => setShowAddPlayerDialog(true)} className="gap-2" disabled={isSubmitting}>
+              <Button onClick={handleOpenAddPlayerDialog} className="gap-2" disabled={isSubmitting}>
                 <UserPlus className="h-4 w-4" />
                 Dodaj gracza
               </Button>
@@ -192,6 +297,12 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {typeof signup.skillRate === "number" && (
+                      <Badge variant="outline" className="text-xs">
+                        Skill {signup.skillRate}
+                      </Badge>
+                    )}
+
                     <Badge
                       variant={
                         signup.status === "confirmed"
@@ -243,7 +354,7 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      const userSignup = event.signupsWithNames.find((s) => s.player_id === currentUserId);
+                      const userSignup = event.signupsWithNames.find((s) => s.player_id === currentPlayerId);
                       if (userSignup) {
                         actions.resignFromEvent(userSignup.id);
                       }
@@ -311,26 +422,14 @@ export function EventDetails({ eventId, userRole, currentUserId }: EventDetailsP
         </CardContent>
       </Card>
 
-      {/* Modal dodawania gracza - TODO: Implementacja w następnym kroku */}
-      {showAddPlayerDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Dodaj gracza do wydarzenia</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-center py-8">
-                Funkcja dodawania graczy zostanie zaimplementowana wkrótce.
-              </p>
-            </CardContent>
-            <div className="flex gap-2 p-6 pt-0">
-              <Button variant="outline" onClick={() => setShowAddPlayerDialog(false)} className="flex-1">
-                Anuluj
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <AddPlayerModal
+        isOpen={isAddPlayerDialogOpen}
+        onClose={handleCloseAddPlayerDialog}
+        onSubmit={handleAddPlayerSubmit}
+        availablePlayers={availablePlayers}
+        isSubmitting={isSubmitting}
+        isLoading={isLoadingPlayers}
+      />
     </div>
   );
 }

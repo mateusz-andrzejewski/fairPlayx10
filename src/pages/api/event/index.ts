@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
-        Location: `/api/events/${createdEvent.id}`,
+        Location: `/api/event/${createdEvent.id}`,
       },
     });
   } catch (error) {

@@ -27,72 +27,85 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
    * Transformacja surowych danych przypisań na TeamViewModel
    * Grupuje graczy wg drużyn i oblicza statystyki
    */
-  const transformAssignmentsToTeams = useCallback((assignments: TeamAssignmentsListResponseDTO): TeamViewModel[] => {
-    const teamsMap = new Map<
-      number,
-      { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number> }
-    >();
+  const transformAssignmentsToTeams = useCallback(
+    (assignments: TeamAssignmentsListResponseDTO): TeamViewModel[] => {
+      const teamsMap = new Map<
+        number,
+        { players: PlayerViewModel[]; avgSkillRate: number; positions: Record<string, number> }
+      >();
 
-    // TODO: Pobrać pełne dane graczy - na razie używamy mockup
-    // W pełnej implementacji trzeba będzie pobrać dane graczy wraz z przypisaniami
-    assignments.data.forEach((assignment) => {
-      const teamNumber = assignment.team_number;
+      assignments.data.forEach((assignment) => {
+        const teamNumber = assignment.team_number;
 
-      if (!teamsMap.has(teamNumber)) {
-        teamsMap.set(teamNumber, {
-          players: [],
-          avgSkillRate: 0,
-          positions: {},
+        if (!teamsMap.has(teamNumber)) {
+          teamsMap.set(teamNumber, {
+            players: [],
+            avgSkillRate: 0,
+            positions: {},
+          });
+        }
+
+        const team = teamsMap.get(teamNumber)!;
+        const playerInfo = assignment.player;
+
+        const playerName = playerInfo
+          ? `${playerInfo.first_name} ${playerInfo.last_name}`.trim()
+          : `Gracz #${assignment.signup_id}`;
+        const position = playerInfo?.position ?? "nieznana";
+        const skillRate = typeof playerInfo?.skill_rate === "number" ? playerInfo.skill_rate : 0;
+
+        const player: PlayerViewModel = {
+          signupId: assignment.signup_id,
+          playerId: assignment.player_id ?? playerInfo?.id ?? null,
+          name: playerName,
+          position,
+          skillRate,
+        };
+
+        team.players.push(player);
+      });
+
+      const teams: TeamViewModel[] = [];
+      teamsMap.forEach((teamData, teamNumber) => {
+        const players = teamData.players;
+
+        const avgSkillRate =
+          players.length > 0 ? players.reduce((sum, player) => sum + player.skillRate, 0) / players.length : 0;
+
+        const positions: Record<string, number> = {};
+        players.forEach((player) => {
+          positions[player.position] = (positions[player.position] || 0) + 1;
         });
+
+        teams.push({
+          teamNumber,
+          players,
+          avgSkillRate,
+          positions,
+        });
+      });
+
+      if (teams.length === 0) {
+        setBalanceAchieved(false);
+        return teams;
       }
 
-      const team = teamsMap.get(teamNumber)!;
+      const avgSkillRates = teams.map((team) => team.avgSkillRate);
+      const maxAvg = Math.max(...avgSkillRates);
+      const minAvg = Math.min(...avgSkillRates);
+      const balanceThreshold = 7; // 7% jak w planie
 
-      // TODO: Pobrać prawdziwe dane gracza zamiast mockup
-      const player: PlayerViewModel = {
-        id: assignment.signup_id, // TODO: To powinno być player_id, nie signup_id
-        name: `Player ${assignment.signup_id}`, // TODO: Pobrać prawdziwe imię i nazwisko
-        position: "forward", // TODO: Pobrać prawdziwą pozycję
-        skillRate: 5, // TODO: Pobrać prawdziwy skill_rate (tylko dla admina)
-      };
+      const achieved =
+        avgSkillRates.every((rate) => rate === 0) || maxAvg === 0
+          ? false
+          : ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
 
-      team.players.push(player);
-    });
+      setBalanceAchieved(achieved);
 
-    // Oblicz statystyki dla każdej drużyny
-    const teams: TeamViewModel[] = [];
-    teamsMap.forEach((teamData, teamNumber) => {
-      const players = teamData.players;
-
-      // Oblicz średni skill rate
-      const avgSkillRate =
-        players.length > 0 ? players.reduce((sum, player) => sum + player.skillRate, 0) / players.length : 0;
-
-      // Oblicz rozkład pozycji
-      const positions: Record<string, number> = {};
-      players.forEach((player) => {
-        positions[player.position] = (positions[player.position] || 0) + 1;
-      });
-
-      teams.push({
-        teamNumber,
-        players,
-        avgSkillRate,
-        positions,
-      });
-    });
-
-    // Sprawdź balans drużyn (różnica średniego skill rate <= 7%)
-    const avgSkillRates = teams.map((team) => team.avgSkillRate);
-    const maxAvg = Math.max(...avgSkillRates);
-    const minAvg = Math.min(...avgSkillRates);
-    const balanceThreshold = 7; // 7% jak w planie
-    const achieved = teams.length <= 1 || ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
-
-    setBalanceAchieved(achieved);
-
-    return teams;
-  }, []);
+      return teams;
+    },
+    []
+  );
 
   /**
    * Pobieranie aktualnych przypisań drużyn dla wydarzenia
@@ -149,7 +162,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
         balance_threshold: 0.07, // 7%
       };
 
-      const response = await fetch(`/api/events/${eventId}/draw`, {
+      const response = await fetch(`/api/events/${eventId}/teams/draw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(command),
@@ -167,7 +180,8 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
         const teamsData: TeamViewModel[] = result.teams.map((team) => ({
           teamNumber: team.team_number,
           players: team.players.map((player) => ({
-            id: player.player_id,
+            signupId: player.signup_id ?? player.player_id,
+            playerId: player.player_id,
             name: player.player_name,
             position: player.position,
             skillRate: player.skill_rate,

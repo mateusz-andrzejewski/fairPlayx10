@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createEventSignupsService } from "../../../../../lib/services/eventSignups.service";
 import { updateEventSignupSchema, eventSignupIdParamsSchema } from "../../../../../lib/validation/eventSignups";
+import { requireActor } from "../../../../../lib/auth/request-actor";
 
 /**
  * PATCH /api/events/{eventId}/signups/{signupId}
@@ -65,12 +66,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
-    const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "organizer" as const, // TODO: Pobierz z locals.session.user.role
-    };
+    const actor = requireActor(locals);
 
     // 3. Wywołaj logikę biznesową
     const eventSignupsService = createEventSignupsService(locals.supabase);
@@ -197,13 +193,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
-    const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "organizer" as const, // TODO: Pobierz z locals.session.user.role
-      playerId: null, // TODO: Pobierz z locals.session.user.player_id
-    };
+    const actor = requireActor(locals);
 
     // 2. Wywołaj logikę biznesową wycofania zapisu
     const eventSignupsService = createEventSignupsService(locals.supabase);

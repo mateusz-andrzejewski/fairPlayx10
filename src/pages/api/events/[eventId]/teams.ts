@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 import { createTeamAssignmentsService } from "../../../../lib/services/team-assignments.service";
 import { createTeamAssignmentsSchema, eventIdParamSchema } from "../../../../lib/validation/teamAssignments";
 import type { TeamAssignmentsListResponseDTO } from "../../../../types";
+import { requireActor } from "../../../../lib/auth/request-actor";
 
 /**
  * POST /api/events/{eventId}/teams
@@ -65,12 +66,11 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
+    const baseActor = requireActor(locals);
     const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "admin" as const, // TODO: Pobierz z locals.session.user.role
-      ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1", // Fallback dla adresu IP
+      userId: baseActor.userId,
+      role: baseActor.role,
+      ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1",
     };
 
     // 3. Wywołaj logikę biznesową
@@ -194,16 +194,14 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       );
     }
 
-    // TODO: Pobierz kontekst użytkownika z autoryzacji JWT
-    // Na razie używamy tymczasowych danych dla testowania
-    const actor = {
-      userId: 1, // TODO: Pobierz z locals.session.user.id
-      role: "admin" as const, // TODO: Pobierz z locals.session.user.role
-    };
+    const actor = requireActor(locals);
 
     // 2. Wywołaj logikę biznesową
     const teamAssignmentsService = createTeamAssignmentsService(locals.supabase);
-    const assignments = await teamAssignmentsService.listAssignments(validatedParams.eventId, actor);
+    const assignments = await teamAssignmentsService.listAssignments(validatedParams.eventId, {
+      userId: actor.userId,
+      role: actor.role,
+    });
 
     // 3. Przygotuj odpowiedź zgodnie z TeamAssignmentsListResponseDTO
     const response: TeamAssignmentsListResponseDTO = {

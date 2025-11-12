@@ -99,7 +99,14 @@ export class EventService {
           player_id,
           signup_timestamp,
           status,
-          resignation_timestamp
+          resignation_timestamp,
+          players:players!inner (
+            id,
+            first_name,
+            last_name,
+            position,
+            skill_rate
+          )
         )
       `
       )
@@ -133,7 +140,25 @@ export class EventService {
       created_at: eventData.created_at,
       updated_at: eventData.updated_at,
       deleted_at: eventData.deleted_at,
-      signups: eventData.event_signups || [], // Zapewnij że signups zawsze jest tablicą
+      signups: (eventData.event_signups || [])
+        .filter((signup) => signup.status !== "withdrawn")
+        .map((signup) => ({
+          id: signup.id,
+          event_id: signup.event_id,
+          player_id: signup.player_id,
+          signup_timestamp: signup.signup_timestamp,
+          status: signup.status,
+          resignation_timestamp: signup.resignation_timestamp,
+          player: signup.players
+            ? {
+                id: signup.players.id,
+                first_name: signup.players.first_name,
+                last_name: signup.players.last_name,
+                position: signup.players.position,
+                skill_rate: signup.players.skill_rate,
+              }
+            : null,
+        })),
     };
 
     return eventDetail;

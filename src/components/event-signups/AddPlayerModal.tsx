@@ -21,6 +21,7 @@ interface AddPlayerModalProps {
   onSubmit: (data: AddPlayerFormData) => void;
   availablePlayers: AvailablePlayerDTO[];
   isSubmitting?: boolean;
+  isLoading?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export function AddPlayerModal({
   onSubmit,
   availablePlayers,
   isSubmitting = false,
+  isLoading = false,
 }: AddPlayerModalProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
 
@@ -46,7 +48,7 @@ export function AddPlayerModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedPlayerId) {
+    if (!selectedPlayerId || isLoading) {
       return; // Walidacja - gracz musi być wybrany
     }
 
@@ -81,14 +83,16 @@ export function AddPlayerModal({
               Wybierz gracza
             </label>
             <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId} disabled={isSubmitting}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-busy={isLoading}>
                 <div className="flex items-center gap-2">
                   <SearchIcon className="w-4 h-4 text-muted-foreground" />
-                  <SelectValue placeholder="Wyszukaj i wybierz gracza..." />
+                  <SelectValue placeholder={isLoading ? "Ładowanie listy graczy..." : "Wyszukaj i wybierz gracza..."} />
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {availablePlayers.length === 0 ? (
+                {isLoading ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Ładowanie dostępnych graczy...</div>
+                ) : availablePlayers.length === 0 ? (
                   <div className="p-4 text-center text-sm text-muted-foreground">Brak dostępnych graczy do dodania</div>
                 ) : (
                   availablePlayers.map((player) => (
@@ -112,12 +116,16 @@ export function AddPlayerModal({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
               className="w-full sm:w-auto"
             >
               Anuluj
             </Button>
-            <Button type="submit" disabled={!selectedPlayerId || isSubmitting} className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={!selectedPlayerId || isSubmitting || isLoading}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting ? "Dodawanie..." : "Dodaj gracza"}
             </Button>
           </DialogFooter>
