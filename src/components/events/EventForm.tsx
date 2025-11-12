@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Clock, MapPin, Users, Euro, Loader2, AlertCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Banknote, Loader2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -182,8 +182,8 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
             {/* Opcjonalna opłata */}
             <div className="space-y-2">
               <Label htmlFor="optional_fee" className="text-sm font-medium flex items-center gap-1">
-                <Euro className="h-4 w-4" />
-                Opcjonalna opłata za udział
+                <Banknote className="h-4 w-4" />
+                Opcjonalna opłata za udział (zł)
               </Label>
               <div className="relative">
                 <Input
@@ -196,7 +196,7 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                   disabled={isSubmitting}
                   className={errors.optional_fee ? "border-destructive pl-8" : "pl-8"}
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">zł</span>
               </div>
               {errors.optional_fee && (
                 <p className="text-sm text-destructive flex items-center gap-1">

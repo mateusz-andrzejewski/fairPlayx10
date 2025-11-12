@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, AlertCircle, ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,10 +48,10 @@ export function EventsList({
   const handleEventClick = (eventId: number) => {
     if (onEventClick) {
       onEventClick(eventId);
+      return;
     }
-    // Domyślne zachowanie - nawigacja przez URL
-    // W Astro/React używamy routera zamiast window.location
-    window.history.pushState({}, "", `/dashboard/events/${eventId}`);
+    // Domyślne zachowanie - pełna nawigacja (Astro musi przeładować stronę)
+    window.location.href = `/dashboard/events/${eventId}`;
   };
 
   /**
@@ -152,17 +152,29 @@ export function EventsList({
     );
   };
 
+  // Sprawdź czy użytkownik może tworzyć wydarzenia
+  const canCreateEvents = userRole === "admin" || userRole === "organizer";
+
   return (
     <div className="space-y-6">
-      {/* Przycisk powrotu do dashboard */}
-      {showBackToDashboard && (
-        <div className="mb-4">
+      {/* Nagłówek z przyciskami */}
+      <div className="flex items-center justify-between">
+        {/* Przycisk powrotu do dashboard */}
+        {showBackToDashboard && (
           <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Powrót do dashboard
           </Button>
-        </div>
-      )}
+        )}
+        
+        {/* Przycisk dodawania wydarzenia dla admin/organizatora */}
+        {canCreateEvents && (
+          <Button onClick={() => (window.location.href = "/dashboard/events/new")} className="gap-2 ml-auto">
+            <Plus className="h-4 w-4" />
+            Dodaj wydarzenie
+          </Button>
+        )}
+      </div>
 
       {/* Filtry */}
       <EventFilters

@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Clock, MapPin, Users, Euro } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Banknote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,8 +63,8 @@ export function EventCard({ event, userRole, onSignup, onNavigate }: EventCardPr
           </div>
           {event.optional_fee && (
             <Badge variant="outline" className="shrink-0 ml-2">
-              <Euro className="h-3 w-3 mr-1" />
-              {event.optional_fee}
+              <Banknote className="h-3 w-3 mr-1" />
+              {event.optional_fee} zł
             </Badge>
           )}
         </div>

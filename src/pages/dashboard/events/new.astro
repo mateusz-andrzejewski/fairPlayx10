@@ -1,0 +1,13 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { EventCreatePage } from "../../../components/events/EventCreatePage.tsx";
+import { ToastProvider } from "../../../components/ToastProvider.tsx";
+
+export const prerender = false;
+---
+
+<Layout title="Nowe wydarzenie - FairPlay">
+  <EventCreatePage client:load />
+  <ToastProvider client:load />
+</Layout>
+

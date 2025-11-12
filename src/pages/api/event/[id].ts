@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 
 import { createEventService } from "../../../lib/services/event.service";
 import { validateEventIdParam, updateEventBodySchema } from "../../../lib/validation/event";
-import { requireActor, UnauthorizedError } from "../../../lib/auth/request-actor";
+import { requireActor, requireAdmin, UnauthorizedError } from "../../../lib/auth/request-actor";
 
 /**
  * GET /api/event/{id}

@@ -5,7 +5,7 @@ import {
   Clock,
   MapPin,
   Users,
-  Euro,
+  Banknote,
   UserPlus,
   Edit,
   Shuffle,
@@ -211,8 +211,8 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
             <div className="flex gap-2">
               {event.optional_fee && (
                 <Badge variant="outline" className="gap-1">
-                  <Euro className="h-3 w-3" />
-                  {event.optional_fee}
+                  <Banknote className="h-3 w-3" />
+                  {event.optional_fee} zł
                 </Badge>
               )}
               <Badge variant={event.status === "active" ? "default" : "secondary"}>

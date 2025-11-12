@@ -93,7 +93,7 @@ export function EventManagementSection({ events }: EventManagementSectionProps) 
           <Button onClick={() => (window.location.href = "/dashboard/events")} variant="outline">
             Wszystkie wydarzenia
           </Button>
-          <Button className="gap-2">
+          <Button onClick={() => (window.location.href = "/dashboard/events/new")} className="gap-2">
             <Plus className="h-4 w-4" />
             Dodaj wydarzenie
           </Button>
