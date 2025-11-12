@@ -555,6 +555,17 @@ export class TeamAssignmentsService {
         throw new Error(`Błąd podczas tworzenia nowych przypisań: ${insertError.message}`);
       }
     }
+
+    // Zaktualizuj timestamp potwierdzenia drużyn w tabeli events
+    const { error: updateEventError } = await this.supabase
+      .from("events")
+      .update({ teams_drawn_at: new Date().toISOString() })
+      .eq("id", eventId);
+
+    if (updateEventError) {
+      // Loguj błąd ale nie przerywaj operacji - to nie powinno blokować zapisu przypisań
+      console.error("Błąd podczas aktualizacji teams_drawn_at:", updateEventError);
+    }
   }
 
   /**

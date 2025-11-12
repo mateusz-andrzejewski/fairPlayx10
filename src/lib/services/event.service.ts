@@ -73,7 +73,7 @@ export class EventService {
       .from("events")
       .insert(eventData)
       .select(
-        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at"
+        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at, teams_drawn_at, preferred_team_count"
       )
       .single();
 
@@ -126,6 +126,8 @@ export class EventService {
         created_at,
         updated_at,
         deleted_at,
+        teams_drawn_at,
+        preferred_team_count,
         event_signups (
           id,
           event_id,
@@ -173,6 +175,8 @@ export class EventService {
       created_at: eventData.created_at,
       updated_at: eventData.updated_at,
       deleted_at: eventData.deleted_at,
+      teams_drawn_at: eventData.teams_drawn_at,
+      preferred_team_count: eventData.preferred_team_count,
       signups: (eventData.event_signups || [])
         .filter((signup) => signup.status !== "withdrawn")
         .map((signup) => ({
@@ -217,7 +221,7 @@ export class EventService {
     let query = this.supabase
       .from("events")
       .select(
-        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at",
+        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at, teams_drawn_at, preferred_team_count",
         {
           count: "exact",
         }
@@ -284,6 +288,8 @@ export class EventService {
       created_at: event.created_at,
       updated_at: event.updated_at,
       deleted_at: event.deleted_at,
+      teams_drawn_at: event.teams_drawn_at,
+      preferred_team_count: event.preferred_team_count,
     }));
 
     // Oblicz metadane paginacji
@@ -322,7 +328,7 @@ export class EventService {
     // Najpierw pobierz istniejące wydarzenie aby sprawdzić własność i obecny stan
     const { data: existingEvent, error: fetchError } = await this.supabase
       .from("events")
-      .select("id, name, location, event_datetime, max_places, optional_fee, status, organizer_id, deleted_at")
+      .select("id, name, location, event_datetime, max_places, optional_fee, status, organizer_id, deleted_at, teams_drawn_at, preferred_team_count")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -394,7 +400,7 @@ export class EventService {
       .update(updateData)
       .eq("id", id)
       .select(
-        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at"
+        "id, name, location, event_datetime, max_places, optional_fee, status, current_signups_count, organizer_id, created_at, updated_at, deleted_at, teams_drawn_at, preferred_team_count"
       )
       .single();
 
