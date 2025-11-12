@@ -24,7 +24,7 @@ export class DashboardService {
       this.loadUserProfile(userId),
       this.loadUpcomingEvents(),
       playerId ? this.loadMySignups(playerId) : Promise.resolve([]),
-      this.shouldLoadOrganizedEvents(userRole) ? this.loadOrganizedEvents(userId) : Promise.resolve([]),
+      this.shouldLoadOrganizedEvents(userRole) ? this.loadManagedEvents(userId, userRole) : Promise.resolve([]),
       this.shouldLoadPendingUsers(userRole)
         ? this.loadPendingUsersCount().catch((error) => {
             console.warn("[dashboard] Nie udało się pobrać liczby oczekujących użytkowników", error);
@@ -161,13 +161,16 @@ export class DashboardService {
   }
 
   /**
-   * Ładuje wydarzenia organizowane przez użytkownika.
+   * Ładuje wydarzenia zarządzane przez użytkownika.
+   * - Admin: wszystkie wydarzenia
+   * - Organizer: tylko wydarzenia organizowane przez użytkownika
    *
-   * @param userId - ID użytkownika-organizatora
-   * @returns Promise rozwiązujący się do listy organizowanych wydarzeń
+   * @param userId - ID użytkownika
+   * @param userRole - Rola użytkownika
+   * @returns Promise rozwiązujący się do listy zarządzanych wydarzeń
    */
-  private async loadOrganizedEvents(userId: number): Promise<EventDTO[]> {
-    const { data, error } = await this.supabase
+  private async loadManagedEvents(userId: number, userRole: string): Promise<EventDTO[]> {
+    let query = this.supabase
       .from("events")
       .select(
         `
@@ -185,12 +188,19 @@ export class DashboardService {
         deleted_at
       `
       )
-      .eq("organizer_id", userId)
       .is("deleted_at", null)
       .order("event_datetime", { ascending: false });
 
+    // Dla organizatora filtrujemy tylko jego wydarzenia
+    if (userRole === "organizer") {
+      query = query.eq("organizer_id", userId);
+    }
+    // Dla admina pobieramy wszystkie wydarzenia (bez dodatkowego filtra)
+
+    const { data, error } = await query;
+
     if (error) {
-      throw new Error(`Failed to load organized events: ${error.message}`);
+      throw new Error(`Failed to load managed events: ${error.message}`);
     }
 
     return data || [];
