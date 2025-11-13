@@ -1,0 +1,130 @@
+name: Deploy to Cloudflare Pages (Debug Version)
+
+# Użyj tego workflow do debugowania problemów z deploymentem
+# Skopiuj zawartość do master.yml jeśli chcesz więcej logów
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env file
+        run: |
+          echo "PUBLIC_SUPABASE_URL=${{ secrets.PUBLIC_SUPABASE_URL }}" > .env
+          echo "PUBLIC_SUPABASE_ANON_KEY=${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          echo "Checking if dist directory exists..."
+          ls -la dist/
+          echo "Checking dist/_worker.js..."
+          ls -la dist/_worker.js/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    environment:
+      name: production
+      url: ${{ steps.deployment.outputs.deployment-url }}
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env file
+        run: |
+          echo "PUBLIC_SUPABASE_URL=${{ secrets.PUBLIC_SUPABASE_URL }}" > .env
+          echo "PUBLIC_SUPABASE_ANON_KEY=${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify secrets are set
+        run: |
+          echo "Checking if secrets are available..."
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "❌ CLOUDFLARE_API_TOKEN is not set!"
+            exit 1
+          else
+            echo "✅ CLOUDFLARE_API_TOKEN is set (length: ${#CLOUDFLARE_API_TOKEN})"
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "❌ CLOUDFLARE_ACCOUNT_ID is not set!"
+            exit 1
+          else
+            echo "✅ CLOUDFLARE_ACCOUNT_ID is set: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare Pages (with verbose logging)
+        id: deployment
+        run: |
+          echo "Starting deployment to Cloudflare Pages..."
+          echo "Project name: fairplayx10"
+          echo "Branch: main"
+          echo "Directory: dist"
+          
+          wrangler pages deploy dist \
+            --project-name=fairplayx10 \
+            --branch=main \
+            2>&1 | tee deployment.log
+          
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "❌ Deployment failed!"
+            cat deployment.log
+            exit 1
+          fi
+          
+          echo "✅ Deployment successful!"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: debug
+
+      - name: Upload deployment log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-log
+          path: deployment.log
+          retention-days: 7
+

@@ -40,9 +40,6 @@ jobs:
     permissions:
       contents: read
       deployments: write
-    environment:
-      name: production
-      url: ${{ steps.deployment.outputs.deployment-url }}
     env:
       PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
@@ -72,5 +69,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=fairplayx10
+          command: pages deploy dist --project-name=fairplayx10 --branch=main
 

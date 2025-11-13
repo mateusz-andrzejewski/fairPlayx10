@@ -86,13 +86,24 @@ npx wrangler pages deploy dist --project-name=fairplayx10
 
 ## Troubleshooting
 
+### Problem: "The process failed with exit code 1" podczas deployment
+- **Najczęstsza przyczyna**: Projekt nie istnieje w Cloudflare Pages
+- **Rozwiązanie**: Utwórz projekt w Cloudflare Dashboard (Workers & Pages → Create → Pages → Upload assets)
+- Nazwa projektu MUSI być: `fairplayx10`
+- Zobacz szczegółowe instrukcje w: `CLOUDFLARE_CI_CD_SETUP.md`
+
 ### Problem: "Invalid binding SESSION"
 - Upewnij się, że utworzyłeś KV namespace i dodałeś ID do `wrangler.toml`
 - Sprawdź czy binding jest dodany w Cloudflare Dashboard
 
 ### Problem: "Unauthorized" podczas deployment
 - Sprawdź czy `CLOUDFLARE_API_TOKEN` jest poprawny
-- Sprawdź czy token ma odpowiednie uprawnienia (Cloudflare Pages Edit)
+- Token musi mieć uprawnienia: Account > Cloudflare Pages > Edit
+- Zobacz jak stworzyć poprawny token w: `CLOUDFLARE_CI_CD_SETUP.md`
+
+### Problem: "Project not found"
+- Projekt musi istnieć w Cloudflare Pages przed pierwszym deployem przez GitHub Actions
+- Utwórz projekt ręcznie w Cloudflare Dashboard z nazwą: `fairplayx10`
 
 ### Problem: Błędy testów
 - Upewnij się, że zmienne `PUBLIC_SUPABASE_URL` i `PUBLIC_SUPABASE_ANON_KEY` są ustawione w GitHub Secrets
