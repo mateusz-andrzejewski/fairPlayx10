@@ -41,3 +41,4 @@
 - **Auth**: logowanie/wylogowanie czyści sesję, próba wejścia na `/dashboard` po wylogowaniu → `/login`.
 - **Tryb dev**: `PUBLIC_DISABLE_DASHBOARD_AUTH=true` umożliwia wgląd w dashboard bez Supabase.
 
+
