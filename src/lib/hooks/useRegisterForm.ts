@@ -185,7 +185,8 @@ export function useRegisterForm() {
 
       if (result.success) {
         toast.success("Rejestracja zakończona sukcesem!", {
-          description: "Twoje konto oczekuje na zatwierdzenie przez administratora. Po zatwierdzeniu będziesz mógł się zalogować.",
+          description:
+            "Twoje konto oczekuje na zatwierdzenie przez administratora. Po zatwierdzeniu będziesz mógł się zalogować.",
           duration: 8000,
         });
 

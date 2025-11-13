@@ -192,7 +192,9 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold text-red-600 mb-2">Brak dostępu</h2>
             <p className="text-muted-foreground">
-              {!user ? "Musisz być zalogowany, aby zarządzać użytkownikami." : "Nie masz uprawnień do zarządzania użytkownikami."}
+              {!user
+                ? "Musisz być zalogowany, aby zarządzać użytkownikami."
+                : "Nie masz uprawnień do zarządzania użytkownikami."}
             </p>
             {!user && (
               <Button onClick={() => (window.location.href = "/login")} className="mt-4">

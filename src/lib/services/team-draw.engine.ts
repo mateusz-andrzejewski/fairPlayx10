@@ -57,7 +57,9 @@ export class TeamDrawEngine {
 
       // Sprawdź czy liczba graczy jest wystarczająca dla podanej liczby drużyn
       if (players.length < teamCount * 2) {
-        throw new Error(`Zbyt mało graczy (${players.length}) dla ${teamCount} drużyn. Minimalna liczba graczy to ${teamCount * 2}.`);
+        throw new Error(
+          `Zbyt mało graczy (${players.length}) dla ${teamCount} drużyn. Minimalna liczba graczy to ${teamCount * 2}.`
+        );
       }
 
       // Uruchom algorytm wielokrotnych iteracji

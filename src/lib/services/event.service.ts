@@ -24,19 +24,19 @@ export class EventService {
    * Automatycznie oznacza wydarzenia jako 'completed' jeśli ich data już minęła.
    * Aktualizuje tylko wydarzenia w statusie 'active'.
    * Wywołuje się automatycznie przed operacjami pobierania listy wydarzeń.
-   * 
+   *
    * @returns Promise rozwiązujący się po zaktualizowaniu wydarzeń
    * @throws Error jeśli aktualizacja się nie powiedzie
    */
   private async autoCompleteEvents(): Promise<void> {
     const now = new Date().toISOString();
-    
+
     // Zaktualizuj wszystkie aktywne wydarzenia które już się odbyły
     const { error } = await this.supabase
       .from("events")
-      .update({ 
+      .update({
         status: "completed" as const,
-        updated_at: now
+        updated_at: now,
       })
       .eq("status", "active")
       .lt("event_datetime", now)
@@ -108,7 +108,7 @@ export class EventService {
   async getEventById(id: number): Promise<EventDetailDTO | null> {
     // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
     await this.autoCompleteEvents();
-    
+
     // Wykonaj zapytanie z relacjami aby pobrać wydarzenie i powiązane zapisy
     const { data: eventData, error } = await this.supabase
       .from("events")
@@ -212,7 +212,7 @@ export class EventService {
   async listEvents(params: ListEventsValidatedParams): Promise<EventsListResponseDTO> {
     // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
     await this.autoCompleteEvents();
-    
+
     // Oblicz offset dla paginacji
     const from = (params.page - 1) * params.limit;
     const to = from + params.limit - 1;
@@ -328,7 +328,9 @@ export class EventService {
     // Najpierw pobierz istniejące wydarzenie aby sprawdzić własność i obecny stan
     const { data: existingEvent, error: fetchError } = await this.supabase
       .from("events")
-      .select("id, name, location, event_datetime, max_places, optional_fee, status, organizer_id, deleted_at, teams_drawn_at, preferred_team_count")
+      .select(
+        "id, name, location, event_datetime, max_places, optional_fee, status, organizer_id, deleted_at, teams_drawn_at, preferred_team_count"
+      )
       .eq("id", id)
       .is("deleted_at", null)
       .single();

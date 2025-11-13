@@ -29,7 +29,7 @@ export class EventSignupsService {
   /**
    * Automatycznie przesuwa pierwszego gracza z listy rezerwowej (pending) na potwierdzonego (confirmed).
    * Wywoływane automatycznie gdy zwolni się miejsce na wydarzeniu.
-   * 
+   *
    * @param eventId - ID wydarzenia
    * @returns Promise<boolean> - true jeśli ktoś został przesunięty, false jeśli lista rezerwowa była pusta
    * @private
@@ -76,10 +76,7 @@ export class EventSignupsService {
 
     if (eventFetchError || !eventData) {
       // Spróbuj cofnąć zmianę statusu
-      await this.supabase
-        .from("event_signups")
-        .update({ status: "pending" })
-        .eq("id", waitingSignup.id);
+      await this.supabase.from("event_signups").update({ status: "pending" }).eq("id", waitingSignup.id);
       throw new Error(`Nie udało się pobrać danych wydarzenia po awansie`);
     }
 
@@ -93,10 +90,7 @@ export class EventSignupsService {
 
     if (counterError) {
       // Spróbuj cofnąć zmianę statusu
-      await this.supabase
-        .from("event_signups")
-        .update({ status: "pending" })
-        .eq("id", waitingSignup.id);
+      await this.supabase.from("event_signups").update({ status: "pending" }).eq("id", waitingSignup.id);
       throw new Error(`Nie udało się zaktualizować licznika po awansie: ${counterError.message}`);
     }
 

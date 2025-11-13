@@ -133,7 +133,9 @@ export class TeamAssignmentsService {
       if (!isAdmin(actor.role)) {
         const isEventOrganizer = await this.checkEventOrganizer(eventId, actor.userId);
         if (!isEventOrganizer) {
-          throw new Error("Tylko organizator wydarzenia lub administrator może przeglądać wszystkie przypisania drużyn");
+          throw new Error(
+            "Tylko organizator wydarzenia lub administrator może przeglądać wszystkie przypisania drużyn"
+          );
         }
       }
     }
@@ -421,7 +423,9 @@ export class TeamAssignmentsService {
    * @returns Dane wydarzenia z preferred_team_count
    * @throws Error jeśli wydarzenie nie istnieje lub nie pozwala na losowanie
    */
-  private async validateEventForDraw(eventId: number): Promise<{ id: number; status: string; preferred_team_count: number | null }> {
+  private async validateEventForDraw(
+    eventId: number
+  ): Promise<{ id: number; status: string; preferred_team_count: number | null }> {
     const { data, error } = await this.supabase
       .from("events")
       .select("id, status, preferred_team_count")
@@ -497,7 +501,7 @@ export class TeamAssignmentsService {
    */
   private convertDrawResultToAssignments(
     drawResult: TeamDrawResultDTO,
-    confirmedSignups: Array<{ id: number; player_id: number }>
+    confirmedSignups: { id: number; player_id: number }[]
   ) {
     const assignments: ManualTeamAssignmentEntry[] = [];
     const playerToSignupMap = new Map<number, number>();

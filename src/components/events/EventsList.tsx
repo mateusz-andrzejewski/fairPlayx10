@@ -167,7 +167,7 @@ export function EventsList({
             Powrót do Dashboard
           </Button>
         )}
-        
+
         {/* Przycisk dodawania wydarzenia dla admin/organizatora */}
         {canCreateEvents && (
           <Button onClick={() => (window.location.href = "/dashboard/events/new")} className="gap-2 ml-auto">

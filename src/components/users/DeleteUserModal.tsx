@@ -78,4 +78,3 @@ export function DeleteUserModal({ user, isOpen, onClose, onConfirm, isDeleting }
     </Dialog>
   );
 }
-

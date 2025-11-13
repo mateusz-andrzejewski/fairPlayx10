@@ -37,13 +37,13 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
         }
 
         const data = await response.json();
-        
+
         // Grupuj przypisania wg drużyn
         const teamsMap = new Map<number, TeamViewModel>();
-        
+
         data.data.forEach((assignment: any) => {
           const teamNumber = assignment.team_number;
-          
+
           if (!teamsMap.has(teamNumber)) {
             teamsMap.set(teamNumber, {
               teamNumber,
@@ -53,10 +53,10 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
               positions: {},
             });
           }
-          
+
           const team = teamsMap.get(teamNumber)!;
           const player = assignment.player;
-          
+
           if (player) {
             team.players.push({
               signupId: assignment.signup_id,
@@ -65,12 +65,12 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
               position: player.position,
               skillRate: player.skill_rate, // null dla non-admin
             });
-            
+
             // Zliczaj pozycje
             team.positions[player.position] = (team.positions[player.position] || 0) + 1;
           }
         });
-        
+
         // Oblicz średni skill rate dla każdej drużyny (tylko jeśli mamy dane)
         const teamsArray = Array.from(teamsMap.values()).map((team) => {
           const playersWithSkillRate = team.players.filter((p) => p.skillRate !== null);
@@ -78,13 +78,13 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
             playersWithSkillRate.length > 0
               ? playersWithSkillRate.reduce((sum, p) => sum + (p.skillRate || 0), 0) / playersWithSkillRate.length
               : 0;
-          
+
           return { ...team, avgSkillRate };
         });
-        
+
         // Sortuj drużyny po numerze
         teamsArray.sort((a, b) => a.teamNumber - b.teamNumber);
-        
+
         setTeams(teamsArray);
 
         // Znajdź drużynę gracza jeśli currentPlayerId jest podane
@@ -112,7 +112,12 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
   const getColorStyles = (color: TeamColor) => {
     const colorMap = {
       black: { bg: "bg-gray-900", text: "text-white", border: "border-gray-900", badge: "bg-gray-900 text-white" },
-      white: { bg: "bg-white", text: "text-gray-900", border: "border-gray-300", badge: "bg-white text-gray-900 border border-gray-300" },
+      white: {
+        bg: "bg-white",
+        text: "text-gray-900",
+        border: "border-gray-300",
+        badge: "bg-white text-gray-900 border border-gray-300",
+      },
       red: { bg: "bg-red-600", text: "text-white", border: "border-red-600", badge: "bg-red-600 text-white" },
       blue: { bg: "bg-blue-600", text: "text-white", border: "border-blue-600", badge: "bg-blue-600 text-white" },
     };
@@ -193,7 +198,9 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
             <AlertDescription className="flex-1">
               <span className="font-semibold">Jesteś w Drużynie {playerTeam.teamNumber}</span>
               <span className="ml-2 text-muted-foreground">•</span>
-              <span className="ml-2">Kolor koszulki: <strong>{translateColor(playerTeam.teamColor)}</strong></span>
+              <span className="ml-2">
+                Kolor koszulki: <strong>{translateColor(playerTeam.teamColor)}</strong>
+              </span>
             </AlertDescription>
             <Badge className={`${getColorStyles(playerTeam.teamColor).badge} shrink-0`}>
               {translateColor(playerTeam.teamColor)}
@@ -213,7 +220,7 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {teams.map((team) => {
           const colorStyles = getColorStyles(team.teamColor);
-          
+
           return (
             <Card key={team.teamNumber} className={`border-2 ${colorStyles.border}`}>
               <CardHeader className="pb-3">
@@ -222,9 +229,7 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
                     <ShirtIcon className="w-5 h-5" />
                     Drużyna {team.teamNumber}
                   </span>
-                  <Badge className={colorStyles.badge}>
-                    {translateColor(team.teamColor)}
-                  </Badge>
+                  <Badge className={colorStyles.badge}>{translateColor(team.teamColor)}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -245,9 +250,7 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
 
                 {/* Lista graczy */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Skład
-                  </p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Skład</p>
                   <div className="space-y-2">
                     {team.players.map((player) => (
                       <div
@@ -276,11 +279,7 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {Object.entries(team.positions).map(([position, count]) => (
-                        <Badge
-                          key={position}
-                          variant="outline"
-                          className="text-xs px-2 py-0.5"
-                        >
+                        <Badge key={position} variant="outline" className="text-xs px-2 py-0.5">
                           {translatePosition(position)}: {count}
                         </Badge>
                       ))}
@@ -295,4 +294,3 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
     </div>
   );
 }
-

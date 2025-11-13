@@ -12,7 +12,7 @@ import { requireAdmin } from "../../../lib/auth/request-actor";
  *    Admin musi podać: role (wymagane) oraz opcjonalnie player_id lub create_player.
  * 2. Aktualizacja roli zatwierdzonego użytkownika - zmiana roli istniejącego użytkownika.
  *    Admin musi podać: role (wymagane).
- * 
+ *
  * Operacja wymaga roli admin.
  * Zgodnie z PRD US-003: Zatwierdzanie rejestracji przez Admina
  */
@@ -74,7 +74,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     // Sprawdź typ operacji na podstawie zawartości body
     const bodyObj = body as Record<string, unknown>;
     const usersService = createUsersService(locals.supabase);
-    
+
     // Przypadek 1: Aktualizacja roli zatwierdzonego użytkownika (tylko role + opcjonalnie status)
     // Sprawdzamy czy body zawiera tylko role (i ewentualnie status="approved")
     const hasOnlyRole = bodyObj.role && !bodyObj.player_id && !bodyObj.create_player;

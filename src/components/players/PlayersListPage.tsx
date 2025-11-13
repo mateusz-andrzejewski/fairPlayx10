@@ -57,7 +57,9 @@ export default function PlayersListPage() {
         <div className="text-center">
           <h1 className="mb-2 text-2xl font-bold text-destructive">Brak dostępu</h1>
           <p className="text-muted-foreground">
-            {!user ? "Musisz być zalogowany, aby przeglądać tę stronę." : "Nie masz uprawnień do przeglądania tej strony."}
+            {!user
+              ? "Musisz być zalogowany, aby przeglądać tę stronę."
+              : "Nie masz uprawnień do przeglądania tej strony."}
           </p>
           {!user && (
             <Button onClick={() => (window.location.href = "/login")} className="mt-4">

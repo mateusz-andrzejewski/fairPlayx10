@@ -302,7 +302,9 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                             </div>
                             <div>
                               <p className="font-medium">{signup.playerName}</p>
-                              {signup.position && <p className="text-sm text-muted-foreground capitalize">{signup.position}</p>}
+                              {signup.position && (
+                                <p className="text-sm text-muted-foreground capitalize">{signup.position}</p>
+                              )}
                             </div>
                           </div>
 
@@ -353,7 +355,9 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                             </div>
                             <div>
                               <p className="font-medium text-muted-foreground">{signup.playerName}</p>
-                              {signup.position && <p className="text-xs text-muted-foreground capitalize">{signup.position}</p>}
+                              {signup.position && (
+                                <p className="text-xs text-muted-foreground capitalize">{signup.position}</p>
+                              )}
                             </div>
                           </div>
 

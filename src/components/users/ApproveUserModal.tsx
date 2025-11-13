@@ -310,4 +310,3 @@ export default function ApproveUserModal({ user, isOpen, onClose, onApprove }: A
     </Dialog>
   );
 }
-

@@ -74,12 +74,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // Sprawdź uprawnienia - tylko organizatorzy i administratorzy mogą tworzyć wydarzenia
     const actor = requireActor(locals);
-    
+
     if (actor.role !== "admin" && actor.role !== "organizer") {
       return new Response(
         JSON.stringify({
           error: "forbidden",
-          message: "Brak uprawnień do tworzenia wydarzeń. Tylko administratorzy i organizatorzy mogą tworzyć wydarzenia.",
+          message:
+            "Brak uprawnień do tworzenia wydarzeń. Tylko administratorzy i organizatorzy mogą tworzyć wydarzenia.",
         }),
         {
           status: 403,

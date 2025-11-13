@@ -29,7 +29,7 @@ export function EventCreatePage() {
 
       const createdEvent = await response.json();
       toast.success("Wydarzenie utworzone pomyślnie");
-      
+
       // Przekieruj do szczegółów nowo utworzonego wydarzenia
       window.location.href = `/dashboard/events/${createdEvent.id}`;
     } catch (err) {
@@ -81,4 +81,3 @@ export function EventCreatePage() {
     </div>
   );
 }
-

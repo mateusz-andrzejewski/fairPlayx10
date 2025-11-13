@@ -8,6 +8,15 @@ A modern, opinionated starter template for building fast, accessible, and AI-fri
 - [React](https://react.dev/) v19.0.0 - UI library for building interactive components
 - [TypeScript](https://www.typescriptlang.org/) v5 - Type-safe JavaScript
 - [Tailwind CSS](https://tailwindcss.com/) v4.0.17 - Utility-first CSS framework
+- [Supabase](https://supabase.com/) - Backend-as-a-Service with PostgreSQL database and authentication
+
+### Testing
+
+- [Vitest](https://vitest.dev/) - Unit and integration testing framework
+- [Playwright](https://playwright.dev/) - End-to-end testing framework
+- [@testing-library/react](https://testing-library.com/react) - React component testing utilities
+- [MSW](https://mswjs.io/) - API mocking for tests
+- [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright) - Accessibility testing
 
 ## Prerequisites
 
@@ -48,6 +57,10 @@ npm run build
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 - `npm run lint:fix` - Fix ESLint issues
+- `npm run test` - Run unit tests with Vitest
+- `npm run test:coverage` - Run tests with coverage report
+- `npm run test:e2e` - Run end-to-end tests with Playwright
+- `npm run test:ui` - Open Vitest UI for interactive testing
 
 ## Project Structure
 

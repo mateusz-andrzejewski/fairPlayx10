@@ -116,4 +116,3 @@ export function EditUserRoleModal({ user, isOpen, onClose, onSave, isSubmitting 
     </Dialog>
   );
 }
-

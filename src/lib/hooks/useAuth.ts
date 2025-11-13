@@ -54,7 +54,7 @@ export function useAuth() {
         if (response.ok) {
           const data = await response.json();
           console.log("[useAuth] Session data received:", data.user ? "user found" : "no user");
-          
+
           if (data.user) {
             console.log("[useAuth] User authenticated:", data.user.email, "role:", data.user.role);
             setIsAuthenticated(true);
@@ -93,10 +93,10 @@ export function useAuth() {
     console.log("[useAuth] Setting up onAuthStateChange listener");
     const { data } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
       console.log("[useAuth] Auth state changed:", event, session ? "session exists" : "no session");
-      
+
       if (event === "SIGNED_IN" && session?.user) {
         console.log("[useAuth] onAuthStateChange: User signed in, refreshing session from API");
-        
+
         // Odśwież sesję przez API zamiast bezpośrednio z bazy
         try {
           const response = await fetch("/api/auth/session", {
@@ -121,7 +121,7 @@ export function useAuth() {
         setIsAuthenticated(false);
         setUser(null);
       }
-      
+
       // Nie ustawiaj isLoading tutaj - to jest tylko dla zmian sesji, nie dla pierwszego ładowania
     });
 

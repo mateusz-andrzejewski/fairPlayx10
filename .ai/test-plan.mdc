@@ -1,0 +1,448 @@
+<plan_testów>
+## Plan Testów FairPlay
+
+### 1. Wprowadzenie i cele testowania
+- Zapewnienie, że krytyczne przepływy (autentykacja, dashboard, zarządzanie wydarzeniami i zapisami, losowanie drużyn) działają stabilnie w oparciu o Supabase.
+- Walidacja poprawności reguł biznesowych po stronie usług (`src/lib/services`) oraz spójności danych (liczniki zapisów, audyty, statusy).
+- Ograniczenie regresji UI w komponentach React/ASTRO poprzez automatyczne testy E2E w Playwright.
+- Uwiarygodnienie polityk ról (admin/organizer/player/pending) i mechanizmów middleware.
+
+### 2. Zakres testów
+- **W zakresie**: API w `src/pages/api`, serwisy domenowe, hooki (`useAuth`, `useDashboardData`, `useEventsList`, `useEventDetails`), komponenty UI odpowiadające za kluczowe przepływy dashboardu, integracja z Supabase (migrations, RLS), algorytm losowania `team-draw.engine.ts`, walidacje Zod.
+- **Poza zakresem**: zewnętrzne integracje płatności (brak w projekcie), optymalizacje wydajności CDN, manualne testy bezpieczeństwa (pen-testy), testy przeglądarek legacy.
+
+### 3. Typy testów do przeprowadzenia
+- **Testy jednostkowe (Vitest)**: serwisy (np. `EventService`, `EventSignupsService`, `TeamAssignmentsService` z mockiem Supabase), funkcje pomocnicze (auth utils, walidacje Zod), komponenty czysto prezentacyjne przy użyciu @testing-library/react.
+- **Testy integracyjne (Vitest + Testcontainers)**: scenariusze z prawdziwą bazą PostgreSQL w kontenerze Docker, pokrywające przepływy tworzenia/aktualizacji wydarzeń, promocję listy rezerwowej, logowanie błędów audytu, middleware `onRequest`, testowanie RLS policies.
+- **Testy kontraktowe API**: wykorzystanie Zod schemas z `@anatine/zod-mock` do generowania mocków i walidacji kontraktów API, automatyczna dokumentacja endpoint'ów.
+- **Testy wydajnościowe (Vitest Bench)**: benchmark algorytmu losowania drużyn (`team-draw.engine.ts`) dla różnych wielkości danych (10, 50, 100 graczy), monitoring regresji wydajności.
+- **Testy mutacyjne (Stryker)**: testowanie jakości testów dla krytycznej logiki biznesowej (losowanie, walidacje, promocja listy rezerwowej), cel: >70% mutation score.
+- **Testy E2E (Playwright)**: pełne scenariusze użytkownika dla ról (player, organizer, admin) obejmujące login, dashboard, zapisy, zarządzanie drużynami, ścieżki błędów, testy smoke dla krytycznych ścieżek.
+- **Testy dostępności (Playwright + @axe-core/playwright)**: kluczowe widoki (`/login`, `/dashboard`, `/dashboard/events/[id]`), WCAG 2.1 Level AA compliance.
+- **Testy regresji wizualnej (Playwright Screenshots)**: wykorzystanie natywnego `toHaveScreenshot()` z Playwright dla głównych ekranów, automatyczne wykrywanie zmian wizualnych.
+- **Testy real-time (Vitest)**: weryfikacja Supabase subscriptions dla zapisów na wydarzenia, aktualizacji statusów, notyfikacji.
+
+### 4. Scenariusze testowe dla kluczowych funkcjonalności
+- **Autentykacja i middleware**: logowanie poprawne/błędne, konto pending przekierowane na `/pending-approval`, wygaszona sesja, logout czyści cookies.
+- **Dashboard**: ładowanie danych z `/api/dashboard`, obsługa błędów i retry w `useDashboardData`, widoczność sekcji dla admin/organizer/player, notyfikacje oczekujących użytkowników.
+- **Wydarzenia**:
+  - Lista (`/api/events`, `useEventsList`): filtrowanie, paginacja, zapis blokowany bez `player_id`.
+  - Szczegóły (`/api/event/{id}` + `useEventDetails`): statusy, blokady zapisu (pełne wydarzenie, status != active), akcje organizatora (dodawanie, potwierdzanie, rezygnacja graczy).
+  - CRUD: tworzenie/aktualizacja z walidacją dat, max miejsc, soft delete (tylko admin).
+- **Zapisy na wydarzenia (`EventSignupsService`)**: promocja listy rezerwowej, obsługa konfliktów (już zapisany), gracz bez profilu, organizator spoza wydarzenia.
+- **Drużyny i losowanie**:
+  - Ręczne przypisanie (`/api/events/{id}/teams`): błąd dla obcych `signup_id`, aktualizacja `teams_drawn_at`, wpis w `audit_logs`.
+  - Losowanie (`team-draw.engine.ts` + `/teams/draw`): minimum graczy, różne parametry iteracji/próg balansu, maskowanie `skill_rate` dla nie-adminów.
+- **Zarządzanie użytkownikami (`UsersService`)**: filtrowanie `/api/users`, zatwierdzenie (tworzenie playera), soft delete z audytem.
+- **Zarządzanie graczami (`PlayersService`)**: tworzenie/aktualizacja z maskowaniem `skill_rate`, filtr pozycji.
+- **Błędy i logowanie**: ścieżki 400/403/404/500 w endpointach, poprawne komunikaty JSON, fallback w przypadku błędów audytu.
+- **Testy migracji**: weryfikacja, że struktura tabel (events, event_signups, team_assignments, audit_logs) spełnia wymagania (np. `preferred_team_count`, `teams_drawn_at`).
+
+### 5. Środowisko testowe
+- **Lokalne**: Node 20+, Docker Desktop (dla Testcontainers), Supabase CLI z testowym projektem, `.env.test` z kluczami `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL` dla Testcontainers.
+- **Dane testowe**: dedykowany seed (`supabase/seed/seed.sql`), factory funkcje z `@faker-js/faker` dla dynamicznego generowania danych, izolowane środowisko per test suite w Testcontainers.
+- **CI**: pipeline GitHub Actions z:
+  - Job 1: Vitest unit tests + coverage (@vitest/coverage-v8)
+  - Job 2: Vitest integration tests + Testcontainers
+  - Job 3: Playwright E2E (headless Chromium, parallel workers)
+  - Job 4: Stryker mutation tests (nightly build)
+  - Job 5: Vitest Bench (performance regression detection)
+- **Monitorowanie**: Playwright trace viewer, HTML coverage reports (v8), mutation score dashboard, benchmark trend graphs, accessibility reports (axe).
+
+### 6. Narzędzia do testowania
+
+#### Obowiązkowe narzędzia główne:
+- **Vitest** (^2.1.0) - framework testowy dla unit i integration tests
+  - Konfiguracja w `vitest.config.ts`
+  - Natywne mocki: `vi.mock()`, `vi.fn()`, `vi.spyOn()`
+  - Wbudowany benchmark runner dla testów wydajnościowych
+- **Playwright** (^1.47.0) - framework E2E i testy dostępności
+  - Test runner z parallel execution
+  - Natywne screenshots: `toHaveScreenshot()`
+  - Trace viewer dla debugowania
+
+#### Biblioteki wsparcia React:
+- **@testing-library/react** (^16.0.0) - testowanie komponentów React
+- **@testing-library/user-event** (^14.5.0) - symulacja interakcji użytkownika
+- **@testing-library/jest-dom** (^6.1.0) - custom matchers dla DOM
+
+#### Mocking i izolacja:
+- **MSW** (^2.4.0) - Mock Service Worker dla izolacji żądań HTTP w testach komponentów/hooków
+- **Natywne Vitest mocks** - własne utilities dla mockowania Supabase client (zamiast vitest-mock-extended)
+
+#### Bazy danych testowe:
+- **@testcontainers/testcontainers** (^10.13.0) - zarządzanie kontenerami Docker w testach
+- **@testcontainers/postgresql** (^10.13.0) - prawdziwa PostgreSQL dla testów integracyjnych z RLS
+
+#### Test data i fixtures:
+- **@faker-js/faker** (^9.0.0) - generowanie realistycznych danych testowych
+- **@anatine/zod-mock** (^3.13.0) - automatyczne mocki z Zod schemas, kontrakty API
+
+#### Coverage i jakość:
+- **@vitest/coverage-v8** (^2.1.0) - pokrycie kodu (szybsze niż istanbul)
+  - Target: 80% dla `src/lib/services`, `src/lib/hooks`, `src/lib/utils`
+  - Formaty raportów: text, json, html, lcov
+- **@stryker-mutator/core** + **@stryker-mutator/vitest-runner** (^8.6.0) - mutation testing
+  - Target: >70% mutation score dla krytycznej logiki
+
+#### Dostępność:
+- **@axe-core/playwright** (^4.10.0) - testy WCAG 2.1 Level AA
+
+#### Jakość kodu:
+- **eslint/prettier** - bramki jakości (już w repo)
+- **TypeScript strict mode** - type safety w testach
+
+### 7. Harmonogram testów
+- **Tydzień 1**: 
+  - Konfiguracja Vitest (`vitest.config.ts`) + @vitest/coverage-v8
+  - Konfiguracja Playwright + @axe-core/playwright
+  - Setup Testcontainers dla PostgreSQL
+  - Utworzenie utilities dla mockowania Supabase
+  - Implementacja factory functions z @faker-js/faker
+  - Testy jednostkowe walidacji Zod i utils
+- **Tydzień 2**: 
+  - Testy serwisów domenowych (EventService, EventSignupsService, UsersService) z mockami
+  - Testy integracyjne z Testcontainers (RLS policies, promocja listy rezerwowej)
+  - Setup @anatine/zod-mock dla testów kontraktów API
+  - Benchmark tests (Vitest Bench) dla team-draw.engine.ts
+- **Tydzień 3**: 
+  - Testy hooków (useAuth, useDashboardData, useEventsList, useEventDetails) z MSW
+  - Testy komponentów React (@testing-library/react + user-event)
+  - Przygotowanie fixture'ów i seed data dla Playwright
+  - Setup mutation testing (Stryker) dla krytycznej logiki
+- **Tydzień 4**: 
+  - Implementacja scenariuszy E2E Playwright (player, organizer, admin flows)
+  - Testy smoke dla krytycznych ścieżek
+  - Testy dostępności (axe) dla kluczowych widoków
+  - Testy regresji wizualnej (toHaveScreenshot)
+  - Testy real-time subscriptions (Supabase channels)
+- **Tydzień 5**: 
+  - Stabilizacja flaky tests
+  - Analiza pokrycia (target: 80%) i mutation score (target: >70%)
+  - Dodanie brakujących przypadków krawędziowych
+  - Integracja wszystkich jobów w CI/CD (GitHub Actions)
+  - Performance baseline dla benchmarks
+  - Dry-run release + smoke tests produkcyjne
+
+### 8. Kryteria akceptacji testów
+
+#### Pokrycie kodu (Code Coverage):
+- ≥80% pokrycia instrukcji w `src/lib/services`, `src/lib/hooks`, `src/lib/utils`
+- ≥70% pokrycia branchy dla krytycznej logiki biznesowej
+- ≥90% pokrycia dla `team-draw.engine.ts` (algorytm losowania)
+- Raport generowany przez @vitest/coverage-v8
+
+#### Jakość testów (Mutation Testing):
+- ≥70% mutation score dla krytycznych modułów:
+  - `EventSignupsService` (promocja listy rezerwowej)
+  - `team-draw.engine.ts` (algorytm losowania)
+  - Walidacje Zod (auth, events, players)
+- Raport Stryker bez mutantów "survived" w logice biznesowej
+
+#### Stabilność testów:
+- Wszystkie testy Vitest/Playwright w CI zakończone statusem sukcesu
+- Zero flaky tests (brak retry >1 w ostatnich 10 runach)
+- Test execution time: unit tests <30s, integration <2min, E2E <10min
+
+#### Scenariusze krytyczne (muszą przejść):
+- ✅ Logowanie (poprawne/błędne credentials, pending approval redirect)
+- ✅ Zatwierdzenie użytkownika (admin workflow, utworzenie player profile)
+- ✅ Zapis na wydarzenie (player signup, waitlist, promocja)
+- ✅ Losowanie drużyn (różne parametry, balance, audit log)
+- ✅ Zarządzanie wydarzeniami (CRUD, soft delete, permissions)
+
+#### Wydajność (Performance Benchmarks):
+- Algorytm losowania dla 100 graczy: <500ms (baseline)
+- Brak regresji >20% w benchmarkach Vitest Bench
+- Playwright E2E single flow: <30s per test
+
+#### Dostępność:
+- Zero naruszeń WCAG 2.1 Level AA na kluczowych widokach
+- Raport axe dla `/login`, `/dashboard`, `/dashboard/events/[id]`
+
+#### Jakość:
+- Brak otwartych defektów o priorytecie P0/P1 związanych z zakresem planu
+- Wszystkie komponenty mają `data-testid` dla Playwright
+- Brak console.error w testach E2E
+
+### 9. Role i odpowiedzialności
+- **QA Lead**: utrzymanie planu, priorytety regresji, monitoring jakości w CI.
+- **Inżynierowie QA**: implementacja testów Vitest/Playwright, utrzymanie fixture'ów Supabase, analiza wyników.
+- **Zespół backend**: dostarczanie stubów/test helpers, wsparcie w konfiguracji Supabase, przegląd defektów logicznych.
+- **Zespół frontend**: współpraca przy testach komponentów, dodawanie `data-testid`, naprawa defektów UI.
+- **DevOps**: konfiguracja pipeline'ów, cap zasobów (Docker Supabase), zarządzanie sekretami CI.
+
+### 10. Procedury raportowania błędów
+- Rejestracja defektów w repozytorium (GitHub Issues) z szablonem: opis, kroki reprodukcji, oczekiwane/aktualne, logi, zrzuty ekranu/trace.
+- Priorytetyzacja: **P0** (blokada/SLA 4h), **P1** (krytyczny, SLA 1 dzień), **P2** (wysoki, SLA 3 dni), **P3** (średni) itd.
+- Linkowanie defektów do test case / scenariuszy; oznaczanie `regression` gdy pojawia się po zmianach.
+- Retest po naprawie w tym samym środowisku + smoke Playwright.
+- Cotygodniowy raport jakości (metryki pokrycia, mutation score, liczba otwartych defektów, flaky tests, benchmark trends) udostępniany zespołowi.
+
+### 11. Przykłady konfiguracji i użycia
+
+#### 11.1. Konfiguracja Vitest z coverage v8
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      include: ['src/lib/**/*.ts', 'src/lib/**/*.tsx'],
+      exclude: ['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts'],
+      thresholds: {
+        lines: 80,
+        branches: 70,
+        functions: 80,
+        statements: 80,
+      },
+    },
+  },
+})
+```
+
+#### 11.2. Utilities dla mockowania Supabase
+```typescript
+// test/utils/supabase-mock.ts
+import { vi } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export const createMockSupabaseClient = () => {
+  const mockQuery = {
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    maybeSingle: vi.fn(),
+  }
+
+  return {
+    from: vi.fn(() => mockQuery),
+    auth: {
+      getSession: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+    },
+    rpc: vi.fn(),
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    })),
+  } as unknown as SupabaseClient
+}
+```
+
+#### 11.3. Factory functions z Faker
+```typescript
+// test/factories/event.factory.ts
+import { faker } from '@faker-js/faker'
+import type { Event, EventStatus } from '@/types'
+
+export class EventFactory {
+  static create(overrides: Partial<Event> = {}): Event {
+    return {
+      id: faker.string.uuid(),
+      title: faker.company.catchPhrase(),
+      description: faker.lorem.paragraph(),
+      event_date: faker.date.future().toISOString(),
+      location: faker.location.streetAddress(),
+      max_players: faker.number.int({ min: 10, max: 20 }),
+      status: 'active' as EventStatus,
+      organizer_id: faker.string.uuid(),
+      created_at: faker.date.past().toISOString(),
+      updated_at: faker.date.recent().toISOString(),
+      ...overrides,
+    }
+  }
+
+  static createMany(count: number, overrides: Partial<Event> = {}): Event[] {
+    return Array.from({ length: count }, () => this.create(overrides))
+  }
+}
+```
+
+#### 11.4. Testcontainers setup
+```typescript
+// test/integration/setup.ts
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { execSync } from 'child_process'
+
+let container: StartedPostgreSqlContainer
+let supabase: SupabaseClient
+
+beforeAll(async () => {
+  // Start PostgreSQL container
+  container = await new PostgreSqlContainer('postgres:15')
+    .withDatabase('test_db')
+    .withUsername('test_user')
+    .withPassword('test_pass')
+    .start()
+
+  const connectionUri = container.getConnectionUri()
+  
+  // Run Supabase migrations
+  process.env.DATABASE_URL = connectionUri
+  execSync('npx supabase db reset --db-url ' + connectionUri)
+  
+  // Create test client
+  supabase = createClient(process.env.PUBLIC_SUPABASE_URL!, process.env.PUBLIC_SUPABASE_ANON_KEY!)
+}, 60000)
+
+afterAll(async () => {
+  await container.stop()
+})
+
+export { supabase }
+```
+
+#### 11.5. Benchmark test przykład
+```typescript
+// test/bench/team-draw.bench.ts
+import { bench, describe } from 'vitest'
+import { drawTeams } from '@/lib/services/team-draw.engine'
+import { EventFactory } from '../factories/event.factory'
+
+describe('Team Draw Performance', () => {
+  const players10 = EventFactory.createMany(10)
+  const players50 = EventFactory.createMany(50)
+  const players100 = EventFactory.createMany(100)
+
+  bench('draw teams for 10 players', () => {
+    drawTeams(players10, { iterations: 1000, balanceThreshold: 0.5 })
+  })
+
+  bench('draw teams for 50 players', () => {
+    drawTeams(players50, { iterations: 1000, balanceThreshold: 0.5 })
+  })
+
+  bench('draw teams for 100 players', () => {
+    drawTeams(players100, { iterations: 1000, balanceThreshold: 0.5 })
+  }, { time: 1000 }) // baseline: powinno być <500ms
+})
+```
+
+#### 11.6. Playwright z axe accessibility
+```typescript
+// tests/e2e/accessibility.spec.ts
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+test.describe('Accessibility Tests', () => {
+  test('login page should not have accessibility violations', async ({ page }) => {
+    await page.goto('/login')
+    
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze()
+    
+    expect(accessibilityScanResults.violations).toEqual([])
+  })
+
+  test('dashboard should be keyboard navigable', async ({ page }) => {
+    await page.goto('/dashboard')
+    
+    // Tab navigation
+    await page.keyboard.press('Tab')
+    const focusedElement = await page.locator(':focus')
+    await expect(focusedElement).toBeVisible()
+  })
+})
+```
+
+#### 11.7. Visual regression testing
+```typescript
+// tests/e2e/visual-regression.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('Visual Regression', () => {
+  test('dashboard layout should match snapshot', async ({ page }) => {
+    await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
+    
+    // Mask dynamic content
+    await page.locator('[data-testid="current-time"]').evaluate(el => {
+      el.style.visibility = 'hidden'
+    })
+    
+    await expect(page).toHaveScreenshot('dashboard.png', {
+      maxDiffPixels: 100,
+      threshold: 0.2,
+    })
+  })
+})
+```
+
+#### 11.8. Stryker mutation testing config
+```javascript
+// stryker.config.mjs
+export default {
+  packageManager: 'npm',
+  reporters: ['html', 'clear-text', 'progress', 'dashboard'],
+  testRunner: 'vitest',
+  coverageAnalysis: 'perTest',
+  mutate: [
+    'src/lib/services/**/*.ts',
+    'src/lib/services/**/*.tsx',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+  ],
+  thresholds: { high: 80, low: 70, break: 60 },
+  vitest: {
+    configFile: 'vitest.config.ts',
+  },
+}
+```
+
+### 12. Paczki do zainstalowania
+
+```bash
+# Core testing frameworks (OBOWIĄZKOWE)
+npm install -D vitest@^2.1.0 @playwright/test@^1.47.0
+
+# React testing
+npm install -D @testing-library/react@^16.0.0 \
+  @testing-library/user-event@^14.5.0 \
+  @testing-library/jest-dom@^6.1.0 \
+  @vitejs/plugin-react
+
+# Mocking
+npm install -D msw@^2.4.0
+
+# Testcontainers (integration tests)
+npm install -D @testcontainers/testcontainers@^10.13.0 \
+  @testcontainers/postgresql@^10.13.0
+
+# Test data & fixtures
+npm install -D @faker-js/faker@^9.0.0 \
+  @anatine/zod-mock@^3.13.0
+
+# Coverage
+npm install -D @vitest/coverage-v8@^2.1.0
+
+# Accessibility
+npm install -D @axe-core/playwright@^4.10.0
+
+# Mutation testing (opcjonalne, ale zalecane)
+npm install -D @stryker-mutator/core@^8.6.0 \
+  @stryker-mutator/vitest-runner@^8.6.0
+
+# Types
+npm install -D @types/node@^22.0.0
+```
+</plan_testów>

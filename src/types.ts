@@ -197,7 +197,17 @@ export type CreateEventCommand = Pick<
 >;
 
 export type UpdateEventCommand = Partial<
-  Pick<EventUpdate, "name" | "location" | "event_datetime" | "max_places" | "optional_fee" | "status" | "deleted_at" | "preferred_team_count">
+  Pick<
+    EventUpdate,
+    | "name"
+    | "location"
+    | "event_datetime"
+    | "max_places"
+    | "optional_fee"
+    | "status"
+    | "deleted_at"
+    | "preferred_team_count"
+  >
 >;
 
 /**
@@ -243,11 +253,11 @@ export interface TeamAssignmentsListResponseDTO {
   data: TeamAssignmentDTO[];
 }
 
-export type ManualTeamAssignmentEntry = {
+export interface ManualTeamAssignmentEntry {
   signup_id: TeamAssignmentRow["signup_id"];
   team_number: TeamAssignmentRow["team_number"];
   team_color: TeamColor;
-};
+}
 
 export interface CreateTeamAssignmentsCommand {
   assignments: ManualTeamAssignmentEntry[];

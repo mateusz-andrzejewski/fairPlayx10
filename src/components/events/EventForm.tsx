@@ -202,7 +202,9 @@ export function EventForm({ event, onSubmit, onCancel, isSubmitting = false }: E
                   {getErrorMessage("preferred_team_count")}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">Liczba drużyn musi być między 2 a 10. Będzie używana przy losowaniu składów.</p>
+              <p className="text-xs text-muted-foreground">
+                Liczba drużyn musi być między 2 a 10. Będzie używana przy losowaniu składów.
+              </p>
             </div>
 
             {/* Opcjonalna opłata */}

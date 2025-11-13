@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     console.log("Referrer:", request.referrer);
     console.log("User:", locals.user ? `${locals.user.email} (${locals.user.role})` : "anonymous");
     console.log("Actor:", locals.actor);
-    
+
     // Sprawdź uprawnienia - tylko administratorzy mogą przeglądać użytkowników
     requireAdmin(locals);
 
