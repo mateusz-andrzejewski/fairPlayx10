@@ -38,13 +38,32 @@ cd 10x-astro-starter
 npm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+
+Create a `.env` file in the root directory:
+
+```bash
+# .env
+PUBLIC_SUPABASE_URL=your-supabase-url
+PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+For E2E tests, create a `.env.test` file:
+
+```bash
+# .env.test
+PUBLIC_SUPABASE_URL=http://localhost:54321
+PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
+BASE_URL=http://localhost:3000
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
 ```
 
-4. Build for production:
+5. Build for production:
 
 ```bash
 npm run build
@@ -74,6 +93,22 @@ npm run build
 │ └── assets/ # Static assets
 ├── public/ # Public assets
 ```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment. See [.github/README.md](.github/README.md) for detailed configuration instructions.
+
+### Required GitHub Secrets
+
+To run CI/CD workflows, configure these secrets in your GitHub repository:
+
+- `PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+
+### Workflows
+
+- **Build and Test** (`build.yml`) - Runs on push to `main`
+- **Tests** (`test.yml`) - Runs unit and E2E tests on push/PR to `main` or `develop`
 
 ## AI Development Support
 

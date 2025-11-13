@@ -29,11 +29,13 @@ To run the CI/CD workflows successfully, you need to configure the following sec
 - Triggers on: Push to `main` branch
 - Runs: Unit tests and build
 - Requires: Supabase secrets
+- Creates `.env` file from secrets before running tests and build
 
 ### `test.yml`
 - Triggers on: Push/PR to `main` or `develop` branches
 - Runs: Unit tests and E2E tests
 - Requires: Supabase secrets
+- Creates `.env` file for unit tests and `.env.test` file for E2E tests from secrets
 
 ## Local Development
 
