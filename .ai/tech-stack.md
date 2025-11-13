@@ -37,4 +37,4 @@ Testy E2E i dostępności:
 CI/CD i Hosting:
 
 - Github Actions do tworzenia pipeline'ów CI/CD z dedykowanymi job'ami dla testów jednostkowych, integracyjnych, E2E oraz mutation testing
-- DigitalOcean do hostowania aplikacji za pośrednictwem obrazu docker
+- Cloudflare pages jako hosting applikacji Astro
