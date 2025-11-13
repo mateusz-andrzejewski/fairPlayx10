@@ -61,6 +61,8 @@ jobs:
         run: npm run test:e2e
         env:
           CI: true
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Upload Playwright report
         if: always()
