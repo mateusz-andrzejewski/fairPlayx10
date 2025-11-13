@@ -1,8 +1,10 @@
 name: Deploy to Cloudflare Pages
 
+# DISABLED: Using Cloudflare Git Integration instead
+# Git Integration properly supports React 19 and compatibility flags
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -67,7 +69,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         id: deployment
-        run: npx wrangler pages deploy dist --project-name=fairplayx10 --branch=main --compatibility-flags="nodejs_compat" --compatibility-date="2024-11-13"
+        run: npx wrangler pages deploy dist --project-name=fairplayx10 --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
