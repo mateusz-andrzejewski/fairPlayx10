@@ -23,14 +23,14 @@ e2e/
 
 ### Testy rejestracji (`register.spec.ts`)
 
-1. **Pełny flow rejestracji** - test przechodzi przez cały proces od strony logowania do sukcesu rejestracji
+1. **Pełny flow rejestracji** - ⏭️ SKIPPED (wymaga konfiguracji Supabase w chmurze)
 2. **Walidacja formularza** - sprawdzenie błędów walidacji dla pustego formularza
 3. **Walidacja email** - sprawdzenie formatu email
 4. **Walidacja hasła** - sprawdzenie wymagań dotyczących hasła
 5. **Nawigacja** - test przejścia z formularza rejestracji z powrotem do logowania
 6. **Checkbox zgody RODO** - sprawdzenie wymagalności akceptacji zgody
 7. **Opcje pozycji** - test wszystkich dostępnych pozycji piłkarskich
-8. **Stan ładowania** - sprawdzenie czy przycisk pokazuje stan ładowania podczas submitowania
+8. **Smoke tests** - weryfikacja dostępności elementów formularza i accessibility
 
 ## 🛠️ Konfiguracja
 
@@ -184,6 +184,29 @@ Wszystkie kluczowe elementy mają atrybuty `data-test-id` dla stabilnego testowa
 - `last-name-error` - błąd walidacji nazwiska
 - `position-error` - błąd walidacji pozycji
 - `consent-error` - błąd walidacji zgody
+
+## ⏭️ Skipped Tests
+
+Niektóre testy są celowo pominięte (`.skip()`) w środowisku CI/CD:
+
+### Test pełnego flow rejestracji
+**Dlaczego skipowany:**
+- Wymaga działającego Supabase w chmurze z właściwą konfiguracją email
+- Wymaga wyłączonej weryfikacji email lub odpowiedniej obsługi
+- Może wymagać dodatkowych uprawnień sieciowych w CI/CD
+
+**Pokrycie testowe:**
+Pozostałe testy pokrywają:
+- ✅ Walidację wszystkich pól formularza
+- ✅ Nawigację między stronami
+- ✅ Interakcje UI (checkbox, select)
+- ✅ Accessibility
+
+**Jak uruchomić lokalnie:**
+Jeśli masz skonfigurowany lokalny Supabase, możesz odkomentować test i uruchomić:
+```bash
+npx playwright test register.spec.ts --grep "should successfully register"
+```
 
 ## 💡 Best Practices
 
