@@ -5,15 +5,17 @@ compatibility_date = "2024-11-13"
 pages_build_output_dir = "./dist"
 
 # KV Namespaces for sessions
-# Note: You'll need to create these bindings in Cloudflare Dashboard
-# or via wrangler CLI before deploying
-[[kv_namespaces]]
-binding = "SESSION"
-id = "" # Add your KV namespace ID here after creating it
+# Note: For Cloudflare Pages, KV bindings are configured in Cloudflare Dashboard:
+# Settings > Functions > KV namespace bindings
+# Add binding: SESSION -> your KV namespace
+#
+# For Workers (not Pages), you would configure it here:
+# [[kv_namespaces]]
+# binding = "SESSION"
+# id = "your_kv_namespace_id"
 
 # Environment variables
 # Set these in Cloudflare Pages dashboard under Settings > Environment variables
-# - SUPABASE_URL
-# - SUPABASE_ANON_KEY
-# - SUPABASE_SERVICE_ROLE_KEY (if needed for server-side operations)
+# - PUBLIC_SUPABASE_URL
+# - PUBLIC_SUPABASE_ANON_KEY
 
