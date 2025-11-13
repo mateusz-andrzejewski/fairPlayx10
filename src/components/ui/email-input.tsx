@@ -24,10 +24,11 @@ export const EmailInput = forwardRef<HTMLInputElement, EmailInputProps>(({ value
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error && error.length > 0}
+        data-test-id="email-input"
         {...props}
       />
       {error && error.length > 0 && (
-        <div className="text-sm text-destructive">
+        <div className="text-sm text-destructive" data-test-id="email-error">
           {error.map((err, index) => (
             <div key={index}>{err}</div>
           ))}

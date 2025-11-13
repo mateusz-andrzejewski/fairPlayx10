@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "dev:e2e": "astro dev --mode test",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
@@ -75,6 +76,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.8",
     "@vitest/ui": "^4.0.8",
+    "dotenv": "^17.2.3",
     "eslint": "9.23.0",
     "eslint-config-prettier": "10.1.1",
     "eslint-import-resolver-typescript": "4.2.5",
@@ -91,6 +93,7 @@
     "msw": "^2.12.1",
     "prettier-plugin-astro": "0.14.1",
     "supabase": "^2.53.6",
+    "typescript": "^5.9.3",
     "typescript-eslint": "8.28.0",
     "vitest": "^4.0.8"
   },

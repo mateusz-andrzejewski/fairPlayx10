@@ -75,7 +75,7 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6" data-test-id="login-form">
       <div className="space-y-4">
         <EmailInput value={viewModel.email} onChange={handleEmailChange} error={validationErrors.email} />
 
@@ -83,7 +83,11 @@ function LoginForm({ viewModel, onViewModelChange, onSubmit }: LoginFormProps) {
       </div>
 
       <div className="flex items-center justify-end">
-        <a href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+        <a 
+          href="/forgot-password" 
+          className="text-sm font-medium text-primary hover:underline"
+          data-test-id="forgot-password-link"
+        >
           Zapomniałeś hasła?
         </a>
       </div>

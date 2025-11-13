@@ -1,9 +1,9 @@
-import { Page, Locator } from '@playwright/test';
-import { BasePage } from './BasePage';
+import { Page, Locator } from "@playwright/test";
+import { BasePage } from "./BasePage";
 
 /**
  * Page Object Model for Login Page
- * Example of how to structure page objects
+ * Uses data-test-id attributes for reliable element selection
  */
 export class LoginPage extends BasePage {
   readonly emailInput: Locator;
@@ -11,18 +11,20 @@ export class LoginPage extends BasePage {
   readonly loginButton: Locator;
   readonly registerLink: Locator;
   readonly errorMessage: Locator;
+  readonly loginForm: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.emailInput = page.getByLabel(/email/i);
-    this.passwordInput = page.getByLabel(/password|hasło/i);
-    this.loginButton = page.getByRole('button', { name: /login|zaloguj/i });
-    this.registerLink = page.getByRole('link', { name: /register|zarejestruj/i });
+    this.emailInput = page.locator('[data-test-id="email-input"]');
+    this.passwordInput = page.locator('[data-test-id="password-input"]');
+    this.loginButton = page.locator('[data-test-id="submit-button"]');
+    this.registerLink = page.locator('[data-test-id="register-link"]');
     this.errorMessage = page.locator('[role="alert"], .error');
+    this.loginForm = page.locator('[data-test-id="login-form"]');
   }
 
   async goto() {
-    await super.goto('/login');
+    await super.goto("/login");
   }
 
   async login(email: string, password: string) {
@@ -38,5 +40,8 @@ export class LoginPage extends BasePage {
   async goToRegister() {
     await this.registerLink.click();
   }
-}
 
+  async isLoginFormVisible() {
+    return await this.loginForm.isVisible();
+  }
+}

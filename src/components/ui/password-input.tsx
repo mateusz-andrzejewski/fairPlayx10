@@ -25,10 +25,11 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={error && error.length > 0}
+          data-test-id="password-input"
           {...props}
         />
         {error && error.length > 0 && (
-          <div className="text-sm text-destructive">
+          <div className="text-sm text-destructive" data-test-id="password-error">
             {error.map((err, index) => (
               <div key={index}>{err}</div>
             ))}

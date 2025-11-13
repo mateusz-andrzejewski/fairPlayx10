@@ -18,6 +18,7 @@ export const RodoCheckbox = forwardRef<HTMLButtonElement, RodoCheckboxProps>(
             checked={checked}
             onCheckedChange={(checked) => onChange(checked as boolean)}
             aria-invalid={error && error.length > 0}
+            data-test-id="consent-checkbox"
             {...props}
           />
           <label
@@ -37,7 +38,7 @@ export const RodoCheckbox = forwardRef<HTMLButtonElement, RodoCheckboxProps>(
           </label>
         </div>
         {error && error.length > 0 && (
-          <div className="text-sm text-destructive">
+          <div className="text-sm text-destructive" data-test-id="consent-error">
             {error.map((err, index) => (
               <div key={index}>{err}</div>
             ))}

@@ -16,7 +16,7 @@ function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6" data-test-id="register-form">
       <EmailInput value={formData.email} onChange={(value) => handleChange("email", value)} error={errors.email} />
 
       <PasswordInput
@@ -57,7 +57,11 @@ function RegisterForm() {
 
       <div className="text-center text-sm text-muted-foreground">
         Masz już konto?{" "}
-        <a href="/login" className="font-medium text-primary hover:underline">
+        <a 
+          href="/login" 
+          className="font-medium text-primary hover:underline"
+          data-test-id="back-to-login-link"
+        >
           Wróć do logowania
         </a>
       </div>

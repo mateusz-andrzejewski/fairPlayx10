@@ -26,19 +26,29 @@ export const PositionSelect = forwardRef<HTMLButtonElement, PositionSelectProps>
           Pozycja piłkarska *
         </label>
         <Select value={value} onValueChange={(val) => onChange(val as PlayerPosition)}>
-          <SelectTrigger ref={ref} id="position" aria-invalid={error && error.length > 0} {...props}>
+          <SelectTrigger 
+            ref={ref} 
+            id="position" 
+            aria-invalid={error && error.length > 0}
+            data-test-id="position-select"
+            {...props}
+          >
             <SelectValue placeholder="Wybierz pozycję" />
           </SelectTrigger>
           <SelectContent>
             {positionOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem 
+                key={option.value} 
+                value={option.value}
+                data-test-id={`position-option-${option.value}`}
+              >
                 {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {error && error.length > 0 && (
-          <div className="text-sm text-destructive">
+          <div className="text-sm text-destructive" data-test-id="position-error">
             {error.map((err, index) => (
               <div key={index}>{err}</div>
             ))}
