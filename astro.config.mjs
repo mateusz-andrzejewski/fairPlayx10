@@ -25,4 +25,15 @@ export default defineConfig({
       enabled: false, // Disable miniflare in dev mode (causes crashes on Windows)
     },
   }),
+  // Fix for React 19 + Cloudflare Workers: use edge renderer instead of browser renderer
+  hooks: {
+    'astro:build:setup': ({ vite, target }) => {
+      if (target === 'server') {
+        vite.resolve ??= {};
+        vite.resolve.alias ??= {};
+        // Force React to use edge renderer (avoids MessageChannel error)
+        vite.resolve.alias['react-dom/server'] = 'react-dom/server.edge';
+      }
+    },
+  },
 });
