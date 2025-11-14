@@ -36,3 +36,6 @@ html/
 # test cache
 .vitest/
 
+# Cloudflare Pages Functions (using Astro adapter instead)
+functions/
+

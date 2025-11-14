@@ -42,3 +42,4 @@
 - **Tryb dev**: `PUBLIC_DISABLE_DASHBOARD_AUTH=true` umożliwia wgląd w dashboard bez Supabase.
 
 
+

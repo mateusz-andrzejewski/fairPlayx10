@@ -20,13 +20,9 @@ export default defineConfig({
     },
   },
   adapter: cloudflare({
-    platformProxy: {
-      enabled: true,
-    },
-    runtime: {
-      mode: 'local',
-      type: 'pages',
-    },
     imageService: 'cloudflare',
+    platformProxy: {
+      enabled: false, // Disable miniflare in dev mode (causes crashes on Windows)
+    },
   }),
 });
