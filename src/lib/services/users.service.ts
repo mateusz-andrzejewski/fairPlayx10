@@ -267,8 +267,8 @@ export class UsersService {
     // Obsłuż powiązanie z graczem
     let finalPlayerId = approvalData.player_id;
 
-    // Jeśli create_player=true i brak player_id, utwórz nowy profil gracza
-    if (approvalData.create_player && !approvalData.player_id) {
+    // Jeśli create_player=true i brak player_id w payloadzie oraz użytkownik nie ma jeszcze gracza, utwórz nowy profil gracza
+    if (approvalData.create_player && !approvalData.player_id && !existingUser.player_id) {
       const { data: newPlayer, error: createPlayerError } = await this.supabase
         .from("players")
         .insert({
@@ -287,6 +287,9 @@ export class UsersService {
       }
 
       finalPlayerId = newPlayer.id;
+    } else if (approvalData.create_player && !approvalData.player_id && existingUser.player_id) {
+      // Użytkownik już ma przypisanego gracza, użyj istniejącego
+      finalPlayerId = existingUser.player_id;
     }
 
     // Jeśli podano player_id, zweryfikuj czy gracz istnieje
