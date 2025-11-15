@@ -1,5 +1,8 @@
 # ⚽ FairPlay10X
 
+## DEMO
+https://fairplayx10.pages.dev/login
+
 > A modern platform for managing amateur football matches with intelligent team drawing functionality. Built for organizers who want to quickly create events, manage player signups, and generate balanced teams automatically.
 
 [![Astro](https://img.shields.io/badge/Astro-5.13.7-FF5D01?logo=astro&logoColor=white)](https://astro.build/)
