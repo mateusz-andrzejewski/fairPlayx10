@@ -493,6 +493,7 @@ export interface DrawTeamsViewModel {
   eventId: number;
   teams: TeamViewModel[];
   isLoading: boolean;
+  isSaving: boolean;
   error: string | null;
   balanceAchieved: boolean;
 }

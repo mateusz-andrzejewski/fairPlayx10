@@ -20,6 +20,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
   // Stan podstawowy
   const [teams, setTeams] = useState<TeamViewModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false); // Czy trwa zapisywanie zmian (drag & drop)
   const [error, setError] = useState<string | null>(null);
   const [balanceAchieved, setBalanceAchieved] = useState(false);
   // Nowe stany
@@ -296,7 +297,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
   }, [eventId, userRole, teams, fetchTeams, toast]);
 
   /**
-   * Ręczne przypisanie graczy do drużyn
+   * Ręczne przypisanie graczy do drużyn z optymistyczną aktualizacją UI
    */
   const assignTeams = useCallback(
     async (assignments: ManualTeamAssignmentEntry[]) => {
@@ -310,7 +311,58 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
       // Manualne korekty są zawsze dozwolone, niezależnie od balansu
 
-      setIsLoading(true);
+      // Zapisz poprzedni stan drużyn do potencjalnego cofnięcia
+      const previousTeams = [...teams];
+
+      // Optymistyczna aktualizacja UI - natychmiast zaktualizuj lokalny stan
+      // Znajdź dane graczy z aktualnego stanu teams
+      const updatedTeams = transformAssignmentsToTeams({
+        data: assignments.map(assignment => {
+          // Znajdź gracza w aktualnych drużynach
+          let playerData = null;
+          for (const team of teams) {
+            const player = team.players.find(p => p.signupId === assignment.signup_id);
+            if (player) {
+              playerData = {
+                id: player.playerId || null,
+                first_name: player.name.split(' ')[0] || '',
+                last_name: player.name.split(' ').slice(1).join(' ') || '',
+                position: player.position,
+                skill_rate: player.skillRate
+              };
+              break;
+            }
+          }
+
+          return {
+            signup_id: assignment.signup_id,
+            team_number: assignment.team_number,
+            team_color: assignment.team_color,
+            player: playerData
+          };
+        })
+      });
+      setTeams(updatedTeams);
+
+      // Sprawdź balans po zmianie
+      if (updatedTeams.length > 0) {
+        const avgSkillRates = updatedTeams.map((team) => team.avgSkillRate);
+        const maxAvg = Math.max(...avgSkillRates);
+        const minAvg = Math.min(...avgSkillRates);
+        const balanceThreshold = 7;
+        const achieved =
+          avgSkillRates.every((rate) => rate === 0) || maxAvg === 0
+            ? false
+            : ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
+        setBalanceAchieved(achieved);
+      }
+
+      // Oznacz że są niezapisane zmiany
+      setHasUnsavedChanges(true);
+      setIsConfirmed(false);
+
+      // Wyślij request do API w tle
+      setIsSaving(true);
       setError(null);
 
       try {
@@ -331,17 +383,32 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
 
         toast.success("Sukces", { description: "Przypisania drużyn zostały zapisane" });
 
-        // Odśwież dane drużyn
-        await fetchTeams();
+        // Nie odświeżamy danych - optymistyczna aktualizacja już została zastosowana
       } catch (err) {
+        // Cofnij optymistyczne zmiany w przypadku błędu
+        setTeams(previousTeams);
+
+        // Przywróć poprzedni stan balansu
+        if (previousTeams.length > 0) {
+          const avgSkillRates = previousTeams.map((team) => team.avgSkillRate);
+          const maxAvg = Math.max(...avgSkillRates);
+          const minAvg = Math.min(...avgSkillRates);
+          const balanceThreshold = 7;
+          const achieved =
+            avgSkillRates.every((rate) => rate === 0) || maxAvg === 0
+              ? false
+              : ((maxAvg - minAvg) / maxAvg) * 100 <= balanceThreshold;
+          setBalanceAchieved(achieved);
+        }
+
         const errorMessage = err instanceof Error ? err.message : "Nie udało się zapisać przypisań drużyn";
         setError(errorMessage);
         toast.error("Błąd", { description: errorMessage });
       } finally {
-        setIsLoading(false);
+        setIsSaving(false);
       }
     },
-    [eventId, userRole, teams, fetchTeams, toast]
+    [eventId, userRole, teams, transformAssignmentsToTeams, toast]
   );
 
   /**
@@ -358,6 +425,7 @@ export function useDrawTeams(eventId: number, userRole: UserRole) {
     eventId,
     teams,
     isLoading,
+    isSaving,
     error,
     balanceAchieved,
   };

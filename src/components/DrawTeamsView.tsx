@@ -328,6 +328,7 @@ export function DrawTeamsView({ eventId }: DrawTeamsViewProps) {
             onAssignTeams={actions.assignTeams}
             userRole={user?.role || "player"}
             balanceAchieved={state.balanceAchieved}
+            isSaving={state.isSaving}
           />
         </section>
 

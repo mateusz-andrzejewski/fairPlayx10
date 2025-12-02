@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { TouchBackend } from "react-dnd-touch-backend";
-import { AlertTriangleIcon } from "lucide-react";
+import { AlertTriangleIcon, LoaderCircleIcon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TeamColumn } from "./TeamColumn";
@@ -21,13 +21,14 @@ interface DragDropTeamsProps {
   onAssignTeams: (assignments: ManualTeamAssignmentEntry[]) => void;
   userRole: UserRole;
   balanceAchieved: boolean;
+  isSaving: boolean;
 }
 
 /**
  * Interfejs drag-and-drop umożliwiający manualne przenoszenie graczy między drużynami.
  * Aktualizuje statystyki drużyn w czasie rzeczywistym i sprawdza balans.
  */
-export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved }: DragDropTeamsProps) {
+export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved, isSaving }: DragDropTeamsProps) {
   // Obsługa upuszczenia gracza do drużyny
   const handleDrop = useCallback(
     (playerSignupId: number, targetTeamNumber: number) => {
@@ -95,20 +96,32 @@ export function DragDropTeams({ teams, onAssignTeams, userRole, balanceAchieved 
         )}
 
         {/* Obszar drag-and-drop */}
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-          role="region"
-          aria-label="Obszar przeciągania i upuszczania drużyn"
-        >
-          {teams.map((team) => (
-            <TeamColumn
-              key={team.teamNumber}
-              team={team}
-              userRole={userRole}
-              onDrop={handleDrop}
-              canDrop={true} // Zawsze pozwalaj na przenoszenie graczy
-            />
-          ))}
+        <div className="relative">
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+            role="region"
+            aria-label="Obszar przeciągania i upuszczania drużyn"
+          >
+            {teams.map((team) => (
+              <TeamColumn
+                key={team.teamNumber}
+                team={team}
+                userRole={userRole}
+                onDrop={handleDrop}
+                canDrop={true} // Zawsze pozwalaj na przenoszenie graczy
+              />
+            ))}
+          </div>
+
+          {/* Overlay podczas zapisywania */}
+          {isSaving && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <LoaderCircleIcon className="w-6 h-6 animate-spin" />
+                <span className="text-sm">Zapisywanie zmian...</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DndProvider>
