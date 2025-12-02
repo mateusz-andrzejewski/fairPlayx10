@@ -12,10 +12,10 @@ export function EventsDashboardPage() {
 
   // isLoading handled by AuthenticatedLayout mostly, but if we need user data for EventsList props,
   // we might want to wait or pass defaults. EventsList handles userRole.
-  
+
   return (
     <AuthenticatedLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Wydarzenia FairPlay</h1>
           <p className="mt-2 text-muted-foreground">

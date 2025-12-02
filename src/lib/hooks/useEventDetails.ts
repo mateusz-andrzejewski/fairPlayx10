@@ -10,7 +10,7 @@ interface EventDetailsActions {
   signupForEvent: () => Promise<void>;
   resignFromEvent: (signupId: number) => Promise<void>;
   addPlayerToEvent: (playerId: number) => Promise<boolean>;
-ł   addPlayersToEvent: (playerIds: number[]) => Promise<boolean>;
+  addPlayersToEvent: (playerIds: number[]) => Promise<boolean>;
   confirmSignup: (signupId: number) => Promise<void>; // Promowanie z listy rezerwowej
 
   // Zarządzanie wydarzeniem
@@ -27,7 +27,14 @@ interface EventDetailsActions {
 /**
  * Główny hook do zarządzania stanem szczegółów pojedynczego wydarzenia.
  */
-export function useEventDetails(eventId: number, userRole: UserRole, userId: number, playerId?: number) {
+export function useEventDetails(eventId: number, userRole: UserRole, userId: number, playerId?: number): {
+  event: EventDetailsViewModel | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date;
+  isSubmitting: boolean;
+  actions: EventDetailsActions;
+} {
   // Stan podstawowy
   const [event, setEvent] = useState<EventDetailDTO | null>(null);
   const [loading, setLoading] = useState(false);

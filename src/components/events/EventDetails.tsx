@@ -23,9 +23,30 @@ import { useEventDetails } from "../../lib/hooks/useEventDetails";
 import { AddPlayerModal } from "../event-signups/AddPlayerModal";
 import { TeamAssignmentsView } from "./TeamAssignmentsView";
 import type { AvailablePlayerDTO, AddPlayerFormData } from "@/types/eventSignupsView";
-import type { PlayersListResponseDTO } from "../../types";
+import type { PlayersListResponseDTO, EventStatus } from "../../types";
 import type { UserRole } from "../../types";
 import { toast } from "sonner";
+
+/**
+ * Mapuje status wydarzenia na tekst i wariant badge'a
+ */
+function getEventStatusDisplay(status: EventStatus): {
+  label: string;
+  variant: "default" | "secondary" | "destructive" | "outline";
+} {
+  switch (status) {
+    case "active":
+      return { label: "Aktywne", variant: "default" };
+    case "completed":
+      return { label: "Zakończone", variant: "secondary" };
+    case "cancelled":
+      return { label: "Anulowane", variant: "destructive" };
+    case "draft":
+      return { label: "Szkic", variant: "outline" };
+    default:
+      return { label: "Nieznany", variant: "secondary" };
+  }
+}
 
 interface EventDetailsProps {
   eventId: number;
@@ -61,6 +82,21 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
   //   }
   //   return ids;
   // }, [event?.signupsWithNames]);
+
+  // Efekt sprawdzający czy wydarzenie z przeszłości powinno mieć status 'completed'
+  useEffect(() => {
+    if (!event || event.status !== "active") {
+      return;
+    }
+
+    const eventDate = new Date(event.event_datetime);
+    const now = new Date();
+
+    // Jeśli wydarzenie już się odbyło ale nadal ma status 'active', odśwież dane
+    if (eventDate < now) {
+      actions.refresh();
+    }
+  }, [event, actions]);
 
   useEffect(() => {
     if (!isAddPlayerDialogOpen) {
@@ -309,9 +345,10 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                   {event.optional_fee} zł
                 </Badge>
               )}
-              <Badge variant={event.status === "active" ? "default" : "secondary"}>
-                {event.status === "active" ? "Aktywne" : "Nieaktywne"}
-              </Badge>
+              {(() => {
+                const statusDisplay = getEventStatusDisplay(event.status);
+                return <Badge variant={statusDisplay.variant}>{statusDisplay.label}</Badge>;
+              })()}
             </div>
           </div>
         </CardHeader>

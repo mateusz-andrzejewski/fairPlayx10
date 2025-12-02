@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "../../supabase.client";
 
 import type { DashboardDTO, UserDTO, EventDTO, EventSignupDTO } from "../../../types";
+import { createEventService } from "../event.service";
 
 /**
  * Serwis do zarządzania logiką biznesową pulpitu nawigacyjnego.
@@ -12,6 +13,7 @@ export class DashboardService {
   /**
    * Pobiera agregowane dane pulpitu dla danego użytkownika.
    * Wykonuje równoległe zapytania dla optymalizacji wydajności.
+   * Przed pobraniem wydarzeń automatycznie oznacza przeszłe wydarzenia jako 'completed'.
    *
    * @param userId - ID użytkownika
    * @param userRole - Rola użytkownika (admin/organizer/player)
@@ -19,6 +21,14 @@ export class DashboardService {
    * @returns Promise rozwiązujący się do danych pulpitu
    */
   async getDashboardData(userId: number, userRole: string, playerId?: number): Promise<DashboardDTO> {
+    // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
+    // To zapewnia spójność statusów w całej aplikacji
+    const eventService = createEventService(this.supabase);
+    await eventService.completePastEvents().catch((error) => {
+      // Logujemy błąd ale nie przerywamy operacji - to nie jest krytyczne
+      console.warn("[dashboard] Nie udało się automatycznie zaktualizować statusów wydarzeń", error);
+    });
+
     // Równoległe pobranie wszystkich danych dla optymalizacji
     const [userProfile, upcomingEvents, mySignups, organizedEvents, pendingUsersCount] = await Promise.all([
       this.loadUserProfile(userId),

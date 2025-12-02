@@ -31,8 +31,10 @@ export class EventService {
   private async autoCompleteEvents(): Promise<void> {
     const now = new Date().toISOString();
 
+    console.log("autoCompleteEvents: Sprawdzam wydarzenia do oznaczenia jako completed, now:", now);
+
     // Zaktualizuj wszystkie aktywne wydarzenia które już się odbyły
-    const { error } = await this.supabase
+    const { data, error } = await this.supabase
       .from("events")
       .update({
         status: "completed" as const,
@@ -40,12 +42,27 @@ export class EventService {
       })
       .eq("status", "active")
       .lt("event_datetime", now)
-      .is("deleted_at", null);
+      .is("deleted_at", null)
+      .select("id, name, event_datetime");
 
     if (error) {
       // Logujemy błąd ale nie przerywamy operacji - to nie jest krytyczne
       console.error("Błąd podczas automatycznego oznaczania wydarzeń jako completed:", error);
+    } else if (data && data.length > 0) {
+      console.log(`autoCompleteEvents: Oznaczono ${data.length} wydarzeń jako completed:`, data);
+    } else {
+      console.log("autoCompleteEvents: Brak wydarzeń do oznaczenia jako completed");
     }
+  }
+
+  /**
+   * Publiczna metoda do automatycznego oznaczania przeszłych wydarzeń jako 'completed'.
+   * Może być wywoływana z innych serwisów przed pobieraniem wydarzeń.
+   *
+   * @returns Promise rozwiązujący się po zaktualizowaniu wydarzeń
+   */
+  async completePastEvents(): Promise<void> {
+    await this.autoCompleteEvents();
   }
 
   /**
