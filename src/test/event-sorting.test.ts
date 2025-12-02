@@ -24,6 +24,18 @@ const mockSupabase = {
         })),
       })),
     })),
+    update: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        lt: vi.fn(() => ({
+          is: vi.fn(() => ({
+            select: vi.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    })),
   })),
 } as unknown as SupabaseClient;
 
@@ -54,6 +66,18 @@ describe("EventService - listEvents sorting", () => {
       select: vi.fn().mockReturnValue({
         is: vi.fn().mockReturnValue({
           order: mockOrder,
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          lt: vi.fn().mockReturnValue({
+            is: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
         }),
       }),
     });
