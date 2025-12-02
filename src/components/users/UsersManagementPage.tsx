@@ -218,17 +218,18 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Powrót do Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold">Zarządzanie użytkownikami</h1>
-                <p className="text-muted-foreground">Zarządzaj kontami użytkowników aplikacji</p>
-              </div>
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            {/* Tytuł */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Zarządzanie użytkownikami</h1>
+              <p className="text-muted-foreground">Zarządzaj kontami użytkowników aplikacji</p>
             </div>
+
+            {/* Przycisk powrotu */}
+            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Powrót do Dashboard
+            </Button>
           </div>
         </div>
 
