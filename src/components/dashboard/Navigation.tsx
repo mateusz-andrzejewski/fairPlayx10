@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Settings, Trophy, Users } from "lucide-react";
+import { Calendar, Settings, Trophy, Users, UserCog } from "lucide-react";
 
 import type { UserRole } from "../../types";
 import { Button } from "../ui/button";
@@ -20,6 +20,13 @@ export function Navigation({ userRole }: NavigationProps) {
   const effectiveRole: UserRole = userRole ?? "player";
 
   const navigationItems: NavigationItem[] = [
+    {
+      title: "Użytkownicy",
+      description: "Zarządzaj użytkownikami systemu",
+      icon: UserCog,
+      href: "/dashboard/users",
+      roles: ["admin"],
+    },
     {
       title: "Gracze",
       description: "Zarządzaj bazą graczy w systemie",

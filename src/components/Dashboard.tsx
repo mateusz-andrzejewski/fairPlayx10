@@ -59,7 +59,7 @@ function Dashboard() {
       <AuthenticatedLayout>
         <Navigation userRole={loadingUser.role} />
 
-        <main className="container mx-auto space-y-8 px-4 py-8">
+        <main className="max-w-4xl mx-auto space-y-8 px-4 py-8">
           {/* Loading skeleton dla WelcomeSection */}
           <Card className="bg-gradient-to-r from-primary/5 to-primary/10">
             <CardContent className="p-6">
@@ -133,6 +133,5 @@ function Dashboard() {
     </AuthenticatedLayout>
   );
 }
-
 
 export default Dashboard;

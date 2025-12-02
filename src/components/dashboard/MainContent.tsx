@@ -3,7 +3,7 @@ import { WelcomeSection } from "./WelcomeSection";
 import { UpcomingEventsList } from "./UpcomingEventsList";
 import { ManagementSections } from "./ManagementSections";
 import { NotificationsPanel } from "./NotificationsPanel";
-import type { DashboardViewModel, UserRole } from "../../types";
+import type { DashboardViewModel } from "../../types";
 
 /**
  * Komponent MainContent - główna zawartość dashboardu.
@@ -18,7 +18,7 @@ export function MainContent({ dashboardData, onRefetch }: MainContentProps) {
   const { currentUser, nearestEvent, upcomingEvents, notifications, managementData } = dashboardData;
 
   return (
-    <main className="container mx-auto px-4 py-8 space-y-8">
+    <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Sekcja powitalna z najbliższym wydarzeniem */}
       <WelcomeSection nearestEvent={nearestEvent} />
 
