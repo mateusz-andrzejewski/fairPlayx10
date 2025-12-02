@@ -167,7 +167,7 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
   };
 
   const handleAddPlayerSubmit = async (form: AddPlayerFormData) => {
-    const success = await actions.addPlayerToEvent(form.playerId);
+    const success = await actions.addPlayersToEvent(form.playerIds);
     if (success) {
       setIsAddPlayerDialogOpen(false);
     }

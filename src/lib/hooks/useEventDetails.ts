@@ -10,6 +10,7 @@ interface EventDetailsActions {
   signupForEvent: () => Promise<void>;
   resignFromEvent: (signupId: number) => Promise<void>;
   addPlayerToEvent: (playerId: number) => Promise<boolean>;
+  addPlayersToEvent: (playerIds: number[]) => Promise<boolean>;
   confirmSignup: (signupId: number) => Promise<void>; // Promowanie z listy rezerwowej
 
   // Zarządzanie wydarzeniem
@@ -228,6 +229,55 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
   );
 
   /**
+   * Dodanie wielu graczy do wydarzenia (organizator)
+   */
+  const addPlayersToEvent = useCallback(
+    async (playerIds: number[]): Promise<boolean> => {
+      if (!eventVM?.canManageSignups) {
+        toast.error("Brak uprawnień", { description: "Nie masz uprawnień do dodawania graczy" });
+        return false;
+      }
+
+      if (playerIds.length === 0) {
+        toast.error("Błąd", { description: "Nie wybrano żadnych graczy" });
+        return false;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/events/${eventId}/signups`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player_id: playerIds }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Nie udało się dodać graczy do wydarzenia");
+        }
+
+        const result = await response.json();
+        const addedCount = Array.isArray(result) ? result.length : 1;
+
+        toast.success("Sukces", {
+          description: `Dodano ${addedCount} ${addedCount === 1 ? 'gracza' : addedCount < 5 ? 'graczy' : 'graczy'} do wydarzenia`
+        });
+
+        // Odśwież dane
+        await fetchEventDetails(eventId);
+        return true;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Nie udało się dodać graczy do wydarzenia";
+        toast.error("Błąd", { description: errorMessage });
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [eventVM?.canManageSignups, eventId, fetchEventDetails, toast]
+  );
+
+  /**
    * Potwierdzenie zapisu (przeskok z listy rezerwowej na potwierdzonego)
    */
   const confirmSignup = useCallback(
@@ -310,6 +360,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
     signupForEvent,
     resignFromEvent,
     addPlayerToEvent,
+    addPlayersToEvent,
     confirmSignup,
     editEvent,
     drawTeams,

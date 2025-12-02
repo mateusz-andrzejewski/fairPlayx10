@@ -25,7 +25,7 @@ export interface SignupCardViewModel {
 
 // Nowy typ dla danych formularza dodawania gracza
 export interface AddPlayerFormData {
-  playerId: number;
+  playerIds: number[];
 }
 
 // Nowy typ dla danych akcji wymagających potwierdzenia

@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { AddPlayerFormData, AvailablePlayerDTO } from "@/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { AddPlayerFormData, AvailablePlayerDTO } from "@/types/eventSignupsView";
 
 interface AddPlayerModalProps {
   isOpen: boolean;
@@ -25,8 +25,8 @@ interface AddPlayerModalProps {
 }
 
 /**
- * Modal umożliwiający organizatorowi dodanie nowego gracza do wydarzenia.
- * Zawiera formularz z polem wyboru gracza oraz przyciski akcji.
+ * Modal umożliwiający organizatorowi dodanie nowych graczy do wydarzenia.
+ * Zawiera formularz z checkboxami wyboru graczy oraz przycisk "zaznacz wszystkie".
  */
 export function AddPlayerModal({
   isOpen,
@@ -36,26 +36,44 @@ export function AddPlayerModal({
   isSubmitting = false,
   isLoading = false,
 }: AddPlayerModalProps) {
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
 
   // Reset formularza przy otwieraniu
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedPlayerId("");
+      setSelectedPlayerIds([]);
     }
   }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedPlayerId || isLoading) {
-      return; // Walidacja - gracz musi być wybrany
+    if (selectedPlayerIds.length === 0 || isLoading) {
+      return; // Walidacja - przynajmniej jeden gracz musi być wybrany
     }
 
     onSubmit({
-      playerId: parseInt(selectedPlayerId, 10),
+      playerIds: selectedPlayerIds,
     });
   };
+
+  const handlePlayerToggle = (playerId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedPlayerIds((prev) => [...prev, playerId]);
+    } else {
+      setSelectedPlayerIds((prev) => prev.filter((id) => id !== playerId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPlayerIds(availablePlayers.map((player) => player.id));
+    } else {
+      setSelectedPlayerIds([]);
+    }
+  };
+
+  const isAllSelected = availablePlayers.length > 0 && selectedPlayerIds.length === availablePlayers.length;
 
   const handleClose = () => {
     if (!isSubmitting) {
@@ -69,46 +87,73 @@ export function AddPlayerModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserIcon className="w-5 h-5" />
-            Dodaj gracza do wydarzenia
+            Dodaj graczy do wydarzenia
           </DialogTitle>
           <DialogDescription>
-            Wybierz gracza z listy dostępnych, aby dodać go do wydarzenia. Tylko gracze, którzy jeszcze się nie
+            Zaznacz graczy z listy dostępnych, aby dodać ich do wydarzenia. Tylko gracze, którzy jeszcze się nie
             zapisali, będą widoczni na liście.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="player-select" className="text-sm font-medium">
-              Wybierz gracza
-            </label>
-            <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId} disabled={isSubmitting}>
-              <SelectTrigger className="w-full" aria-busy={isLoading}>
-                <div className="flex items-center gap-2">
-                  <SearchIcon className="w-4 h-4 text-muted-foreground" />
-                  <SelectValue placeholder={isLoading ? "Ładowanie listy graczy..." : "Wyszukaj i wybierz gracza..."} />
+            <div className="flex items-center justify-between">
+              <label htmlFor="players-container" className="text-sm font-medium">
+                Wybierz graczy
+              </label>
+              {availablePlayers.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="select-all"
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    disabled={isSubmitting || isLoading}
+                  />
+                  <label
+                    htmlFor="select-all"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Zaznacz wszystkie
+                  </label>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                {isLoading ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Ładowanie dostępnych graczy...</div>
-                ) : availablePlayers.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Brak dostępnych graczy do dodania</div>
-                ) : (
-                  availablePlayers.map((player) => (
-                    <SelectItem key={player.id} value={player.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <UserIcon className="w-4 h-4" />
+              )}
+            </div>
+
+            <div id="players-container" className="max-h-60 overflow-y-auto border rounded-md">
+              {isLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2">
+                    <SearchIcon className="w-4 h-4 animate-spin" />
+                    Ładowanie dostępnych graczy...
+                  </div>
+                </div>
+              ) : availablePlayers.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">Brak dostępnych graczy do dodania</div>
+              ) : (
+                <div className="p-2 space-y-2">
+                  {availablePlayers.map((player) => (
+                    <div key={player.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded">
+                      <Checkbox
+                        id={`player-${player.id}`}
+                        checked={selectedPlayerIds.includes(player.id)}
+                        onCheckedChange={(checked) => handlePlayerToggle(player.id, checked as boolean)}
+                        disabled={isSubmitting || isLoading}
+                      />
+                      <label
+                        htmlFor={`player-${player.id}`}
+                        className="flex items-center gap-2 flex-1 cursor-pointer text-sm"
+                      >
+                        <UserIcon className="w-4 h-4 text-muted-foreground" />
                         <span>
                           {player.first_name} {player.last_name}
                         </span>
                         <span className="text-xs text-muted-foreground capitalize">({player.position})</span>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="gap-2 flex-col sm:flex-row">
@@ -123,10 +168,12 @@ export function AddPlayerModal({
             </Button>
             <Button
               type="submit"
-              disabled={!selectedPlayerId || isSubmitting || isLoading}
+              disabled={selectedPlayerIds.length === 0 || isSubmitting || isLoading}
               className="w-full sm:w-auto"
             >
-              {isSubmitting ? "Dodawanie..." : "Dodaj gracza"}
+              {isSubmitting
+                ? `Dodawanie... (${selectedPlayerIds.length})`
+                : `Dodaj graczy (${selectedPlayerIds.length})`}
             </Button>
           </DialogFooter>
         </form>

@@ -27,6 +27,123 @@ export class EventSignupsService {
   constructor(private supabase: SupabaseClient) {}
 
   /**
+   * Tworzy pojedynczy zapis na wydarzenie dla podanego gracza.
+   * Metoda pomocnicza używana zarówno dla pojedynczych jak i zbiorczych zapisów.
+   *
+   * @param eventId - ID wydarzenia
+   * @param targetPlayerId - ID gracza do zapisania
+   * @param eventData - Dane wydarzenia (cache)
+   * @returns Promise<EventSignupDTO> - utworzony zapis
+   * @private
+   */
+  private async createSingleSignup(
+    eventId: number,
+    targetPlayerId: number,
+    eventData: any
+  ): Promise<EventSignupDTO> {
+    // Określ status zapisu na podstawie dostępnych miejsc
+    const hasAvailableSpots = eventData.current_signups_count < eventData.max_places;
+    const signupStatus = hasAvailableSpots ? "confirmed" : "pending";
+
+    // Sprawdź czy gracz istnieje
+    const { data: playerData, error: playerError } = await this.supabase
+      .from("players")
+      .select("id, first_name, last_name")
+      .eq("id", targetPlayerId)
+      .single();
+
+    if (playerError) {
+      if (playerError.code === "PGRST116") {
+        throw new Error(`Gracz nie został znaleziony (ID: ${targetPlayerId})`);
+      }
+      throw new Error(`Błąd podczas weryfikacji gracza: ${playerError.message}`);
+    }
+
+    // Sprawdź czy gracz nie jest już aktywnie zapisany na to wydarzenie (wykluczając withdrawn)
+    const { data: existingSignup, error: signupCheckError } = await this.supabase
+      .from("event_signups")
+      .select("id, status")
+      .eq("event_id", eventId)
+      .eq("player_id", targetPlayerId)
+      .neq("status", "withdrawn")
+      .single();
+
+    if (signupCheckError && signupCheckError.code !== "PGRST116") {
+      throw new Error(`Błąd podczas sprawdzania istniejącego zapisu: ${signupCheckError.message}`);
+    }
+
+    if (existingSignup) {
+      throw new Error(`Gracz jest już zapisany na to wydarzenie (ID: ${targetPlayerId})`);
+    }
+
+    // Sprawdź czy istnieje wycofany zapis, który możemy reaktywować
+    const { data: withdrawnSignup, error: withdrawnCheckError } = await this.supabase
+      .from("event_signups")
+      .select("id, status")
+      .eq("event_id", eventId)
+      .eq("player_id", targetPlayerId)
+      .eq("status", "withdrawn")
+      .single();
+
+    if (withdrawnCheckError && withdrawnCheckError.code !== "PGRST116") {
+      throw new Error(`Błąd podczas sprawdzania wycofanego zapisu: ${withdrawnCheckError.message}`);
+    }
+
+    let signupResult;
+
+    if (withdrawnSignup) {
+      // Reaktywuj istniejący wycofany zapis
+      const { data: updatedSignup, error: updateError } = await this.supabase
+        .from("event_signups")
+        .update({
+          status: signupStatus,
+          signup_timestamp: new Date().toISOString(),
+          resignation_timestamp: null,
+        })
+        .eq("id", withdrawnSignup.id)
+        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+        .single();
+
+      if (updateError) {
+        throw new Error(`Nie udało się reaktywować zapisu: ${updateError.message}`);
+      }
+
+      signupResult = updatedSignup;
+    } else {
+      // Utwórz nowy zapis
+      const { data: newSignup, error: insertError } = await this.supabase
+        .from("event_signups")
+        .insert({
+          event_id: eventId,
+          player_id: targetPlayerId,
+          signup_timestamp: new Date().toISOString(),
+          status: signupStatus,
+        })
+        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
+        .single();
+
+      if (insertError) {
+        throw new Error(`Nie udało się utworzyć zapisu: ${insertError.message}`);
+      }
+
+      signupResult = newSignup;
+    }
+
+    if (!signupResult) {
+      throw new Error("Nie udało się utworzyć/reaktywować zapisu - brak danych zwrotnych");
+    }
+
+    return {
+      id: signupResult.id,
+      event_id: signupResult.event_id,
+      player_id: signupResult.player_id,
+      signup_timestamp: signupResult.signup_timestamp,
+      status: signupResult.status,
+      resignation_timestamp: signupResult.resignation_timestamp,
+    };
+  }
+
+  /**
    * Automatycznie przesuwa pierwszego gracza z listy rezerwowej (pending) na potwierdzonego (confirmed).
    * Wywoływane automatycznie gdy zwolni się miejsce na wydarzeniu.
    *
@@ -104,38 +221,45 @@ export class EventSignupsService {
    * Tworzy nowy zapis na wydarzenie zgodnie z regułami biznesowymi.
    * Sprawdza uprawnienia użytkownika, waliduje dane wydarzenia i gracza,
    * oraz wykonuje operację w transakcji aby zapewnić spójność danych.
+   * Obsługuje zarówno pojedynczego gracza jak i tablicę graczy dla operacji zbiorczych.
    *
    * @param eventId - ID wydarzenia na które gracz chce się zapisać
    * @param actor - Kontekst użytkownika wykonującego operację (userId, role, playerId)
    * @param payload - Zwalidowane dane zapisu (opcjonalne player_id dla organizatorów/adminów)
-   * @returns Promise rozwiązujący się do utworzonego EventSignupDTO
+   * @returns Promise rozwiązujący się do tablicy utworzonych EventSignupDTO lub pojedynczego EventSignupDTO
    * @throws Error jeśli naruszono reguły biznesowe lub wystąpiły błędy walidacji
    */
   async createEventSignup(
     eventId: number,
     actor: SignupActor,
     payload: CreateEventSignupValidatedParams
-  ): Promise<EventSignupDTO> {
+  ): Promise<EventSignupDTO | EventSignupDTO[]> {
     // Sprawdź podstawowe uprawnienia do wykonania operacji
     if (!canSignUpForEvents(actor.role) && !canManageEventSignups(actor.role)) {
       throw new Error("Brak uprawnień do tworzenia zapisów na wydarzenia");
     }
 
     // Określ player_id na podstawie roli i payloadu
-    let targetPlayerId: number;
+    let targetPlayerIds: number[];
 
     if (canManageEventSignups(actor.role)) {
       // Organizator/admin - musi podać player_id w payload
       if (!payload.player_id) {
         throw new Error("Organizator musi podać ID gracza do zapisania");
       }
-      targetPlayerId = payload.player_id;
+
+      // Obsługa zarówno pojedynczego ID jak i tablicy
+      if (Array.isArray(payload.player_id)) {
+        targetPlayerIds = payload.player_id;
+      } else {
+        targetPlayerIds = [payload.player_id];
+      }
     } else if (canSignUpForEvents(actor.role)) {
       // Gracz - używa własnego player_id z kontekstu
       if (!actor.playerId) {
         throw new Error("Konto gracza nie jest powiązane z profilem gracza");
       }
-      targetPlayerId = actor.playerId;
+      targetPlayerIds = [actor.playerId];
     } else {
       throw new Error("Nieprawidłowa rola użytkownika");
     }
@@ -178,125 +302,84 @@ export class EventSignupsService {
       throw new Error("Organizator może zarządzać zapisami tylko na własnych wydarzeniach");
     }
 
-    // Określ status zapisu na podstawie dostępnych miejsc
-    // Jeśli są wolne miejsca → confirmed, jeśli nie → pending (lista rezerwowa)
-    const hasAvailableSpots = eventData.current_signups_count < eventData.max_places;
-    const signupStatus = hasAvailableSpots ? "confirmed" : "pending";
+    // Obsługa pojedynczego gracza vs wielu graczy
+    if (targetPlayerIds.length === 1) {
+      // Pojedynczy gracz - zachowaj istniejącą logikę
+      const signupResult = await this.createSingleSignup(eventId, targetPlayerIds[0], eventData);
 
-    // Sprawdź czy gracz istnieje
-    const { data: playerData, error: playerError } = await this.supabase
-      .from("players")
-      .select("id, first_name, last_name")
-      .eq("id", targetPlayerId)
-      .single();
+      // Zwiększ licznik zapisów TYLKO jeśli gracz dostał potwierdzone miejsce (nie lista rezerwowa)
+      if (signupResult.status === "confirmed") {
+        const { error: updateError } = await this.supabase
+          .from("events")
+          .update({
+            current_signups_count: eventData.current_signups_count + 1,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", eventId);
 
-    if (playerError) {
-      if (playerError.code === "PGRST116") {
-        throw new Error("Gracz nie został znaleziony");
-      }
-      throw new Error(`Błąd podczas weryfikacji gracza: ${playerError.message}`);
-    }
-
-    // Sprawdź czy gracz nie jest już aktywnie zapisany na to wydarzenie (wykluczając withdrawn)
-    const { data: existingSignup, error: signupCheckError } = await this.supabase
-      .from("event_signups")
-      .select("id, status")
-      .eq("event_id", eventId)
-      .eq("player_id", targetPlayerId)
-      .neq("status", "withdrawn")
-      .single();
-
-    if (signupCheckError && signupCheckError.code !== "PGRST116") {
-      throw new Error(`Błąd podczas sprawdzania istniejącego zapisu: ${signupCheckError.message}`);
-    }
-
-    if (existingSignup) {
-      throw new Error("Gracz jest już zapisany na to wydarzenie");
-    }
-
-    // Sprawdź czy istnieje wycofany zapis, który możemy reaktywować
-    const { data: withdrawnSignup, error: withdrawnCheckError } = await this.supabase
-      .from("event_signups")
-      .select("id, status")
-      .eq("event_id", eventId)
-      .eq("player_id", targetPlayerId)
-      .eq("status", "withdrawn")
-      .single();
-
-    if (withdrawnCheckError && withdrawnCheckError.code !== "PGRST116") {
-      throw new Error(`Błąd podczas sprawdzania wycofanego zapisu: ${withdrawnCheckError.message}`);
-    }
-
-    let signupResult;
-
-    if (withdrawnSignup) {
-      // Reaktywuj istniejący wycofany zapis
-      const { data: updatedSignup, error: updateError } = await this.supabase
-        .from("event_signups")
-        .update({
-          status: signupStatus,
-          signup_timestamp: new Date().toISOString(),
-          resignation_timestamp: null,
-        })
-        .eq("id", withdrawnSignup.id)
-        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
-        .single();
-
-      if (updateError) {
-        throw new Error(`Nie udało się reaktywować zapisu: ${updateError.message}`);
+        if (updateError) {
+          // W przypadku błędu aktualizacji licznika, spróbuj usunąć utworzony zapis
+          await this.supabase.from("event_signups").delete().eq("id", signupResult.id);
+          throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
+        }
       }
 
-      signupResult = updatedSignup;
+      return signupResult;
     } else {
-      // Utwórz nowy zapis
-      const { data: newSignup, error: insertError } = await this.supabase
-        .from("event_signups")
-        .insert({
-          event_id: eventId,
-          player_id: targetPlayerId,
-          signup_timestamp: new Date().toISOString(),
-          status: signupStatus,
-        })
-        .select("id, event_id, player_id, signup_timestamp, status, resignation_timestamp")
-        .single();
+      // Wielu graczy - operacja zbiorcza
+      const signupResults: EventSignupDTO[] = [];
+      let confirmedCount = 0;
 
-      if (insertError) {
-        throw new Error(`Nie udało się utworzyć zapisu: ${insertError.message}`);
+      // Przetwórz każdego gracza
+      for (const playerId of targetPlayerIds) {
+        try {
+          const signupResult = await this.createSingleSignup(eventId, playerId, {
+            ...eventData,
+            current_signups_count: eventData.current_signups_count + confirmedCount, // Aktualizuj bieżący licznik dla kolejnych graczy
+          });
+          signupResults.push(signupResult);
+
+          if (signupResult.status === "confirmed") {
+            confirmedCount++;
+          }
+        } catch (error) {
+          // W przypadku błędu dla jednego gracza, cofnij wszystkie dotychczasowe zapisy
+          for (const result of signupResults) {
+            try {
+              await this.supabase.from("event_signups").delete().eq("id", result.id);
+            } catch (rollbackError) {
+              console.error(`Błąd podczas cofania zapisu ${result.id}:`, rollbackError);
+            }
+          }
+          throw error; // Przekaż oryginalny błąd
+        }
       }
 
-      signupResult = newSignup;
-    }
+      // Zaktualizuj licznik zapisów jeśli jakieś zapisy zostały potwierdzone
+      if (confirmedCount > 0) {
+        const { error: updateError } = await this.supabase
+          .from("events")
+          .update({
+            current_signups_count: eventData.current_signups_count + confirmedCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", eventId);
 
-    if (!signupResult) {
-      throw new Error("Nie udało się utworzyć/reaktywować zapisu - brak danych zwrotnych");
-    }
-
-    // Zwiększ licznik zapisów TYLKO jeśli gracz dostał potwierdzone miejsce (nie lista rezerwowa)
-    if (signupStatus === "confirmed") {
-      const { error: updateError } = await this.supabase
-        .from("events")
-        .update({
-          current_signups_count: eventData.current_signups_count + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", eventId);
-
-      if (updateError) {
-        // W przypadku błędu aktualizacji licznika, spróbuj usunąć utworzony zapis
-        await this.supabase.from("event_signups").delete().eq("id", signupResult.id);
-        throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
+        if (updateError) {
+          // W przypadku błędu aktualizacji licznika, cofnij wszystkie zapisy
+          for (const result of signupResults) {
+            try {
+              await this.supabase.from("event_signups").delete().eq("id", result.id);
+            } catch (rollbackError) {
+              console.error(`Błąd podczas cofania zapisu ${result.id}:`, rollbackError);
+            }
+          }
+          throw new Error(`Nie udało się zaktualizować licznika zapisów: ${updateError.message}`);
+        }
       }
-    }
 
-    // Zwróć EventSignupDTO
-    return {
-      id: signupResult.id,
-      event_id: signupResult.event_id,
-      player_id: signupResult.player_id,
-      signup_timestamp: signupResult.signup_timestamp,
-      status: signupResult.status,
-      resignation_timestamp: signupResult.resignation_timestamp,
-    };
+      return signupResults;
+    }
   }
 
   /**

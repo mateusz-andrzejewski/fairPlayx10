@@ -4,12 +4,14 @@ import { z } from "zod";
  * Schemat Zod do walidacji danych wejściowych dla tworzenia nowego zapisu na wydarzenie.
  * Dla graczy pole player_id jest opcjonalne i będzie pobierane z kontekstu użytkownika.
  * Dla organizatorów/adminów pole player_id jest wymagane aby określić którego gracza chcą zapisać.
+ * Obsługuje zarówno pojedynczego gracza jak i tablicę graczy dla operacji zbiorczych.
  */
 export const createEventSignupSchema = z.object({
   player_id: z
-    .number()
-    .int("ID gracza musi być liczbą całkowitą")
-    .positive("ID gracza musi być dodatnią liczbą całkowitą")
+    .union([
+      z.number().int("ID gracza musi być liczbą całkowitą").positive("ID gracza musi być dodatnią liczbą całkowitą"),
+      z.array(z.number().int("ID gracza musi być liczbą całkowitą").positive("ID gracza musi być dodatnią liczbą całkowitą"))
+    ])
     .optional(),
 });
 
