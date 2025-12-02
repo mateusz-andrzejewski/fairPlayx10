@@ -9,6 +9,7 @@ import type { EventDetailDTO } from "../../types";
 import type { CreateEventValidatedParams } from "../../lib/validation/event";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 
 interface EventEditPageProps {
   eventId: number;
@@ -132,83 +133,96 @@ export function EventEditPage({ eventId }: EventEditPageProps) {
 
   if (authLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">Ładowanie danych wydarzenia...</p>
+      <AuthenticatedLayout>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">Ładowanie danych wydarzenia...</p>
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   if (!user) {
     return (
-      <Alert variant="destructive" className="max-w-2xl mx-auto">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Musisz być zalogowany, aby edytować wydarzenie.</AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert variant="destructive" className="max-w-2xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Musisz być zalogowany, aby edytować wydarzenie.</AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive" className="max-w-2xl mx-auto">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert variant="destructive" className="max-w-2xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   if (!event) {
     return (
-      <Alert className="max-w-2xl mx-auto">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Nie udało się odnaleźć wydarzenia do edycji.</AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert className="max-w-2xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Nie udało się odnaleźć wydarzenia do edycji.</AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   if (!canEdit) {
     return (
-      <Alert variant="destructive" className="max-w-2xl mx-auto">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Nie masz uprawnień do edycji tego wydarzenia.</AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert variant="destructive" className="max-w-2xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Nie masz uprawnień do edycji tego wydarzenia.</AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   const canDelete = user?.role === "admin";
 
   return (
-    <div className="py-8">
-      <EventForm event={event} onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isSubmitting} />
+    <AuthenticatedLayout>
+      <div className="py-8">
+        <EventForm event={event} onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isSubmitting} />
 
-      {/* Przycisk usuwania wydarzenia - tylko dla admina */}
-      {canDelete && (
-        <div className="max-w-2xl mx-auto mt-8">
-          <div className="border border-destructive/30 rounded-lg p-6 bg-destructive/5">
-            <h3 className="text-lg font-semibold text-destructive mb-2">Strefa niebezpieczna</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Usunięcie wydarzenia jest operacją nieodwracalną. Wydarzenie zostanie oznaczone jako usunięte i nie będzie
-              możliwe jego przywrócenie.
-            </p>
-            <Button variant="destructive" onClick={handleOpenDeleteModal} disabled={isDeleting} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Usuń wydarzenie
-            </Button>
+        {/* Przycisk usuwania wydarzenia - tylko dla admina */}
+        {canDelete && (
+          <div className="max-w-2xl mx-auto mt-8">
+            <div className="border border-destructive/30 rounded-lg p-6 bg-destructive/5">
+              <h3 className="text-lg font-semibold text-destructive mb-2">Strefa niebezpieczna</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Usunięcie wydarzenia jest operacją nieodwracalną. Wydarzenie zostanie oznaczone jako usunięte i nie będzie
+                możliwe jego przywrócenie.
+              </p>
+              <Button variant="destructive" onClick={handleOpenDeleteModal} disabled={isDeleting} className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Usuń wydarzenie
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal potwierdzenia usunięcia */}
-      <DeleteEventModal
-        eventName={event?.name || ""}
-        eventId={eventId}
-        isOpen={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleDeleteEvent}
-        isDeleting={isDeleting}
-      />
-    </div>
+        {/* Modal potwierdzenia usunięcia */}
+        <DeleteEventModal
+          eventName={event?.name || ""}
+          eventId={eventId}
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleDeleteEvent}
+          isDeleting={isDeleting}
+        />
+      </div>
+    </AuthenticatedLayout>
   );
 }
+

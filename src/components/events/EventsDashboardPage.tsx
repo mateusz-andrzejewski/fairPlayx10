@@ -3,14 +3,18 @@ import React from "react";
 import type { UserRole } from "../../types";
 import { useAuth } from "../../lib/hooks/useAuth";
 import { EventsList } from "./EventsList";
+import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 
 export function EventsDashboardPage() {
   const { user, isLoading } = useAuth();
   const userRole = (user?.role ?? "player") as UserRole;
   const playerId = user?.player_id ?? undefined;
 
+  // isLoading handled by AuthenticatedLayout mostly, but if we need user data for EventsList props,
+  // we might want to wait or pass defaults. EventsList handles userRole.
+  
   return (
-    <div className="min-h-screen bg-background">
+    <AuthenticatedLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Wydarzenia FairPlay</h1>
@@ -27,6 +31,6 @@ export function EventsDashboardPage() {
           <EventsList userRole={userRole} currentUserId={playerId} showBackToDashboard />
         )}
       </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }

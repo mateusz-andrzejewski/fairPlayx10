@@ -10,6 +10,7 @@ import { PlayerDetailsModal } from "./PlayerDetailsModal";
 import { PlayerForm } from "./PlayerForm";
 import { PlayersTable } from "./PlayersTable";
 import { SearchAndFilters } from "./SearchAndFilters";
+import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 
 export default function PlayersListPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -45,34 +46,38 @@ export default function PlayersListPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Ładowanie danych użytkownika...</p>
-      </div>
+      <AuthenticatedLayout>
+        <div className="flex min-h-screen items-center justify-center">
+          <p className="text-muted-foreground">Ładowanie danych użytkownika...</p>
+        </div>
+      </AuthenticatedLayout>
     );
   }
 
   if (!user || (userRole !== "admin" && userRole !== "organizer")) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <h1 className="mb-2 text-2xl font-bold text-destructive">Brak dostępu</h1>
-          <p className="text-muted-foreground">
-            {!user
-              ? "Musisz być zalogowany, aby przeglądać tę stronę."
-              : "Nie masz uprawnień do przeglądania tej strony."}
-          </p>
-          {!user && (
-            <Button onClick={() => (window.location.href = "/login")} className="mt-4">
-              Przejdź do logowania
-            </Button>
-          )}
+      <AuthenticatedLayout>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-center">
+            <h1 className="mb-2 text-2xl font-bold text-destructive">Brak dostępu</h1>
+            <p className="text-muted-foreground">
+              {!user
+                ? "Musisz być zalogowany, aby przeglądać tę stronę."
+                : "Nie masz uprawnień do przeglądania tej strony."}
+            </p>
+            {!user && (
+              <Button onClick={() => (window.location.href = "/login")} className="mt-4">
+                Przejdź do logowania
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AuthenticatedLayout>
       <div className="container mx-auto px-4 py-8">
         {/* Przycisk powrotu do dashboard */}
         <div className="mb-4">
@@ -160,6 +165,7 @@ export default function PlayersListPage() {
           />
         )}
       </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }
+

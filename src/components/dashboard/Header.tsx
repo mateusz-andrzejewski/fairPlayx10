@@ -27,7 +27,9 @@ export function Header({ currentUser }: HeaderProps) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Dashboard FairPlay</h1>
+            <a href="/dashboard" className="hover:opacity-80 transition-opacity">
+              <h1 className="text-2xl font-bold">Dashboard FairPlay</h1>
+            </a>
             <p className="text-muted-foreground">Witaj, {displayName || "Gość"}</p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="gap-2">

@@ -3,11 +3,11 @@ import React, { useEffect } from "react";
 import { toast } from "sonner";
 
 import { useDashboardData } from "../lib/hooks/useDashboardData";
-import { Header } from "./dashboard/Header";
 import { MainContent } from "./dashboard/MainContent";
 import { Navigation } from "./dashboard/Navigation";
 import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
+import { AuthenticatedLayout } from "./layouts/AuthenticatedLayout";
 
 /**
  * Główny komponent widoku Dashboard.
@@ -53,17 +53,10 @@ function Dashboard() {
     deleted_at: null,
   };
 
-  const errorUser = {
-    ...loadingUser,
-    first_name: "Błąd",
-  };
-
   // Stan ładowania
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header currentUser={loadingUser} />
-
+      <AuthenticatedLayout>
         <Navigation userRole={loadingUser.role} />
 
         <main className="container mx-auto space-y-8 px-4 py-8">
@@ -92,16 +85,14 @@ function Dashboard() {
             </div>
           </div>
         </main>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   // Stan błędu
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header currentUser={errorUser} />
-
+      <AuthenticatedLayout>
         <main className="container mx-auto px-4 py-8">
           <Card className="border-red-200 bg-red-50/50">
             <CardContent className="p-6">
@@ -115,14 +106,14 @@ function Dashboard() {
             </CardContent>
           </Card>
         </main>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   // Brak danych
   if (!dashboardData) {
     return (
-      <div className="min-h-screen bg-background">
+      <AuthenticatedLayout>
         <main className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="p-6 text-center">
@@ -130,18 +121,18 @@ function Dashboard() {
             </CardContent>
           </Card>
         </main>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   // Render pełnego dashboardu
   return (
-    <div className="min-h-screen bg-background">
-      <Header currentUser={dashboardData.currentUser} />
+    <AuthenticatedLayout>
       <Navigation userRole={dashboardData.currentUser?.role} />
       <MainContent dashboardData={dashboardData} onRefetch={refetch} />
-    </div>
+    </AuthenticatedLayout>
   );
 }
+
 
 export default Dashboard;

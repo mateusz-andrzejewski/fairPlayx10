@@ -6,6 +6,7 @@ import { EventForm } from "./EventForm";
 import { useAuth } from "../../lib/hooks/useAuth";
 import type { CreateEventValidatedParams } from "../../lib/validation/event";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 
 export function EventCreatePage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -46,38 +47,47 @@ export function EventCreatePage() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">Ładowanie...</p>
+      <AuthenticatedLayout>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">Ładowanie...</p>
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   if (!user) {
     return (
-      <Alert variant="destructive" className="max-w-2xl mx-auto mt-8">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Musisz być zalogowany, aby tworzyć wydarzenia.</AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert variant="destructive" className="max-w-2xl mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Musisz być zalogowany, aby tworzyć wydarzenia.</AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   if (!canCreate) {
     return (
-      <Alert variant="destructive" className="max-w-2xl mx-auto mt-8">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Nie masz uprawnień do tworzenia wydarzeń. Tylko administratorzy i organizatorzy mogą tworzyć wydarzenia.
-        </AlertDescription>
-      </Alert>
+      <AuthenticatedLayout>
+        <Alert variant="destructive" className="max-w-2xl mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Nie masz uprawnień do tworzenia wydarzeń. Tylko administratorzy i organizatorzy mogą tworzyć wydarzenia.
+          </AlertDescription>
+        </Alert>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <div className="py-8">
-      <EventForm onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isSubmitting} />
-    </div>
+    <AuthenticatedLayout>
+      <div className="py-8">
+        <EventForm onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isSubmitting} />
+      </div>
+    </AuthenticatedLayout>
   );
 }
+
