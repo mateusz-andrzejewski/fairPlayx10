@@ -361,9 +361,9 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
   }, [eventId, fetchEventDetails]);
 
   /**
-   * Złożony obiekt akcji
+   * Złożony obiekt akcji - memoizowany aby uniknąć nieskończonych pętli re-renderów
    */
-  const actions: EventDetailsActions = {
+  const actions: EventDetailsActions = useMemo(() => ({
     signupForEvent,
     resignFromEvent,
     addPlayerToEvent,
@@ -373,7 +373,7 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
     drawTeams,
     goBack,
     refresh,
-  };
+  }), [signupForEvent, resignFromEvent, addPlayerToEvent, addPlayersToEvent, confirmSignup, editEvent, drawTeams, goBack, refresh]);
 
   return {
     // Stan

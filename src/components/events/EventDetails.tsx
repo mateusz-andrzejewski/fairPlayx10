@@ -84,20 +84,7 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
   //   return ids;
   // }, [event?.signupsWithNames]);
 
-  // Efekt sprawdzający czy wydarzenie z przeszłości powinno mieć status 'completed'
-  useEffect(() => {
-    if (!event || event.status !== "active") {
-      return;
-    }
-
-    const eventDate = new Date(event.event_datetime);
-    const now = new Date();
-
-    // Jeśli wydarzenie już się odbyło ale nadal ma status 'active', odśwież dane
-    if (eventDate < now) {
-      actions.refresh();
-    }
-  }, [event, actions]);
+  // Status wydarzeń z przeszłości jest automatycznie aktualizowany przez autoCompleteEvents w serwisie
 
   useEffect(() => {
     if (!isAddPlayerDialogOpen) {
