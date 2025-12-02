@@ -26,6 +26,7 @@ import type { AvailablePlayerDTO, AddPlayerFormData } from "@/types/eventSignups
 import type { PlayersListResponseDTO, EventStatus } from "../../types";
 import type { UserRole } from "../../types";
 import { toast } from "sonner";
+import { translatePlayerPosition } from "../../lib/utils/translations";
 
 /**
  * Mapuje status wydarzenia na tekst i wariant badge'a
@@ -523,7 +524,9 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                             <div>
                               <p className="font-medium">{signup.playerName}</p>
                               {signup.position && (
-                                <p className="text-sm text-muted-foreground capitalize">{signup.position}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {translatePlayerPosition(signup.position)}
+                                </p>
                               )}
                             </div>
                           </div>
@@ -576,7 +579,9 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                             <div>
                               <p className="font-medium text-muted-foreground">{signup.playerName}</p>
                               {signup.position && (
-                                <p className="text-xs text-muted-foreground capitalize">{signup.position}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {translatePlayerPosition(signup.position)}
+                                </p>
                               )}
                             </div>
                           </div>

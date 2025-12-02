@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AddPlayerFormData, AvailablePlayerDTO } from "@/types/eventSignupsView";
+import { translatePlayerPosition } from "../../lib/utils/translations";
 
 interface AddPlayerModalProps {
   isOpen: boolean;
@@ -147,7 +148,9 @@ export function AddPlayerModal({
                         <span>
                           {player.first_name} {player.last_name}
                         </span>
-                        <span className="text-xs text-muted-foreground capitalize">({player.position})</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({translatePlayerPosition(player.position)})
+                        </span>
                       </label>
                     </div>
                   ))}

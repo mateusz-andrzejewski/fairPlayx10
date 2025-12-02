@@ -12,6 +12,7 @@ import { DeleteUserModal } from "./DeleteUserModal";
 import { EditUserRoleModal } from "./EditUserRoleModal";
 import type { UserDTO, UserRole } from "../../types";
 import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
+import { translateUserRole } from "../../lib/utils/translations";
 
 interface UsersManagementPageProps {
   initialUsers?: UserDTO[];
@@ -232,7 +233,7 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
         </div>
 
         {/* Main content */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Statystyki */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
@@ -296,7 +297,7 @@ export default function UsersManagementPage({ initialUsers = [], initialPaginati
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{user.role}</Badge>
+                          <Badge variant="secondary">{translateUserRole(user.role)}</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import type { UserDTO, UserRole } from "../../types";
+import { translateUserRole } from "../../lib/utils/translations";
 
 interface EditUserRoleModalProps {
   user: UserDTO | null;
@@ -75,7 +76,7 @@ export function EditUserRoleModal({ user, isOpen, onClose, onSave, isSubmitting 
               <span className="font-medium">Email:</span>
               <span>{user.email}</span>
               <span className="font-medium">Aktualna rola:</span>
-              <span className="capitalize font-semibold">{user.role}</span>
+              <span className="font-semibold">{translateUserRole(user.role)}</span>
             </div>
           </div>
 

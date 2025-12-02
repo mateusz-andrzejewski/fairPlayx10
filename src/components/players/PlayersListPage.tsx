@@ -78,7 +78,7 @@ export default function PlayersListPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Przycisk powrotu do dashboard */}
         <div className="mb-4">
           <Button variant="ghost" onClick={() => (window.location.href = "/dashboard")} className="gap-2">

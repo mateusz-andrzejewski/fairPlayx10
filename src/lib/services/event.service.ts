@@ -244,7 +244,7 @@ export class EventService {
         }
       )
       .is("deleted_at", null) // Tylko aktywne wydarzenia
-      .order("event_datetime", { ascending: true })
+      .order("event_datetime", { ascending: false })
       .range(from, to);
 
     // Zastosuj filtr statusu jeśli określony

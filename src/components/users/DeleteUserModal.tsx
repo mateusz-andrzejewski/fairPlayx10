@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { UserDTO } from "../../types";
+import { translateUserRole } from "../../lib/utils/translations";
 
 interface DeleteUserModalProps {
   user: UserDTO | null;
@@ -53,7 +54,7 @@ export function DeleteUserModal({ user, isOpen, onClose, onConfirm, isDeleting }
             <span className="font-medium">Email:</span>
             <span>{user.email}</span>
             <span className="font-medium">Rola:</span>
-            <span className="capitalize">{user.role}</span>
+            <span>{translateUserRole(user.role)}</span>
             <span className="font-medium">Status:</span>
             <span className="capitalize">{user.status === "approved" ? "Zatwierdzony" : "Oczekujący"}</span>
           </div>

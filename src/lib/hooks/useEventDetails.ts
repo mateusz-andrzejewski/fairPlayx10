@@ -347,10 +347,10 @@ export function useEventDetails(eventId: number, userRole: UserRole, userId: num
   }, [eventVM?.canManageSignups, eventId, toast]);
 
   /**
-   * Nawigacja wstecz
+   * Nawigacja wstecz - przekierowuje do listy wydarzeń
    */
   const goBack = useCallback(() => {
-    window.history.back();
+    window.location.href = "/dashboard/events";
   }, []);
 
   /**

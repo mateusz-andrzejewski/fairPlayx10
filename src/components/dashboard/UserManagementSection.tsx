@@ -5,6 +5,7 @@ import { Badge } from "../ui/badge";
 import { Users, UserCheck } from "lucide-react";
 import ApproveUserModal from "../users/ApproveUserModal";
 import type { UserDTO } from "../../types";
+import { translateUserRole } from "../../lib/utils/translations";
 
 /**
  * Komponent UserManagementSection - sekcja zarządzania użytkownikami (tylko admin).
@@ -76,7 +77,7 @@ export function UserManagementSection({ users, onRefetch }: UserManagementSectio
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                        {user.role}
+                        {translateUserRole(user.role)}
                       </Badge>
                       <Button
                         size="sm"

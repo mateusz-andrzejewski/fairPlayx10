@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { PlayerListItemVM, PaginationMetaDTO, UserRole, PlayerDTO } from "../../types";
+import { translatePlayerPosition } from "../../lib/utils/translations";
 
 interface PlayersTableProps {
   players: PlayerListItemVM[];
@@ -89,13 +90,7 @@ export function PlayersTable({
    * Tłumaczenie pozycji na polski
    */
   const getPositionLabel = (position: string) => {
-    const labels: Record<string, string> = {
-      forward: "Napastnik",
-      midfielder: "Pomocnik",
-      defender: "Obrońca",
-      goalkeeper: "Bramkarz",
-    };
-    return labels[position] || position;
+    return translatePlayerPosition(position as any);
   };
 
   if (isLoading && players.length === 0) {

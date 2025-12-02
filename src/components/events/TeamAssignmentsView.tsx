@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TeamViewModel, TeamColor, UserRole } from "@/types";
+import { translatePlayerPosition } from "../../lib/utils/translations";
 
 interface TeamAssignmentsViewProps {
   eventId: number;
@@ -126,13 +127,7 @@ export function TeamAssignmentsView({ eventId, userRole, currentPlayerId }: Team
 
   // Helper do tłumaczenia pozycji
   const translatePosition = (position: string) => {
-    const translations: Record<string, string> = {
-      forward: "Napastnik",
-      midfielder: "Pomocnik",
-      defender: "Obrońca",
-      goalkeeper: "Bramkarz",
-    };
-    return translations[position] || position;
+    return translatePlayerPosition(position as any);
   };
 
   // Helper do tłumaczenia kolorów
