@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/session",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
 ];
 
 const PENDING_ALLOWED_PATHS = ["/pending-approval", "/api/auth/logout"];

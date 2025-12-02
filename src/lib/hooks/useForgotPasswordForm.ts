@@ -48,14 +48,59 @@ export function useForgotPasswordForm() {
     setIsSubmitting(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Wywołaj API endpoint forgot password
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      });
 
-      setSubmittedEmail(normalizedEmail);
-      setIsSuccess(true);
+      const result = await response.json();
 
-      toast.success("Wysłaliśmy instrukcje resetu hasła", {
-        description: "Sprawdź skrzynkę pocztową i postępuj zgodnie z instrukcjami z wiadomości.",
-        duration: 5000,
+      if (!response.ok) {
+        if (result.error === "VALIDATION_ERROR" && result.details) {
+          // Mapuj błędy walidacji
+          const newErrors: string[] = [];
+          Object.entries(result.details).forEach(([field, messages]) => {
+            if (field === 'email' && Array.isArray(messages)) {
+              newErrors.push(...messages);
+            }
+          });
+          setErrors(newErrors);
+          return;
+        } else {
+          throw new Error(result.message || "Wystąpił błąd podczas wysyłania instrukcji resetu");
+        }
+      }
+
+      if (result.success) {
+        setSubmittedEmail(normalizedEmail);
+        setIsSuccess(true);
+
+        toast.success("Wysłaliśmy instrukcje resetu hasła", {
+          description: "Sprawdź skrzynkę pocztową i postępuj zgodnie z instrukcjami z wiadomości.",
+          duration: 5000,
+        });
+      } else {
+        throw new Error(result.message || "Wystąpił błąd podczas wysyłania instrukcji resetu");
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
+
+      let errorMessage = "Wystąpił błąd podczas wysyłania instrukcji resetu. Spróbuj ponownie.";
+      let toastTitle = "Błąd wysyłania";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error(toastTitle, {
+        description: errorMessage,
+        duration: 6000,
       });
     } finally {
       setIsSubmitting(false);
