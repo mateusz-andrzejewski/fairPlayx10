@@ -223,12 +223,15 @@ export class EventService {
    * Przed pobraniem automatycznie oznacza przeszłe wydarzenia jako 'completed'.
    *
    * @param params - Zwalidowane parametry zapytania zawierające filtry i ustawienia paginacji
+   * @param skipAutoComplete - Czy pominąć automatyczne oznaczanie wydarzeń jako completed (używane w testach)
    * @returns Promise rozwiązujący się do paginowanej listy wydarzeń
    * @throws Error jeśli zapytanie do bazy danych nie powiedzie się
    */
-  async listEvents(params: ListEventsValidatedParams): Promise<EventsListResponseDTO> {
+  async listEvents(params: ListEventsValidatedParams, skipAutoComplete = false): Promise<EventsListResponseDTO> {
     // Najpierw automatycznie zaktualizuj status wydarzeń które już się odbyły
-    await this.autoCompleteEvents();
+    if (!skipAutoComplete) {
+      await this.autoCompleteEvents();
+    }
 
     // Oblicz offset dla paginacji
     const from = (params.page - 1) * params.limit;

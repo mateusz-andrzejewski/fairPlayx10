@@ -62,33 +62,23 @@ describe("EventService - listEvents sorting", () => {
       }),
     });
 
-    const mockFrom = vi.fn().mockReturnValue({
+    // Mock the from() call for listEvents
+    (mockSupabase.from as any).mockReturnValue({
       select: vi.fn().mockReturnValue({
         is: vi.fn().mockReturnValue({
           order: mockOrder,
         }),
       }),
-      update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          lt: vi.fn().mockReturnValue({
-            is: vi.fn().mockReturnValue({
-              select: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      }),
     });
 
-    (mockSupabase.from as any).mockReturnValue(mockFrom);
-
-    // Call listEvents with minimal params
-    await eventService.listEvents({
-      page: 1,
-      limit: 10,
-    });
+    // Call listEvents with minimal params, skipping autoCompleteEvents
+    await eventService.listEvents(
+      {
+        page: 1,
+        limit: 10,
+      },
+      true
+    );
 
     // Verify that order was called with descending: false (ascending: false means descending)
     expect(mockOrder).toHaveBeenCalledWith("event_datetime", { ascending: false });
