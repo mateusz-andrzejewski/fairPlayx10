@@ -62,6 +62,13 @@ export function EventsList({
   };
 
   /**
+   * Obsługa rezygnacji z wydarzenia
+   */
+  const handleResign = async (eventId: number) => {
+    await actions.resignFromEvent(eventId);
+  };
+
+  /**
    * Reset filtrów
    */
   const handleResetFilters = () => {
@@ -217,6 +224,7 @@ export function EventsList({
                     event={event}
                     userRole={userRole}
                     onSignup={handleSignup}
+                    onResign={handleResign}
                     onNavigate={handleEventClick}
                   />
                 ))}

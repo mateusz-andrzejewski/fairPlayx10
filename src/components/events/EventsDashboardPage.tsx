@@ -10,9 +10,6 @@ export function EventsDashboardPage() {
   const userRole = (user?.role ?? "player") as UserRole;
   const playerId = user?.player_id ?? undefined;
 
-  // isLoading handled by AuthenticatedLayout mostly, but if we need user data for EventsList props,
-  // we might want to wait or pass defaults. EventsList handles userRole.
-
   return (
     <AuthenticatedLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -28,7 +25,11 @@ export function EventsDashboardPage() {
             <p className="text-muted-foreground">Ładowanie danych użytkownika...</p>
           </div>
         ) : (
-          <EventsList userRole={userRole} currentUserId={playerId} showBackToDashboard />
+          <EventsList
+            userRole={userRole}
+            currentUserId={playerId}
+            showBackToDashboard
+          />
         )}
       </div>
     </AuthenticatedLayout>

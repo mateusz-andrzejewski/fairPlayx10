@@ -269,6 +269,15 @@ export interface RunTeamDrawCommand {
   team_count?: number; // Docelowa liczba drużyn do utworzenia (opcjonalna, domyślnie z wydarzenia)
 }
 
+// EVENT SIGNUPS VIEW MODELS
+
+// Typ dla danych akcji wymagających potwierdzenia
+export interface ConfirmActionData {
+  action: "withdraw" | "updateStatus";
+  signupId: number;
+  newStatus?: SignupStatus; // opcjonalne dla akcji updateStatus
+}
+
 /**
  * Representation of draw output players. The derived name is built
  * from player entity fields at runtime, hence the standalone string.
@@ -431,6 +440,7 @@ export interface SearchFiltersVM {
 export interface EventCardViewModel extends EventDTO {
   isFull: boolean; // czy wszystkie miejsca zajęte
   canSignup: boolean; // czy użytkownik może się zapisać
+  isSignedUp: boolean; // czy użytkownik jest już zapisany
   daysUntilEvent: number; // dni do wydarzenia
   formattedDate: string; // sformatowana data
   formattedTime: string; // sformatowany czas

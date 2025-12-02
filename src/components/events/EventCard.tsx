@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { Calendar, Clock, MapPin, Users, Banknote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { EventCardViewModel, UserRole } from "../../types";
+import { ConfirmModal } from "../event-signups/ConfirmModal";
+import type { EventCardViewModel, UserRole, ConfirmActionData } from "../../types";
 
 interface EventCardProps {
   event: EventCardViewModel;
   userRole: UserRole;
   onSignup?: (eventId: number) => Promise<void>;
+  onResign?: (eventId: number) => Promise<void>;
   onNavigate: (eventId: number) => void;
 }
 
@@ -16,7 +18,11 @@ interface EventCardProps {
  * Komponent karty pojedynczego wydarzenia wyświetlający kluczowe informacje
  * w kompaktowej formie. Obsługuje nawigację do szczegółów i szybki zapis.
  */
-export function EventCard({ event, userRole, onSignup, onNavigate }: EventCardProps) {
+export function EventCard({ event, userRole, onSignup, onResign, onNavigate }: EventCardProps) {
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmActionData, setConfirmActionData] = useState<ConfirmActionData | null>(null);
+  const [isSubmittingResign, setIsSubmittingResign] = useState(false);
+
   const handleCardClick = () => {
     onNavigate(event.id);
   };
@@ -28,13 +34,42 @@ export function EventCard({ event, userRole, onSignup, onNavigate }: EventCardPr
     }
   };
 
+  const handleResignClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Zapobiegaj wywołaniu onNavigate
+    setConfirmActionData({
+      action: "withdraw",
+      signupId: event.id, // We'll use event.id as the identifier for the modal
+    });
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmResign = async () => {
+    if (!onResign) return;
+
+    setIsSubmittingResign(true);
+    try {
+      await onResign(event.id);
+      setConfirmModalOpen(false);
+      setConfirmActionData(null);
+    } finally {
+      setIsSubmittingResign(false);
+    }
+  };
+
+  const handleCancelResign = () => {
+    setConfirmModalOpen(false);
+    setConfirmActionData(null);
+  };
+
   const getSignupButtonText = () => {
+    if (event.isSignedUp) return "Rezygnuj";
     if (event.isFull) return "Brak miejsc";
     if (!event.canSignup) return "Niedostępne";
     return "Zapisz się";
   };
 
   const getSignupButtonVariant = () => {
+    if (event.isSignedUp) return "destructive" as const;
     if (event.isFull || !event.canSignup) return "secondary" as const;
     return "default" as const;
   };
@@ -107,13 +142,13 @@ export function EventCard({ event, userRole, onSignup, onNavigate }: EventCardPr
               Szczegóły
             </Button>
 
-            {(userRole === "player" || userRole === "organizer") && onSignup && (
+            {(userRole === "player" || userRole === "organizer") && (onSignup || onResign) && (
               <Button
                 variant={getSignupButtonVariant()}
                 size="sm"
                 className="flex-1"
-                onClick={handleSignupClick}
-                disabled={event.isFull || !event.canSignup}
+                onClick={event.isSignedUp ? handleResignClick : handleSignupClick}
+                disabled={event.isSignedUp ? false : (event.isFull || !event.canSignup)}
               >
                 {getSignupButtonText()}
               </Button>
@@ -121,6 +156,15 @@ export function EventCard({ event, userRole, onSignup, onNavigate }: EventCardPr
           </div>
         </div>
       </CardContent>
+
+      {/* Modal potwierdzenia rezygnacji */}
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        actionData={confirmActionData}
+        onConfirm={handleConfirmResign}
+        onCancel={handleCancelResign}
+        isSubmitting={isSubmittingResign}
+      />
     </Card>
   );
 }

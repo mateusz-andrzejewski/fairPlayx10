@@ -7,6 +7,7 @@ import type {
   EventFiltersViewModel,
   UserRole,
   EventsListResponseDTO,
+  EventSignupDTO,
 } from "../../types";
 
 /**
@@ -19,6 +20,7 @@ interface EventsListActions {
 
   // Zapis na wydarzenie
   signupForEvent: (eventId: number) => Promise<void>;
+  resignFromEvent: (eventId: number) => Promise<void>;
 
   // Paginacja
   goToPage: (page: number) => void;
@@ -50,6 +52,33 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
   // Stan operacji
   const [isSubmittingSignup, setIsSubmittingSignup] = useState(false);
 
+  // Stan zapisów użytkownika
+  const [userSignups, setUserSignups] = useState<EventSignupDTO[]>([]);
+
+  /**
+   * Pobieranie zapisów użytkownika
+   */
+  const fetchUserSignups = useCallback(async () => {
+    if (!currentUserId) {
+      setUserSignups([]);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/dashboard");
+      if (response.ok) {
+        const dashboardData = await response.json();
+        setUserSignups(dashboardData.my_signups || []);
+      } else {
+        console.warn("Nie udało się pobrać zapisów użytkownika");
+        setUserSignups([]);
+      }
+    } catch (error) {
+      console.warn("Błąd podczas pobierania zapisów użytkownika:", error);
+      setUserSignups([]);
+    }
+  }, [currentUserId]);
+
   /**
    * Transformacja surowych danych wydarzeń na ViewModel dla kart
    */
@@ -64,10 +93,15 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
       const isInFuture = eventDate > now;
       const canSignup = isActive && isInFuture && !isFull;
 
+      // Sprawdź czy użytkownik jest już zapisany na to wydarzenie
+      const userSignup = userSignups.find(signup => signup.event_id === event.id && signup.status !== "withdrawn");
+      const isSignedUp = Boolean(userSignup);
+
       return {
         ...event,
         isFull,
         canSignup,
+        isSignedUp,
         daysUntilEvent: Math.max(0, daysUntilEvent),
         formattedDate: eventDate.toLocaleDateString("pl-PL", {
           day: "numeric",
@@ -80,7 +114,7 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
         }),
       };
     });
-  }, [events]);
+  }, [events, userSignups]);
 
   /**
    * Pobieranie listy wydarzeń z API
@@ -126,7 +160,8 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
    */
   useEffect(() => {
     fetchEvents(filters);
-  }, [filters, fetchEvents]);
+    fetchUserSignups();
+  }, [filters, fetchEvents, fetchUserSignups]);
 
   /**
    * Akcje zarządzania filtrami
@@ -169,8 +204,8 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
 
         toast.success("Sukces", { description: "Zostałeś zapisany na wydarzenie" });
 
-        // Odśwież listę wydarzeń
-        await fetchEvents(filters);
+        // Odśwież listę wydarzeń i zapisów użytkownika
+        await Promise.all([fetchEvents(filters), fetchUserSignups()]);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nie udało się zapisać na wydarzenie";
         toast.error("Błąd", { description: errorMessage });
@@ -179,6 +214,50 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
       }
     },
     [currentUserId, filters, fetchEvents, toast]
+  );
+
+  /**
+   * Rezygnacja z wydarzenia
+   */
+  const resignFromEvent = useCallback(
+    async (eventId: number) => {
+      if (!currentUserId) {
+        toast.error("Brak powiązanego profilu gracza", {
+          description: "Połącz konto z profilem gracza, aby zrezygnować z wydarzeń.",
+        });
+        return;
+      }
+
+      // Znajdź signup ID dla tego wydarzenia
+      const userSignup = userSignups?.find(signup => signup.event_id === eventId && signup.status !== "withdrawn");
+      if (!userSignup) {
+        toast.error("Błąd", { description: "Nie jesteś zapisany na to wydarzenie" });
+        return;
+      }
+
+      setIsSubmittingSignup(true);
+      try {
+        const response = await fetch(`/api/events/${eventId}/signups/${userSignup.id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Nie udało się zrezygnować z wydarzenia");
+        }
+
+        toast.success("Sukces", { description: "Zrezygnowałeś z udziału w wydarzeniu" });
+
+        // Odśwież listę wydarzeń i zapisów użytkownika
+        await Promise.all([fetchEvents(filters), fetchUserSignups()]);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Nie udało się zrezygnować z wydarzenia";
+        toast.error("Błąd", { description: errorMessage });
+      } finally {
+        setIsSubmittingSignup(false);
+      }
+    },
+    [currentUserId, userSignups, filters, fetchEvents, toast]
   );
 
   /**
@@ -199,6 +278,7 @@ export function useEventsList(userRole: UserRole, currentUserId?: number) {
     setFilters: setFiltersAction,
     clearFilters,
     signupForEvent,
+    resignFromEvent,
     goToPage,
     changePageSize,
   };
