@@ -10,7 +10,7 @@ interface EventDetailsActions {
   signupForEvent: () => Promise<void>;
   resignFromEvent: (signupId: number) => Promise<void>;
   addPlayerToEvent: (playerId: number) => Promise<boolean>;
-  addPlayersToEvent: (playerIds: number[]) => Promise<boolean>;
+ł   addPlayersToEvent: (playerIds: number[]) => Promise<boolean>;
   confirmSignup: (signupId: number) => Promise<void>; // Promowanie z listy rezerwowej
 
   // Zarządzanie wydarzeniem

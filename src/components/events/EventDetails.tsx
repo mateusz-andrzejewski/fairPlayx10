@@ -12,6 +12,7 @@ import {
   UserMinus,
   Loader2,
   AlertCircle,
+  Copy,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,98 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
     const success = await actions.addPlayersToEvent(form.playerIds);
     if (success) {
       setIsAddPlayerDialogOpen(false);
+    }
+  };
+
+  const handleCopyTeamResults = async () => {
+    try {
+      // Pobierz dane drużyn
+      const response = await fetch(`/api/events/${eventId}/teams`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Grupuj przypisania wg drużyn
+      const teamsMap = new Map<number, any>();
+
+      data.data.forEach((assignment: any) => {
+        const teamNumber = assignment.team_number;
+
+        if (!teamsMap.has(teamNumber)) {
+          teamsMap.set(teamNumber, {
+            teamNumber,
+            teamColor: assignment.team_color,
+            players: [],
+          });
+        }
+
+        const team = teamsMap.get(teamNumber)!;
+        const player = assignment.player;
+
+        if (player) {
+          team.players.push({
+            name: `${player.first_name} ${player.last_name}`,
+            skillRate: player.skill_rate,
+          });
+        }
+      });
+
+      // Konwertuj na array i sortuj
+      const teamsArray = Array.from(teamsMap.values()).sort((a, b) => a.teamNumber - b.teamNumber);
+
+      // Oblicz skill rate dla każdej drużyny
+      const teamsWithSkillRate = teamsArray.map((team) => {
+        const playersWithSkillRate = team.players.filter((p: any) => p.skillRate !== null && p.skillRate !== undefined);
+        const avgSkillRate =
+          playersWithSkillRate.length > 0
+            ? playersWithSkillRate.reduce((sum: number, p: any) => sum + (p.skillRate || 0), 0) /
+              playersWithSkillRate.length
+            : 0;
+
+        return { ...team, avgSkillRate };
+      });
+
+      // Formatuj tekst
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString("pl-PL", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      };
+
+      const translateColor = (color: string) => {
+        const translations: Record<string, string> = {
+          black: "CZARNY",
+          white: "BIAŁY",
+          red: "CZERWONY",
+          blue: "NIEBIESKI",
+        };
+        return translations[color] || color.toUpperCase();
+      };
+
+      let text = `Wyniki losowania składów dla wydarzenia: "${event.name}" - ${formatDate(new Date(event.event_datetime))}\n\n`;
+
+      teamsWithSkillRate.forEach((team) => {
+        text += `TEAM ${translateColor(team.teamColor)} ${team.avgSkillRate.toFixed(1)}:\n\n`;
+
+        team.players.forEach((player: any, index: number) => {
+          text += `${index + 1}. ${player.name}\n`;
+        });
+
+        text += "\n";
+      });
+
+      // Kopiuj do schowka
+      await navigator.clipboard.writeText(text.trim());
+
+      toast.success("Wyniki losowania zostały skopiowane do schowka");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Nie udało się skopiować wyników losowania";
+      toast.error("Błąd podczas kopiowania", { description: message });
     }
   };
 
@@ -459,6 +552,13 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
                   <Shuffle className="h-4 w-4" />
                   Losuj drużyny
                 </Button>
+
+                {event.teams_drawn_at && (
+                  <Button variant="outline" onClick={handleCopyTeamResults} disabled={isSubmitting} className="gap-2">
+                    <Copy className="h-4 w-4" />
+                    Kopiuj wyniki losowania
+                  </Button>
+                )}
               </>
             )}
           </div>
