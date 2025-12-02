@@ -354,6 +354,96 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
         </CardContent>
       </Card>
 
+      {/* Sekcja akcji */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Akcje</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            {/* Akcje dla graczy */}
+            {!event.isOrganizer && (
+              <>
+                {event.isSignedUp ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      const userSignup = event.signupsWithNames.find((s) => s.player_id === currentPlayerId);
+                      if (userSignup) {
+                        actions.resignFromEvent(userSignup.id);
+                      }
+                    }}
+                    disabled={isSubmitting}
+                    className="gap-2"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                    Zrezygnuj z udziału
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={actions.signupForEvent}
+                    disabled={
+                      isSubmitting || event.current_signups_count >= event.max_places || event.status !== "active"
+                    }
+                    className="gap-2"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    Zapisz się
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Akcje dla organizatora/admina */}
+            {event.canManageSignups && (
+              <>
+                <Separator orientation="vertical" className="h-8" />
+
+                <Button variant="outline" onClick={actions.editEvent} disabled={isSubmitting} className="gap-2">
+                  <Edit className="h-4 w-4" />
+                  Edytuj wydarzenie
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={actions.drawTeams}
+                  disabled={isSubmitting || event.signupsWithNames.filter((s) => s.status === "confirmed").length < 2}
+                  className="gap-2"
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Losuj drużyny
+                </Button>
+
+                {event.teams_drawn_at && (
+                  <Button variant="outline" onClick={handleCopyTeamResults} disabled={isSubmitting} className="gap-2">
+                    <Copy className="h-4 w-4" />
+                    Kopiuj wyniki losowania
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Informacje o ograniczeniach */}
+          {event.current_signups_count >= event.max_places && !event.isSignedUp && (
+            <Alert className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Wszystkie miejsca są już zajęte. Nie można się zapisać na to wydarzenie.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {event.status !== "active" && (
+            <Alert className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>To wydarzenie nie jest aktywne. Zapisy są niedostępne.</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Lista zapisów */}
       <Card>
         <CardHeader>
@@ -491,96 +581,6 @@ export function EventDetails({ eventId, userRole, userId, currentPlayerId }: Eve
           </CardContent>
         </Card>
       )}
-
-      {/* Sekcja akcji */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Akcje</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            {/* Akcje dla graczy */}
-            {!event.isOrganizer && (
-              <>
-                {event.isSignedUp ? (
-                  <Button
-                    variant="destructive"
-                    onClick={() => {
-                      const userSignup = event.signupsWithNames.find((s) => s.player_id === currentPlayerId);
-                      if (userSignup) {
-                        actions.resignFromEvent(userSignup.id);
-                      }
-                    }}
-                    disabled={isSubmitting}
-                    className="gap-2"
-                  >
-                    <UserMinus className="h-4 w-4" />
-                    Zrezygnuj z udziału
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={actions.signupForEvent}
-                    disabled={
-                      isSubmitting || event.current_signups_count >= event.max_places || event.status !== "active"
-                    }
-                    className="gap-2"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                    Zapisz się
-                  </Button>
-                )}
-              </>
-            )}
-
-            {/* Akcje dla organizatora/admina */}
-            {event.canManageSignups && (
-              <>
-                <Separator orientation="vertical" className="h-8" />
-
-                <Button variant="outline" onClick={actions.editEvent} disabled={isSubmitting} className="gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edytuj wydarzenie
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={actions.drawTeams}
-                  disabled={isSubmitting || event.signupsWithNames.filter((s) => s.status === "confirmed").length < 2}
-                  className="gap-2"
-                >
-                  <Shuffle className="h-4 w-4" />
-                  Losuj drużyny
-                </Button>
-
-                {event.teams_drawn_at && (
-                  <Button variant="outline" onClick={handleCopyTeamResults} disabled={isSubmitting} className="gap-2">
-                    <Copy className="h-4 w-4" />
-                    Kopiuj wyniki losowania
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Informacje o ograniczeniach */}
-          {event.current_signups_count >= event.max_places && !event.isSignedUp && (
-            <Alert className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Wszystkie miejsca są już zajęte. Nie można się zapisać na to wydarzenie.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {event.status !== "active" && (
-            <Alert className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>To wydarzenie nie jest aktywne. Zapisy są niedostępne.</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
 
       <AddPlayerModal
         isOpen={isAddPlayerDialogOpen}
